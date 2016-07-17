@@ -1,4 +1,4 @@
-%token IDENTIFIER CONSTANT STRING_LITERAL
+%token NAME LITERAL STRING_LITERAL
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN EQ_ASSIGN NE_ASSIGN
@@ -8,22 +8,59 @@
 
 %token CASE IF ELSE SWITCH WHILE GOTO RETURN
 
-%start program
 %%
 
+program
+	: /* empty */
+	| definitions
+	;
+
+definitions
+	: definition
+	| definitions definition
+	;
+
+definition
+	: simple_definition
+	| vector_definition
+	| function_definition
+	;
+
+simple_definition
+	: NAME ';'
+	| NAME  ival_list ';'
+	;
+
+vector_definition
+	: NAME '[' ']' ';'
+	| NAME '[' ']' ival_list ';'
+	| NAME '[' constant ']' ';'
+	| NAME '[' constant ']' ival_list ';'
+	;
+
+function_definition
+	: NAME '(' ')' compound_statement
+	| NAME '(' identifier_list ')' compound_statement
+	;
+
+ival
+	: constant
+	| NAME
+	;
+
 constant
-	: CONSTANT
+	: LITERAL
 	| STRING_LITERAL
 	;
 
-constant_list
-	: constant
-	| constant_list ',' constant
+ival_list
+	: ival
+	| ival_list ',' ival
 	;
 
 primary_expression
-	: IDENTIFIER
-	| CONSTANT
+	: NAME
+	| LITERAL
 	| STRING_LITERAL
 	| '(' expression ')'
 	;
@@ -33,8 +70,8 @@ postfix_expression
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' IDENTIFIER
-	| postfix_expression PTR_OP IDENTIFIER
+	| postfix_expression '.' NAME
+	| postfix_expression PTR_OP NAME
 	| postfix_expression INC_OP
 	| postfix_expression DEC_OP
 	;
@@ -183,7 +220,7 @@ declarator
 	;
 
 direct_declarator
-	: IDENTIFIER
+	: NAME
 	| '(' declarator ')'
 	| direct_declarator '[' constant ']'
 	| direct_declarator '[' ']'
@@ -207,8 +244,8 @@ parameter_declaration
 	;
 
 identifier_list
-	: IDENTIFIER
-	| identifier_list ',' IDENTIFIER
+	: NAME
+	| identifier_list ',' NAME
 	;
 
 statement
@@ -221,7 +258,7 @@ statement
 	;
 
 labeled_statement
-	: IDENTIFIER ':' statement
+	: NAME ':' statement
 	| CASE constant_expression ':' statement
 	;
 
@@ -258,42 +295,9 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'
+	: GOTO NAME ';'
 	| RETURN ';'
 	| RETURN expression ';'
-	;
-
-program
-	: /* empty */
-	| translation_unit
-	;
-
-translation_unit
-	: external_declaration
-	| translation_unit external_declaration
-	;
-
-simple_definition
-	: IDENTIFIER ';'
-	| IDENTIFIER  constant_list ';'
-	;
-
-vector_definition
-	: IDENTIFIER '[' ']' ';'
-	| IDENTIFIER '[' ']' constant_list ';'
-	| IDENTIFIER '[' constant ']' ';'
-	| IDENTIFIER '[' constant ']' constant_list ';'
-	;
-
-function_definition
-	: IDENTIFIER '(' ')' compound_statement
-	| IDENTIFIER '(' identifier_list ')' compound_statement
-	;
-
-external_declaration
-	: simple_definition
-	| vector_definition
-	| function_definition
 	;
 
 %%

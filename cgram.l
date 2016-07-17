@@ -26,16 +26,16 @@ void comment();
 "switch"		{ count(); return(SWITCH); }
 "while"			{ count(); return(WHILE); }
 
-{L}({L}|{D})*		{ count(); return(IDENTIFIER); }
+{L}({L}|{D})*		{ count(); return(NAME); }
 
-0[xX]{H}+{IS}?		{ count(); return(CONSTANT); }
-0{D}+{IS}?		{ count(); return(CONSTANT); }
-{D}+{IS}?		{ count(); return(CONSTANT); }
-L?'(\\.|[^\\'])+'	{ count(); return(CONSTANT); }
+0[xX]{H}+{IS}?		{ count(); return(LITERAL); }
+0{D}+{IS}?		{ count(); return(LITERAL); }
+{D}+{IS}?		{ count(); return(LITERAL); }
+L?'(\\.|[^\\'])+'	{ count(); return(LITERAL); }
 
-{D}+{E}{FS}?		{ count(); return(CONSTANT); }
-{D}*"."{D}+({E})?{FS}?	{ count(); return(CONSTANT); }
-{D}+"."{D}*({E})?{FS}?	{ count(); return(CONSTANT); }
+{D}+{E}{FS}?		{ count(); return(LITERAL); }
+{D}*"."{D}+({E})?{FS}?	{ count(); return(LITERAL); }
+{D}+"."{D}*({E})?{FS}?	{ count(); return(LITERAL); }
 
 L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
 
