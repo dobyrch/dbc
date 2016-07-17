@@ -75,7 +75,7 @@ statement
 	| GOTO NAME ';'
 
 	| RETURN ';'
-	| RETURN expression ';'
+	| RETURN '(' expression ')' ';'
 
 	| expression ';'
 	| ';'
