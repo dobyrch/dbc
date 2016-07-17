@@ -49,7 +49,8 @@ ival
 	;
 
 statement
-	: declaration
+	: automatic_declaration
+	| external_declaration
 	| labeled_statement
 	| compound_statement
 	| selection_statement
@@ -57,6 +58,28 @@ statement
 	| jump_statement
 	| expression_statement
 	;
+
+automatic_declaration
+	: AUTO name_init_list ';'
+
+name_init_list
+	: name_init
+	| name_init_list ',' name_init
+	;
+
+external_declaration
+	: EXTRN name_list ';'
+	;
+
+name_list
+	: NAME
+	| name_list ',' NAME
+
+name_init
+	: NAME
+	| NAME constant
+	;
+
 
 labeled_statement
 	: NAME ':' statement
@@ -225,59 +248,6 @@ assignment_operator
 expression
 	: assignment_expression
 	| expression ',' assignment_expression
-	;
-
-declaration
-	: declaration_specifiers ';'
-	| declaration_specifiers init_declarator_list ';'
-	;
-
-declaration_specifiers
-	: storage_class_specifier
-	| storage_class_specifier declaration_specifiers
-	;
-
-init_declarator_list
-	: init_declarator
-	| init_declarator_list ',' init_declarator
-	;
-
-init_declarator
-	: declarator
-	| declarator '=' assignment_expression
-	;
-
-storage_class_specifier
-	: AUTO
-	| EXTRN
-	;
-
-declarator
-	: direct_declarator
-	;
-
-direct_declarator
-	: NAME
-	| '(' declarator ')'
-	| direct_declarator '[' constant ']'
-	| direct_declarator '[' ']'
-	| direct_declarator '(' parameter_type_list ')'
-	| direct_declarator '(' identifier_list ')'
-	| direct_declarator '(' ')'
-	;
-
-parameter_type_list
-	: parameter_list
-	;
-
-parameter_list
-	: parameter_declaration
-	| parameter_list ',' parameter_declaration
-	;
-
-parameter_declaration
-	: declaration_specifiers declarator
-	| declaration_specifiers
 	;
 
 identifier_list
