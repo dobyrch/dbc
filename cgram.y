@@ -108,8 +108,7 @@ constant
 
 primary_rvalue
 	: NAME
-	| LITERAL
-	| STRING_LITERAL
+	| constant
 	| '(' rvalue ')'
 	;
 
@@ -118,8 +117,6 @@ postfix_rvalue
 	| postfix_rvalue '[' rvalue ']'
 	| postfix_rvalue '(' ')'
 	| postfix_rvalue '(' argument_rvalue_list ')'
-	| postfix_rvalue '.' NAME
-	| postfix_rvalue PTR_OP NAME
 	| postfix_rvalue INC_OP
 	| postfix_rvalue DEC_OP
 	;
@@ -141,7 +138,6 @@ unary_operator
 	| '*'
 	| '+'
 	| '-'
-	| '~'
 	| '!'
 	;
 
