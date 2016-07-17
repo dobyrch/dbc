@@ -48,6 +48,47 @@ ival
 	| NAME
 	;
 
+statement
+	: declaration
+	| labeled_statement
+	| compound_statement
+	| selection_statement
+	| iteration_statement
+	| jump_statement
+	| expression_statement
+	;
+
+labeled_statement
+	: NAME ':' statement
+	| CASE constant ':' statement
+	;
+
+compound_statement
+	: '{' '}'
+	| '{' statement_list '}'
+	;
+
+selection_statement
+	: IF '(' expression ')' statement
+	| IF '(' expression ')' statement ELSE statement
+	| SWITCH '(' expression ')' statement
+	;
+
+expression_statement
+	: ';'
+	| expression ';'
+	;
+
+iteration_statement
+	: WHILE '(' expression ')' statement
+	;
+
+jump_statement
+	: GOTO NAME ';'
+	| RETURN ';'
+	| RETURN expression ';'
+	;
+
 constant
 	: LITERAL
 	| STRING_LITERAL
@@ -186,10 +227,6 @@ expression
 	| expression ',' assignment_expression
 	;
 
-constant_expression
-	: conditional_expression
-	;
-
 declaration
 	: declaration_specifiers ';'
 	| declaration_specifiers init_declarator_list ';'
@@ -248,56 +285,9 @@ identifier_list
 	| identifier_list ',' NAME
 	;
 
-statement
-	: labeled_statement
-	| compound_statement
-	| expression_statement
-	| selection_statement
-	| iteration_statement
-	| jump_statement
-	;
-
-labeled_statement
-	: NAME ':' statement
-	| CASE constant_expression ':' statement
-	;
-
-compound_statement
-	: '{' '}'
-	| '{' statement_list '}'
-	| '{' declaration_list '}'
-	| '{' declaration_list statement_list '}'
-	;
-
-declaration_list
-	: declaration
-	| declaration_list declaration
-	;
-
 statement_list
 	: statement
 	| statement_list statement
-	;
-
-expression_statement
-	: ';'
-	| expression ';'
-	;
-
-selection_statement
-	: IF '(' expression ')' statement
-	| IF '(' expression ')' statement ELSE statement
-	| SWITCH '(' expression ')' statement
-	;
-
-iteration_statement
-	: WHILE '(' expression ')' statement
-	;
-
-jump_statement
-	: GOTO NAME ';'
-	| RETURN ';'
-	| RETURN expression ';'
 	;
 
 %%
