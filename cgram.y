@@ -16,6 +16,11 @@ constant
 	| STRING_LITERAL
 	;
 
+constant_list
+	: constant
+	| constant_list ',' constant
+	;
+
 primary_expression
 	: IDENTIFIER
 	| CONSTANT
@@ -263,16 +268,19 @@ translation_unit
 	| translation_unit external_declaration
 	;
 
+simple_definition
+	: IDENTIFIER ';'
+	| IDENTIFIER  constant_list ';'
+	;
+
 external_declaration
 	: function_definition
-	| declaration
+	| simple_definition
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement
-	| declaration_specifiers declarator compound_statement
-	| declarator declaration_list compound_statement
-	| declarator compound_statement
+	: IDENTIFIER '(' ')' compound_statement
+	| IDENTIFIER '(' identifier_list ')' compound_statement
 	;
 
 %%
