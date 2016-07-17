@@ -8,7 +8,7 @@
 
 %token CASE IF ELSE SWITCH WHILE GOTO RETURN
 
-%start translation_unit
+%start program
 %%
 
 constant
@@ -263,6 +263,11 @@ jump_statement
 	| RETURN expression ';'
 	;
 
+program
+	: /* empty */
+	| translation_unit
+	;
+
 translation_unit
 	: external_declaration
 	| translation_unit external_declaration
@@ -275,8 +280,8 @@ simple_definition
 
 vector_definition
 	: IDENTIFIER '[' ']' ';'
-	| IDENTIFIER '[' constant ']' ';'
 	| IDENTIFIER '[' ']' constant_list ';'
+	| IDENTIFIER '[' constant ']' ';'
 	| IDENTIFIER '[' constant ']' constant_list ';'
 	;
 
