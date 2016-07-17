@@ -2,7 +2,7 @@
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN EQ_ASSIGN NE_ASSIGN
-%token XOR_ASSIGN OR_ASSIGN TYPE_NAME
+%token XOR_ASSIGN OR_ASSIGN
 
 %token AUTO EXTRN
 
@@ -52,7 +52,6 @@ unary_operator
 
 cast_expression
 	: unary_expression
-	| '(' type_name ')' cast_expression
 	;
 
 multiplicative_expression
@@ -174,8 +173,7 @@ storage_class_specifier
 	;
 
 declarator
-	: pointer direct_declarator
-	| direct_declarator
+	: direct_declarator
 	;
 
 direct_declarator
@@ -187,12 +185,6 @@ direct_declarator
 	| direct_declarator '(' identifier_list ')'
 	| direct_declarator '(' ')'
 	;
-
-pointer
-	: '*'
-	| '*' pointer
-	;
-
 
 parameter_type_list
 	: parameter_list
@@ -214,14 +206,8 @@ identifier_list
 	| identifier_list ',' IDENTIFIER
 	;
 
-type_name
-	: abstract_declarator
-	;
-
 abstract_declarator
-	: pointer
-	| direct_abstract_declarator
-	| pointer direct_abstract_declarator
+	: direct_abstract_declarator
 	;
 
 direct_abstract_declarator
