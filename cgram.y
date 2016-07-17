@@ -39,8 +39,8 @@ vector_definition
 	;
 
 function_definition
-	: NAME '(' ')' compound_statement
-	| NAME '(' identifier_list ')' compound_statement
+	: NAME '(' ')' statement
+	| NAME '(' identifier_list ')' statement
 	;
 
 ival
