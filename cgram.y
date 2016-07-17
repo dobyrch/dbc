@@ -43,28 +43,43 @@ function_definition
 	| NAME '(' identifier_list ')' statement
 	;
 
+ival_list
+	: ival
+	| ival_list ',' ival
+	;
+
 ival
 	: constant
 	| NAME
 	;
 
-statement
-	: automatic_declaration
-	| external_declaration
-	| label_statement
-	| case_statement
-	| compound_statement
-	| conditional_statement
-	| while_statement
-	| switch_statement
-	| goto_statement
-	| return_statement
-	| rvalue_statement
-	| null_statement
+identifier_list
+	: NAME
+	| identifier_list ',' NAME
 	;
 
-automatic_declaration
+statement
 	: AUTO init_list ';'
+	| EXTRN name_list ';'
+	| NAME ':' statement
+	| CASE constant ':' statement
+
+	| '{' '}'
+	| '{' statement_list '}'
+
+	| IF '(' rvalue ')' statement
+	| IF '(' rvalue ')' statement ELSE statement
+
+	| WHILE '(' rvalue ')' statement
+	| SWITCH '(' rvalue ')' statement
+	| GOTO NAME ';'
+
+	| RETURN ';'
+	| RETURN rvalue ';'
+
+	| rvalue ';'
+	| ';'
+	;
 
 init_list
 	: init
@@ -76,66 +91,19 @@ init
 	| NAME constant
 	;
 
-external_declaration
-	: EXTRN name_list ';'
-	;
-
 name_list
 	: NAME
 	| name_list ',' NAME
 	;
 
-label_statement
-	: NAME ':' statement
-	;
-
-case_statement
-	: CASE constant ':' statement
-	;
-
-compound_statement
-	: '{' '}'
-	| '{' statement_list '}'
-	;
-
-conditional_statement
-	: IF '(' rvalue ')' statement
-	| IF '(' rvalue ')' statement ELSE statement
-	;
-
-while_statement
-	: WHILE '(' rvalue ')' statement
-	;
-
-switch_statement
-	: SWITCH '(' rvalue ')' statement
-	;
-
-goto_statement
-	: GOTO NAME ';'
-	;
-
-return_statement
-	: RETURN ';'
-	| RETURN rvalue ';'
-	;
-
-rvalue_statement
-	: rvalue ';'
-	;
-
-null_statement
-	: ';'
+statement_list
+	: statement
+	| statement_list statement
 	;
 
 constant
 	: LITERAL
 	| STRING_LITERAL
-	;
-
-ival_list
-	: ival
-	| ival_list ',' ival
 	;
 
 primary_rvalue
@@ -264,16 +232,6 @@ assignment_operator
 rvalue
 	: assignment_rvalue
 	| rvalue ',' assignment_rvalue
-	;
-
-identifier_list
-	: NAME
-	| identifier_list ',' NAME
-	;
-
-statement_list
-	: statement
-	| statement_list statement
 	;
 
 %%
