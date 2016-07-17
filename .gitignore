@@ -3,3 +3,6 @@ cgram
 sample.*
 *.tab.?
 lex.yy.c
+*.html
+*.output
+*.xml
