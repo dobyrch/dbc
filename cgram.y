@@ -273,14 +273,22 @@ simple_definition
 	| IDENTIFIER  constant_list ';'
 	;
 
-external_declaration
-	: function_definition
-	| simple_definition
+vector_definition
+	: IDENTIFIER '[' ']' ';'
+	| IDENTIFIER '[' constant ']' ';'
+	| IDENTIFIER '[' ']' constant_list ';'
+	| IDENTIFIER '[' constant ']' constant_list ';'
 	;
 
 function_definition
 	: IDENTIFIER '(' ')' compound_statement
 	| IDENTIFIER '(' identifier_list ')' compound_statement
+	;
+
+external_declaration
+	: simple_definition
+	| vector_definition
+	| function_definition
 	;
 
 %%
