@@ -1,3 +1,5 @@
 *.swp
 cgram
 sample.*
+*.tab.?
+lex.yy.c

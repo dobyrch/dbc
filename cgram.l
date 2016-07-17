@@ -47,6 +47,7 @@ L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
 "=/"			{ count(); return(DIV_ASSIGN); }
 "=%"			{ count(); return(MOD_ASSIGN); }
 "=&"			{ count(); return(AND_ASSIGN); }
+"=^"			{ count(); return(XOR_ASSIGN); }
 "=|"			{ count(); return(OR_ASSIGN); }
 "==="			{ count(); return(EQ_ASSIGN); }
 "=!="			{ count(); return(NE_ASSIGN); }
@@ -71,6 +72,7 @@ L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
 "]"			{ count(); return(']'); }
 "."			{ count(); return('.'); }
 "&"			{ count(); return('&'); }
+"^"			{ count(); return('^'); }
 "!"			{ count(); return('!'); }
 "-"			{ count(); return('-'); }
 "+"			{ count(); return('+'); }
