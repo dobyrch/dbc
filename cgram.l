@@ -1,9 +1,6 @@
 D			[0-9]
 L			[a-zA-Z_]
 H			[a-fA-F0-9]
-E			[Ee][+-]?{D}+
-FS			(f|F|l|L)
-IS			(u|U|l|L)*
 
 %{
 #include <stdio.h>
@@ -26,18 +23,13 @@ void comment();
 "switch"		{ count(); return(SWITCH); }
 "while"			{ count(); return(WHILE); }
 
-{L}({L}|{D})*		{ count(); return(NAME); }
+{L}({L}|{D})*		{ count(); yylval.val = yytext; return(NAME); }
 
-0[xX]{H}+{IS}?		{ count(); return(LITERAL); }
-0{D}+{IS}?		{ count(); return(LITERAL); }
-{D}+{IS}?		{ count(); return(LITERAL); }
-L?'(\\.|[^\\'])+'	{ count(); return(LITERAL); }
+0{D}			{ count(); yylval.val = yytext; return(LITERAL); }
+{D}+			{ count(); yylval.val = yytext; return(LITERAL); }
+'(\*.|[^\*'])+'		{ count(); yylval.val = yytext; return(LITERAL); }
 
-{D}+{E}{FS}?		{ count(); return(LITERAL); }
-{D}*"."{D}+({E})?{FS}?	{ count(); return(LITERAL); }
-{D}+"."{D}*({E})?{FS}?	{ count(); return(LITERAL); }
-
-L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
+\"(\*.|[^\*"])*\"	{ count(); yylval.val = yytext; return(STRING_LITERAL); }
 
 "=>>"			{ count(); return(RIGHT_ASSIGN); }
 "=<<"			{ count(); return(LEFT_ASSIGN); }
