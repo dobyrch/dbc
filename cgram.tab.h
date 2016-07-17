@@ -67,18 +67,20 @@ extern int yydebug;
     LEFT_ASSIGN = 277,
     RIGHT_ASSIGN = 278,
     AND_ASSIGN = 279,
-    XOR_ASSIGN = 280,
-    OR_ASSIGN = 281,
-    TYPE_NAME = 282,
-    AUTO = 283,
-    EXTRN = 284,
-    CASE = 285,
-    IF = 286,
-    ELSE = 287,
-    SWITCH = 288,
-    WHILE = 289,
-    GOTO = 290,
-    RETURN = 291
+    EQ_ASSIGN = 280,
+    NE_ASSIGN = 281,
+    XOR_ASSIGN = 282,
+    OR_ASSIGN = 283,
+    TYPE_NAME = 284,
+    AUTO = 285,
+    EXTRN = 286,
+    CASE = 287,
+    IF = 288,
+    ELSE = 289,
+    SWITCH = 290,
+    WHILE = 291,
+    GOTO = 292,
+    RETURN = 293
   };
 #endif
 

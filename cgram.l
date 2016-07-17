@@ -48,6 +48,8 @@ L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
 "=%"			{ count(); return(MOD_ASSIGN); }
 "=&"			{ count(); return(AND_ASSIGN); }
 "=|"			{ count(); return(OR_ASSIGN); }
+"==="			{ count(); return(EQ_ASSIGN); }
+"=!="			{ count(); return(NE_ASSIGN); }
 ">>"			{ count(); return(RIGHT_OP); }
 "<<"			{ count(); return(LEFT_OP); }
 "++"			{ count(); return(INC_OP); }
