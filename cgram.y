@@ -67,17 +67,17 @@ statement
 	| '{' '}'
 	| '{' statement_list '}'
 
-	| IF '(' rvalue ')' statement
-	| IF '(' rvalue ')' statement ELSE statement
+	| IF '(' expression ')' statement
+	| IF '(' expression ')' statement ELSE statement
 
-	| WHILE '(' rvalue ')' statement
-	| SWITCH '(' rvalue ')' statement
+	| WHILE '(' expression ')' statement
+	| SWITCH '(' expression ')' statement
 	| GOTO NAME ';'
 
 	| RETURN ';'
-	| RETURN rvalue ';'
+	| RETURN expression ';'
 
-	| rvalue ';'
+	| expression ';'
 	| ';'
 	;
 
@@ -101,14 +101,14 @@ statement_list
 	| statement_list statement
 	;
 
-rvalue
-	: rvalue ',' assignment_rvalue
-	| assignment_rvalue
+expression
+	: expression ',' assignment_expression
+	| assignment_expression
 	;
 
-assignment_rvalue
-	: unary_rvalue assignment_operator assignment_rvalue
-	| conditional_rvalue
+assignment_expression
+	: unary_expression assignment_operator assignment_expression
+	| conditional_expression
 	;
 
 assignment_operator
@@ -127,64 +127,64 @@ assignment_operator
 	| NE_ASSIGN
 	;
 
-conditional_rvalue
-	: inclusive_or_rvalue '?' rvalue ':' conditional_rvalue
-	| inclusive_or_rvalue
+conditional_expression
+	: inclusive_or_expression '?' expression ':' conditional_expression
+	| inclusive_or_expression
 	;
 
-inclusive_or_rvalue
-	: inclusive_or_rvalue '|' exclusive_or_rvalue
-	| exclusive_or_rvalue
+inclusive_or_expression
+	: inclusive_or_expression '|' exclusive_or_expression
+	| exclusive_or_expression
 	;
 
-exclusive_or_rvalue
-	: exclusive_or_rvalue '^' and_rvalue
-	| and_rvalue
+exclusive_or_expression
+	: exclusive_or_expression '^' and_expression
+	| and_expression
 	;
 
-and_rvalue
-	: and_rvalue '&' equality_rvalue
-	| equality_rvalue
+and_expression
+	: and_expression '&' equality_expression
+	| equality_expression
 	;
 
-equality_rvalue
-	: equality_rvalue EQ_OP relational_rvalue
-	| equality_rvalue NE_OP relational_rvalue
-	| relational_rvalue
+equality_expression
+	: equality_expression EQ_OP relational_expression
+	| equality_expression NE_OP relational_expression
+	| relational_expression
 	;
 
-relational_rvalue
-	: relational_rvalue '<' shift_rvalue
-	| relational_rvalue '>' shift_rvalue
-	| relational_rvalue LE_OP shift_rvalue
-	| relational_rvalue GE_OP shift_rvalue
-	| shift_rvalue
+relational_expression
+	: relational_expression '<' shift_expression
+	| relational_expression '>' shift_expression
+	| relational_expression LE_OP shift_expression
+	| relational_expression GE_OP shift_expression
+	| shift_expression
 	;
 
-shift_rvalue
-	: shift_rvalue LEFT_OP additive_rvalue
-	| shift_rvalue RIGHT_OP additive_rvalue
-	| additive_rvalue
+shift_expression
+	: shift_expression LEFT_OP additive_expression
+	| shift_expression RIGHT_OP additive_expression
+	| additive_expression
 	;
 
-additive_rvalue
-	: additive_rvalue '+' multiplicative_rvalue
-	| additive_rvalue '-' multiplicative_rvalue
-	| multiplicative_rvalue
+additive_expression
+	: additive_expression '+' multiplicative_expression
+	| additive_expression '-' multiplicative_expression
+	| multiplicative_expression
 	;
 
-multiplicative_rvalue
-	: multiplicative_rvalue '*' unary_rvalue
-	| multiplicative_rvalue '/' unary_rvalue
-	| multiplicative_rvalue '%' unary_rvalue
-	| unary_rvalue
+multiplicative_expression
+	: multiplicative_expression '*' unary_expression
+	| multiplicative_expression '/' unary_expression
+	| multiplicative_expression '%' unary_expression
+	| unary_expression
 	;
 
-unary_rvalue
-	: unary_operator unary_rvalue
-	| INC_OP unary_rvalue
-	| DEC_OP unary_rvalue
-	| postfix_rvalue
+unary_expression
+	: unary_operator unary_expression
+	| INC_OP unary_expression
+	| DEC_OP unary_expression
+	| postfix_expression
 	;
 
 unary_operator
@@ -195,24 +195,24 @@ unary_operator
 	| '!'
 	;
 
-postfix_rvalue
-	: postfix_rvalue '[' rvalue ']'
-	| postfix_rvalue '(' ')'
-	| postfix_rvalue '(' argument_rvalue_list ')'
-	| postfix_rvalue INC_OP
-	| postfix_rvalue DEC_OP
-	| primary_rvalue
+postfix_expression
+	: postfix_expression '[' expression ']'
+	| postfix_expression '(' ')'
+	| postfix_expression '(' argument_expression_list ')'
+	| postfix_expression INC_OP
+	| postfix_expression DEC_OP
+	| primary_expression
 	;
 
-argument_rvalue_list
-	: assignment_rvalue
-	| argument_rvalue_list ',' assignment_rvalue
+argument_expression_list
+	: assignment_expression
+	| argument_expression_list ',' assignment_expression
 	;
 
-primary_rvalue
+primary_expression
 	: NAME
 	| constant
-	| '(' rvalue ')'
+	| '(' expression ')'
 	;
 
 constant
