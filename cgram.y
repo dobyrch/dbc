@@ -193,19 +193,9 @@ inclusive_or_rvalue
 	| inclusive_or_rvalue '|' exclusive_or_rvalue
 	;
 
-logical_and_rvalue
-	: inclusive_or_rvalue
-	| logical_and_rvalue AND_OP inclusive_or_rvalue
-	;
-
-logical_or_rvalue
-	: logical_and_rvalue
-	| logical_or_rvalue OR_OP logical_and_rvalue
-	;
-
 conditional_rvalue
-	: logical_or_rvalue
-	| logical_or_rvalue '?' rvalue ':' conditional_rvalue
+	: inclusive_or_rvalue
+	| inclusive_or_rvalue '?' rvalue ':' conditional_rvalue
 	;
 
 assignment_rvalue
