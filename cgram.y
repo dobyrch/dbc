@@ -11,6 +11,11 @@
 %start translation_unit
 %%
 
+constant
+	: CONSTANT
+	| STRING_LITERAL
+	;
+
 primary_expression
 	: IDENTIFIER
 	| CONSTANT
@@ -175,7 +180,7 @@ declarator
 direct_declarator
 	: IDENTIFIER
 	| '(' declarator ')'
-	| direct_declarator '[' constant_expression ']'
+	| direct_declarator '[' constant ']'
 	| direct_declarator '[' ']'
 	| direct_declarator '(' parameter_type_list ')'
 	| direct_declarator '(' identifier_list ')'
@@ -193,29 +198,12 @@ parameter_list
 
 parameter_declaration
 	: declaration_specifiers declarator
-	| declaration_specifiers abstract_declarator
 	| declaration_specifiers
 	;
 
 identifier_list
 	: IDENTIFIER
 	| identifier_list ',' IDENTIFIER
-	;
-
-abstract_declarator
-	: direct_abstract_declarator
-	;
-
-direct_abstract_declarator
-	: '(' abstract_declarator ')'
-	| '[' ']'
-	| '[' constant_expression ']'
-	| direct_abstract_declarator '[' ']'
-	| direct_abstract_declarator '[' constant_expression ']'
-	| '(' ')'
-	| '(' parameter_type_list ')'
-	| direct_abstract_declarator '(' ')'
-	| direct_abstract_declarator '(' parameter_type_list ')'
 	;
 
 initializer
