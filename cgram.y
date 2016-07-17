@@ -165,7 +165,7 @@ init_declarator_list
 
 init_declarator
 	: declarator
-	| declarator '=' initializer
+	| declarator '=' assignment_expression
 	;
 
 storage_class_specifier
@@ -204,17 +204,6 @@ parameter_declaration
 identifier_list
 	: IDENTIFIER
 	| identifier_list ',' IDENTIFIER
-	;
-
-initializer
-	: assignment_expression
-	| '{' initializer_list '}'
-	| '{' initializer_list ',' '}'
-	;
-
-initializer_list
-	: initializer
-	| initializer_list ',' initializer
 	;
 
 statement
