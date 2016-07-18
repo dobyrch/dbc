@@ -4,6 +4,7 @@ H			[a-fA-F0-9]
 
 %{
 #include <stdio.h>
+#include "external.h"
 #include "cgram.tab.h"
 
 void count(void);
