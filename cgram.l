@@ -1,7 +1,3 @@
-D			[0-9]
-L			[a-zA-Z_]
-H			[a-fA-F0-9]
-
 %{
 #include "types.h"
 #include "cgram.tab.h"
@@ -12,6 +8,10 @@ char *strdup(const char *);
 %}
 
 %option noyywrap
+
+D			[0-9]
+L			[a-zA-Z_]
+H			[a-fA-F0-9]
 
 %%
 

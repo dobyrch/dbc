@@ -22,7 +22,7 @@ void compile(struct node *ast)
 		printf("\t");
 	tabs++;
 
-	printf("(0x%x)", ast);
+	printf("(0x%x)", (unsigned int)ast);
 	switch (ast->typ) {
 	case N_CONST:		printf("N_CONST\t\t"); goto named;
 	case N_NAME:		printf("N_NAME\t\t"); goto named;
@@ -92,7 +92,7 @@ named:
 
 inspect:
 
-		printf("ONE: %x\tTWO: %x\tTHREE: %x\n", ast->one.val, ast->two.val, ast->three.val);
+		printf("ONE: %x\tTWO: %x\tTHREE: %x\n", (unsigned int)ast->one.val, (unsigned int)ast->two.val, (unsigned int)ast->three.val);
 		compile(ast->one.ast);
 		compile(ast->two.ast);
 		compile(ast->three.ast);
