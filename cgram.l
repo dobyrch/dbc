@@ -6,8 +6,9 @@ H			[a-fA-F0-9]
 #include <stdio.h>
 #include "cgram.tab.h"
 
-void count();
-void comment();
+void count(void);
+void comment(void);
+char *strdup(const char *);
 %}
 
 %%
@@ -23,13 +24,13 @@ void comment();
 "switch"		{ count(); return(SWITCH); }
 "while"			{ count(); return(WHILE); }
 
-{L}({L}|{D})*		{ count(); yylval.val = yytext; return(NAME); }
+{L}({L}|{D})*		{ count(); yylval.val = strdup(yytext); return(NAME); }
 
-0{D}			{ count(); yylval.val = yytext; return(LITERAL); }
-{D}+			{ count(); yylval.val = yytext; return(LITERAL); }
-'(\*.|[^\*'])+'		{ count(); yylval.val = yytext; return(LITERAL); }
+0{D}			{ count(); yylval.val = strdup(yytext); return(LITERAL); }
+{D}+			{ count(); yylval.val = strdup(yytext); return(LITERAL); }
+'(\*.|[^\*'])+'		{ count(); yylval.val = strdup(yytext); return(LITERAL); }
 
-\"(\*.|[^\*"])*\"	{ count(); yylval.val = yytext; return(STRING_LITERAL); }
+\"(\*.|[^\*"])*\"	{ count(); yylval.val = strdup(yytext); return(STRING_LITERAL); }
 
 "=>>"			{ count(); return(RIGHT_ASSIGN); }
 "=<<"			{ count(); return(LEFT_ASSIGN); }
@@ -85,7 +86,7 @@ yywrap()
 }
 
 
-void comment()
+void comment(void)
 {
 	char c, c1;
 
@@ -106,7 +107,7 @@ loop:
 
 int column = 0;
 
-void count()
+void count(void)
 {
 	int i;
 
@@ -117,6 +118,14 @@ void count()
 			column += 8 - (column % 8);
 		else
 			column++;
-
 	ECHO;
+}
+
+char *strdup(const char *s)
+{
+	/* TODO: Error handling */
+	char *s_new = malloc(strlen(s) + 1);
+	strcpy(s_new, s);
+
+	return s_new;
 }

@@ -83,31 +83,36 @@ void compile(struct node *ast)
 {
 	int i;
 
-	if (!ast)
+	if (ast == NULL)
 		return;
 
 	for (i = 0; i < tabs; i++)
 		printf("\t");
 	tabs++;
 
+	printf("(0x%x)", ast);
 	switch (ast->typ) {
-	case N_CONST:
-	case N_NAME:
+	case N_CONST:		printf("N_CONST\t\t"); goto named;
+	case N_NAME:		printf("N_NAME\t\t"); goto named;
+	case N_SIMPLEDEF:	printf("N_SIMPLEDEF\t\t"); goto named;
+	case N_FUNCDEF:		printf("N_FUNCDEF\t\t"); goto named;
+	case N_VECDEF:		printf("N_VECDEF\t\t"); goto named;
+	case N_LABEL:		printf("N_LABEL\t\t"); goto named;
+	case N_GOTO:		printf("N_GOTO\t\t"); goto named;
+named:
 		printf("LEAF: %s\n", ast->one.val);
+		/* TODO: remember to free yytext dup */
+		compile(ast->two.ast);
+		compile(ast->three.ast);
 		break;
 
-	case N_SIMPLEDEF:	printf("N_SIMPLEDEF\t"); goto inspect;
-	case N_VECDEF:		printf("N_VECDEF\t\t"); goto inspect;
-	case N_FUNCDEF:		printf("N_FUNCDEF\t\t"); goto inspect;
 	case N_AUTO:		printf("N_AUTO\t\t"); goto inspect;
 	case N_EXTRN:		printf("N_EXTRN\t\t"); goto inspect;
-	case N_LABEL:		printf("N_LABEL\t\t"); goto inspect;
 	case N_CASE:		printf("N_CASE\t\t"); goto inspect;
 	case N_COMPOUND:	printf("N_COMPOUND\t"); goto inspect;
 	case N_IF:		printf("N_IF\t\t"); goto inspect;
 	case N_WHILE:		printf("N_WHILE\t\t"); goto inspect;
 	case N_SWITCH:		printf("N_SWITCH\t\t"); goto inspect;
-	case N_GOTO:		printf("N_GOTO\t\t"); goto inspect;
 	case N_RETURN:		printf("N_RETURN\t\t"); goto inspect;
 	case N_COMMA:		printf("N_COMMA\t\t"); goto inspect;
 	case N_ASSIGN:		printf("N_ASSIGN\t\t"); goto inspect;
@@ -150,9 +155,10 @@ void compile(struct node *ast)
 	case N_PREDEC:		printf("N_PREDEC\t\t"); goto inspect;
 	case N_POSTINC:		printf("N_POSTINC\t\t"); goto inspect;
 	case N_POSTDEC:		printf("N_POSTDEC\t\t"); goto inspect;
+	case N_DUMMY:		printf("N_DUMMY\t\t"); goto inspect;
+	default:		printf("!!!UNKNOWN TYPE: %x\n", ast->typ); fflush(stdout); goto inspect;
 
 inspect:
-	default:
 
 		printf("ONE: %x\tTWO: %x\tTHREE: %x\n", ast->one.val, ast->two.val, ast->three.val);
 		compile(ast->one.ast);
