@@ -1,5 +1,6 @@
 %{
 #include <stddef.h>
+#include "types.h"
 #include "external.h"
 %}
 

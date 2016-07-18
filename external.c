@@ -1,6 +1,8 @@
+#include "types.h"
 #include "external.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 void yyerror(const char *msg)
 {

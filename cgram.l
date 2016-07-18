@@ -3,8 +3,7 @@ L			[a-zA-Z_]
 H			[a-fA-F0-9]
 
 %{
-#include <stdio.h>
-#include "external.h"
+#include "types.h"
 #include "cgram.tab.h"
 
 void count(void);
@@ -12,7 +11,10 @@ void comment(void);
 char *strdup(const char *);
 %}
 
+%option noyywrap
+
 %%
+
 "/*"			{ comment(); }
 
 "auto"			{ count(); return(AUTO); }
@@ -81,11 +83,6 @@ char *strdup(const char *);
 
 %%
 
-yywrap()
-{
-	return(1);
-}
-
 
 void comment(void)
 {
@@ -103,6 +100,8 @@ loop:
 
 	if (c != 0)
 		putchar(c1);
+
+	ECHO;
 }
 
 
@@ -119,7 +118,6 @@ void count(void)
 			column += 8 - (column % 8);
 		else
 			column++;
-	ECHO;
 }
 
 char *strdup(const char *s)
