@@ -1,9 +1,9 @@
-
 int yylex(void);
 void yyerror(const char *msg);
 char *yytext;
 int column;
 
+void dump_ast(struct node *ast);
 void compinit(void);
 void compile(struct node *ast);
 void free_tree(struct node *ast);

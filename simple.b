@@ -1,5 +1,6 @@
 main() {
-	auto n;
-
-	n = 1 + 2;
+	extrn putchar;
+	extrn asf;
+	extrn sync;
+	sync();
 }

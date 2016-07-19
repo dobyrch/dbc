@@ -35,8 +35,8 @@
 
 program
 	: definitions
-		{ compile($1); free_tree($1); }
-	| /* empty */
+		{ dump_ast($1); compile($1); free_tree($1); }
+	| %empty
 		{ yyerror("Empty program\n"); }
 	;
 
@@ -134,7 +134,7 @@ statement
 
 init_list
 	: init_list ',' init
-		{ $$ = node2(N_INITS, $3, $1); }
+		{ $$ = node2(N_INITS, $1, $3); }
 	| init
 	;
 
@@ -147,7 +147,7 @@ init
 
 name_list
 	: name_list ',' NAME
-		{ $$ = node2(N_NAMES, leaf(N_NAME, $3), $1); }
+		{ $$ = node2(N_NAMES, $1, leaf(N_NAME, $3)); }
 	| NAME
 		{ $$ = leaf(N_NAME, $1); }
 	;
@@ -290,7 +290,7 @@ postfix_expression
 
 argument_expression_list
 	: argument_expression_list ',' assignment_expression
-		{ $$ = node2(N_ARGS, $3, $1); }
+		{ $$ = node2(N_ARGS, $1, $3); }
 	| assignment_expression
 	;
 
@@ -313,6 +313,5 @@ constant
 
 int main(void)
 {
-	compinit();
 	return yyparse();
 }
