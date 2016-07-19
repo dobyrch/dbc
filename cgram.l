@@ -1,10 +1,10 @@
 %{
+#include <string.h>
 #include "types.h"
 #include "cgram.tab.h"
 
 void count(void);
 void comment(void);
-char *strdup(const char *);
 %}
 
 %option noyywrap
@@ -118,13 +118,4 @@ void count(void)
 			column += 8 - (column % 8);
 		else
 			column++;
-}
-
-char *strdup(const char *s)
-{
-	/* TODO: Error handling */
-	char *s_new = malloc(strlen(s) + 1);
-	strcpy(s_new, s);
-
-	return s_new;
 }

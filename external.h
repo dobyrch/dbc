@@ -4,6 +4,7 @@ void yyerror(const char *msg);
 char *yytext;
 int column;
 
+void compinit(void);
 void compile(struct node *ast);
 void free_tree(struct node *ast);
 

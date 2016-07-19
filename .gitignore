@@ -6,3 +6,4 @@ lex.yy.c
 *.html
 *.output
 *.xml
+*.o

@@ -313,5 +313,6 @@ constant
 
 int main(void)
 {
+	compinit();
 	return yyparse();
 }
