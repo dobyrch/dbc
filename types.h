@@ -1,4 +1,10 @@
+typedef union {
+	char *val;
+	struct node *ast;
+} YYSTYPE;
+
 enum ntype {
+	N_NULL,
 	N_SIMPLEDEF,
 	N_VECDEF,
 	N_FUNCDEF,
@@ -12,6 +18,7 @@ enum ntype {
 	N_SWITCH,
 	N_GOTO,
 	N_RETURN,
+	N_EXPRESSION,
 	N_COMMA,
 	N_ASSIGN,
 	N_MUL_ASSIGN,
@@ -55,20 +62,16 @@ enum ntype {
 	N_POSTDEC,
 	N_NAME,
 	N_CONST,
-	/*
-	* A catch-all for nodes whose types
-	* can be deduced from their parents
-	*/
-	N_DUMMY
+	N_IVALS,
+	N_STATEMENTS,
+	N_DEFS,
+	N_INITS,
+	N_INIT,
+	N_NAMES,
+	N_ARGS,
 };
 
-typedef union {
-	char *val;
-	struct node *ast;
-	enum ntype typ;
-} YYSTYPE;
-
 struct node {
-	YYSTYPE one, two, three;
 	enum ntype typ;
+	YYSTYPE one, two, three;
 };

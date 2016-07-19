@@ -42,7 +42,7 @@ program
 
 definitions
 	: definitions definition
-		{ $$ = node2(N_DUMMY, $1, $2); }
+		{ $$ = node2(N_DEFS, $1, $2); }
 	| definition
 	;
 
@@ -54,44 +54,44 @@ definition
 
 simple_definition
 	: NAME ';'
-		{ $$ = leaf1(N_SIMPLEDEF, $1); }
+		{ $$ = node1(N_SIMPLEDEF, leaf(N_NAME, $1)); }
 	| NAME  ival_list ';'
-		{ $$ = leaf2(N_SIMPLEDEF, $1, $2); }
+		{ $$ = node2(N_SIMPLEDEF, leaf(N_NAME, $1), $2); }
 	;
 
 vector_definition
 	: NAME '[' ']' ';'
-		{ $$ = leaf3(N_VECDEF, $1, NULL, NULL); }
+		{ $$ = node3(N_VECDEF, leaf(N_NAME, $1), NULL, NULL); }
 	| NAME '[' ']' ival_list ';'
-		{ $$ = leaf3(N_VECDEF, $1, NULL, $4); }
+		{ $$ = node3(N_VECDEF, leaf(N_NAME, $1), NULL, $4); }
 	| NAME '[' constant ']' ';'
-		{ $$ = leaf3(N_VECDEF, $1, $3, NULL); }
+		{ $$ = node3(N_VECDEF, leaf(N_NAME, $1), $3, NULL); }
 	| NAME '[' constant ']' ival_list ';'
-		{ $$ = leaf3(N_VECDEF, $1, $3, $5); }
+		{ $$ = node3(N_VECDEF, leaf(N_NAME, $1), $3, $5); }
 	;
 
 function_definition
 	: NAME '(' ')' statement
-		{ $$ = leaf3(N_FUNCDEF, $1, NULL, $4); }
+		{ $$ = node3(N_FUNCDEF, leaf(N_NAME, $1), NULL, $4); }
 	| NAME '(' name_list ')' statement
-		{ $$ = leaf3(N_FUNCDEF, $1, $3, $5); }
+		{ $$ = node3(N_FUNCDEF, leaf(N_NAME, $1), $3, $5); }
 	;
 
 ival_list
 	: ival_list ',' ival
-		{ $$ = node2(N_DUMMY, $1, $3); }
+		{ $$ = node2(N_IVALS, $1, $3); }
 	| ival
 	;
 
 ival
 	: constant
 	| NAME
-		{ $$ = leaf1(N_NAME, $1); }
+		{ $$ = leaf(N_NAME, $1); }
 	;
 
 statement_list
 	: statement_list statement
-		{ $$ = node2(N_DUMMY, $2, $1); }
+		{ $$ = node2(N_STATEMENTS, $1, $2); }
 	| statement
 	;
 
@@ -101,7 +101,7 @@ statement
 	| EXTRN name_list ';'
 		{ $$ = node1(N_EXTRN, $2); }
 	| NAME ':' statement
-		{ $$ = leaf2(N_LABEL, $1, $3); }
+		{ $$ = node2(N_LABEL, leaf(N_NAME, $1), $3); }
 	| CASE constant ':' statement
 		{ $$ = node2(N_CASE, $2, $4); }
 
@@ -120,7 +120,7 @@ statement
 	| SWITCH '(' expression ')' statement
 		{ $$ = node2(N_SWITCH, $3, $5); }
 	| GOTO NAME ';'
-		{ $$ = leaf1(N_GOTO, $2); }
+		{ $$ = node1(N_GOTO, leaf(N_NAME, $2)); }
 
 	| RETURN ';'
 		{ $$ = node0(N_RETURN); }
@@ -129,27 +129,27 @@ statement
 
 	| expression ';'
 	| ';'
-		{ $$ = node0(N_DUMMY); }
+		{ $$ = node0(N_EXPRESSION); }
 	;
 
 init_list
 	: init_list ',' init
-		{ $$ = node2(N_DUMMY, $3, $1); }
+		{ $$ = node2(N_INITS, $3, $1); }
 	| init
 	;
 
 init
 	: NAME
-		{ $$ = leaf1(N_DUMMY, $1); }
+		{ $$ = node1(N_INIT, leaf(N_NAME, $1)); }
 	| NAME constant
-		{ $$ = leaf2(N_DUMMY, $1, $2); }
+		{ $$ = node2(N_INIT, leaf(N_NAME, $1), $2); }
 	;
 
 name_list
 	: name_list ',' NAME
-		{ $$ = leaf2(N_DUMMY, $3, $1); }
+		{ $$ = node2(N_NAMES, leaf(N_NAME, $3), $1); }
 	| NAME
-		{ $$ = leaf1(N_DUMMY, $1); }
+		{ $$ = leaf(N_NAME, $1); }
 	;
 
 expression
@@ -290,13 +290,13 @@ postfix_expression
 
 argument_expression_list
 	: argument_expression_list ',' assignment_expression
-		{ $$ = node2(N_DUMMY, $3, $1); }
+		{ $$ = node2(N_ARGS, $3, $1); }
 	| assignment_expression
 	;
 
 primary_expression
 	: NAME
-		{ $$ = leaf1(N_NAME, $1); }
+		{ $$ = leaf(N_NAME, $1); }
 	| constant
 	| '(' expression ')'
 		{ $$ = $2; }
@@ -304,9 +304,9 @@ primary_expression
 
 constant
 	: LITERAL
-		{ $$ = leaf1(N_CONST, $1); }
+		{ $$ = leaf(N_CONST, $1); }
 	| STRING_LITERAL
-		{ $$ = leaf1(N_CONST, $1); }
+		{ $$ = leaf(N_CONST, $1); }
 	;
 
 %%
