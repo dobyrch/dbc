@@ -1,6 +1,4 @@
 main() {
-	b = 'A';
-	b =+ 2;
-	b--;
+	auto b;
 	putchar(b);
 }

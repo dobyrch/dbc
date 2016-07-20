@@ -129,6 +129,7 @@ void dump_ast(struct node *ast) {
 
 LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder);
 
+static LLVMValueRef myvar = NULL;
 LLVMValueRef codegen_auto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
 	/*
@@ -136,46 +137,69 @@ LLVMValueRef codegen_auto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 	* also set up vector initialization.
 	* Warn when using unitialized var
 	*/
-	generror("AUTO not yet implemented\n");
-	return NULL;
+	printf("Alloca'ing %s\n", ast->one.ast->one.ast->one.val);
+	myvar = LLVMBuildAlloca(builder, LLVMInt32Type(), ast->one.ast->one.ast->one.val);
+	return myvar;
 }
 
-static LLVMValueRef myvar = NULL;
 LLVMValueRef codegen_name(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
 	/* TODO: Retrieve variables by name */
 	if (!myvar)
 		generror("Wuh oh, attempted to access unitialized variable");
-	return myvar;
+	printf("Building loader for %s\n", ast->one.val);
+	printf("@@@@@@@@\n");
+	LLVMDumpValue(myvar);
+	printf("@@@@@@@@\n");
+	LLVMValueRef tmp = LLVMBuildLoad(builder, myvar, ast->one.val);
+	printf("########\n");
+	return tmp;
+
 }
 
 LLVMValueRef codegen_assign(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
-	myvar = codegen(ast->two.ast, module, builder);
-	return myvar;
+	LLVMValueRef result = codegen(ast->two.ast, module, builder);
+	myvar = LLVMBuildStore(builder,
+		result,
+		myvar);
+
+	return result;
 }
 
 LLVMValueRef codegen_add_assign(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
+	LLVMValueRef result;
 	LLVMValueRef lhs = codegen(ast->one.ast, module, builder);
 	LLVMValueRef rhs = codegen(ast->two.ast, module, builder);
+
 
 	if (lhs == NULL || rhs == NULL) {
 		return NULL;
 	}
 
-	myvar = LLVMBuildAdd(builder, lhs, rhs, "addtmp");
-	return myvar;
+	result = LLVMBuildAdd(builder, lhs, rhs, "addtmp");
+
+	myvar = LLVMBuildStore(builder,
+		result,
+		myvar);
+
+	return result;
 }
 
 LLVMValueRef codegen_postdec(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
-	myvar = LLVMBuildSub(builder,
+	LLVMValueRef result;
+	result = LLVMBuildSub(builder,
 		codegen(ast->one.ast, module, builder),
 		LLVMConstInt(LLVMInt32Type(), 1, 0),
 		"subtmp");
 
-	return myvar;
+	myvar = LLVMBuildStore(builder,
+		result,
+		myvar);
+
+	return result;
 }
 
 LLVMValueRef codegen_predec(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
