@@ -133,9 +133,8 @@ LLVMValueRef codegen_statements(struct node *ast, LLVMModuleRef module, LLVMBuil
 {
 	LLVMValueRef foo;
 
-	LLVMInsertIntoBuilder(builder, codegen(ast->one.ast, module, builder));
+	//LLVMInsertIntoBuilder(builder, codegen(ast->one.ast, module, builder));
 	foo = codegen(ast->two.ast, module, builder);
-	LLVMDumpValue(foo);
 	return foo;
 }
 
@@ -144,7 +143,17 @@ LLVMValueRef codegen_call(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 {
 	LLVMValueRef func, *args;
 
-	func = LLVMGetNamedGlobal(module, ast->one.ast->one.val);
+	LLVMTypeRef signew;
+	LLVMValueRef funcnew;
+	LLVMTypeRef intarg = LLVMInt32Type();
+
+	signew = LLVMFunctionType(LLVMInt32Type(), &intarg, 1, 0);
+	funcnew = LLVMAddGlobal(module, signew, "putchar");
+	LLVMSetLinkage(funcnew, LLVMExternalLinkage);
+	//LLVMInsertIntoBuilder(builder, funcnew);
+	printf("BEEP BLOOP BLOP\n");
+	//func = LLVMGetNamedGlobal(module, ast->one.ast->one.val);
+	func = funcnew;
 
 	if (func == NULL) {
 		printf("No such function: %s\n", ast->one.ast->one.val);
@@ -152,7 +161,7 @@ LLVMValueRef codegen_call(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 	}
 
 	args = malloc(sizeof(LLVMValueRef));
-	*args = LLVMConstInt(LLVMInt32Type(), 68, 0);
+	*args = LLVMConstInt(LLVMInt32Type(), 65, 0);
 
 	return LLVMBuildCall(builder, func, args, 1, "calltmp");
 }
@@ -165,10 +174,9 @@ LLVMValueRef codegen_extrn(struct node *ast, LLVMModuleRef module, LLVMBuilderRe
 	printf("FOO FOO FOO\n");
 	sig = LLVMFunctionType(LLVMVoidType(), NULL, 0, 0);
 	printf("YADDAYADDA\n");
-	func = LLVMAddGlobal(module, sig, "sync");
+	func = LLVMAddGlobal(module, sig, "putchar");
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 	printf("DONE\n");
-	LLVMDumpValue(func);
 	return func;
 }
 
@@ -180,7 +188,7 @@ LLVMValueRef codegen_funcdef(struct node *ast, LLVMModuleRef module, LLVMBuilder
 
 	/* TODO: Check if function already defined */
 	sig = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
-	func = LLVMAddFunction(module, ast->one.val, sig);
+	func = LLVMAddFunction(module, ast->one.ast->one.val, sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	block = LLVMAppendBasicBlock(func, "entry");
@@ -220,7 +228,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	case N_VECDEF:
 		break;
 	case N_FUNCDEF:
-		return codegen(ast->three.ast, module, builder);
+		return codegen_funcdef(ast, module, builder);
 		break;
 	case N_IVALS:
 		break;
@@ -367,11 +375,30 @@ void compile(struct node *ast)
 	/* TODO: Free module, define "dbc" as constant */
 	static LLVMBuilderRef builder;
 	static LLVMModuleRef module;
+	LLVMExecutionEngineRef engine;
 
 	builder = LLVMCreateBuilder();
 	module = LLVMModuleCreateWithName("dbc");
 
-	LLVMDumpValue(codegen(ast, module, builder));
+
+	LLVMValueRef foo = (codegen(ast, module, builder));
+	LLVMDumpValue(foo);
+
+	if (LLVMWriteBitcodeToFile(module, "cgram.bc") != 0) {
+		generror("Failed to write bitcode");
+	}
+
+	/*
+	char *msg;
+	if(LLVMCreateExecutionEngineForModule(&engine, module, &msg) != 0) {
+		printf("We got a failure...\n");
+		LLVMDisposeMessage(msg);
+		generror(msg);
+	}
+	void *fp = LLVMGetPointerToGlobal(engine, foo);
+	void (*FP)() = (void (*)())(intptr_t)fp;
+	FP();
+	*/
 }
 
 void free_tree(struct node *ast)

@@ -7,3 +7,5 @@ lex.yy.c
 *.output
 *.xml
 *.o
+*.bc
+*.ll
