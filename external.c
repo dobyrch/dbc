@@ -160,7 +160,7 @@ LLVMValueRef codegen_name(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 LLVMValueRef codegen_assign(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
 	LLVMValueRef result = codegen(ast->two.ast, module, builder);
-	myvar = LLVMBuildStore(builder,
+	LLVMBuildStore(builder,
 		result,
 		myvar);
 
@@ -180,7 +180,7 @@ LLVMValueRef codegen_add_assign(struct node *ast, LLVMModuleRef module, LLVMBuil
 
 	result = LLVMBuildAdd(builder, lhs, rhs, "addtmp");
 
-	myvar = LLVMBuildStore(builder,
+	LLVMBuildStore(builder,
 		result,
 		myvar);
 
@@ -195,7 +195,7 @@ LLVMValueRef codegen_postdec(struct node *ast, LLVMModuleRef module, LLVMBuilder
 		LLVMConstInt(LLVMInt32Type(), 1, 0),
 		"subtmp");
 
-	myvar = LLVMBuildStore(builder,
+	LLVMBuildStore(builder,
 		result,
 		myvar);
 
