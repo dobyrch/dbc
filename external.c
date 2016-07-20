@@ -129,13 +129,82 @@ void dump_ast(struct node *ast) {
 
 LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder);
 
+LLVMValueRef codegen_auto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	/*
+	* TODO: store name to indicate it was initialized.
+	* also set up vector initialization.
+	* Warn when using unitialized var
+	*/
+	generror("AUTO not yet implemented\n");
+	return NULL;
+}
+
+static LLVMValueRef myvar = NULL;
+LLVMValueRef codegen_name(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	/* TODO: Retrieve variables by name */
+	if (!myvar)
+		generror("Wuh oh, attempted to access unitialized variable");
+	return myvar;
+}
+
+LLVMValueRef codegen_assign(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	myvar = codegen(ast->two.ast, module, builder);
+	return myvar;
+}
+
+LLVMValueRef codegen_add_assign(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	LLVMValueRef lhs = codegen(ast->one.ast, module, builder);
+	LLVMValueRef rhs = codegen(ast->two.ast, module, builder);
+
+	if (lhs == NULL || rhs == NULL) {
+		return NULL;
+	}
+
+	myvar = LLVMBuildAdd(builder, lhs, rhs, "addtmp");
+	return myvar;
+}
+
+LLVMValueRef codegen_postdec(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	myvar = LLVMBuildSub(builder,
+		codegen(ast->one.ast, module, builder),
+		LLVMConstInt(LLVMInt32Type(), 1, 0),
+		"subtmp");
+
+	return myvar;
+}
+
+LLVMValueRef codegen_predec(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	LLVMValueRef tmp = myvar;
+	myvar = LLVMBuildSub(builder,
+		codegen(ast->one.ast, module, builder),
+		LLVMConstInt(LLVMInt32Type(), -1, 0),
+		"subtmp");
+
+	return tmp;
+}
+
+LLVMValueRef codegen_const(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	/* TODO: Handle strings, multichars, escape sequences, and octal ints */
+	if (ast->one.val[0] == '"')
+		return NULL;
+	else if (ast->one.val[0] == '\'')
+		return LLVMConstInt(LLVMInt32Type(), ast->one.val[1], 0);
+	else
+		return LLVMConstIntOfString(LLVMInt32Type(), ast->one.val, 10);
+}
+
+
 LLVMValueRef codegen_statements(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
-	LLVMValueRef foo;
-
-	//LLVMInsertIntoBuilder(builder, codegen(ast->one.ast, module, builder));
-	foo = codegen(ast->two.ast, module, builder);
-	return foo;
+	codegen(ast->one.ast, module, builder);
+	return codegen(ast->two.ast, module, builder);
 }
 
 
@@ -148,20 +217,20 @@ LLVMValueRef codegen_call(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 	LLVMTypeRef intarg = LLVMInt32Type();
 
 	signew = LLVMFunctionType(LLVMInt32Type(), &intarg, 1, 0);
-	funcnew = LLVMAddGlobal(module, signew, "putchar");
+	/* TODO: Macro for accessing leaf val: LEAFVAL(ast->one) */
+	funcnew = LLVMAddGlobal(module, signew, ast->one.ast->one.val);
 	LLVMSetLinkage(funcnew, LLVMExternalLinkage);
 	//LLVMInsertIntoBuilder(builder, funcnew);
-	printf("BEEP BLOOP BLOP\n");
 	//func = LLVMGetNamedGlobal(module, ast->one.ast->one.val);
 	func = funcnew;
 
 	if (func == NULL) {
-		printf("No such function: %s\n", ast->one.ast->one.val);
 		return NULL;
 	}
 
 	args = malloc(sizeof(LLVMValueRef));
-	*args = LLVMConstInt(LLVMInt32Type(), 65, 0);
+	/* TODO: support multiple args */
+	*args = codegen(ast->two.ast, module, builder);
 
 	return LLVMBuildCall(builder, func, args, 1, "calltmp");
 }
@@ -171,12 +240,9 @@ LLVMValueRef codegen_extrn(struct node *ast, LLVMModuleRef module, LLVMBuilderRe
 	LLVMTypeRef sig;
 	LLVMValueRef func;
 
-	printf("FOO FOO FOO\n");
 	sig = LLVMFunctionType(LLVMVoidType(), NULL, 0, 0);
-	printf("YADDAYADDA\n");
 	func = LLVMAddGlobal(module, sig, "putchar");
 	LLVMSetLinkage(func, LLVMExternalLinkage);
-	printf("DONE\n");
 	return func;
 }
 
@@ -205,7 +271,6 @@ LLVMValueRef codegen_funcdef(struct node *ast, LLVMModuleRef module, LLVMBuilder
 	LLVMBuildRet(builder, body);
 
 	if (LLVMVerifyFunction(func, LLVMPrintMessageAction)) {
-		fprintf(stderr, "Invalid function");
 		LLVMDeleteFunction(func);
 		return NULL;
 	}
@@ -218,6 +283,8 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 {
 	printf("...compiling %s\n", enumtostr(ast->typ));
 
+	/* TODO: Remove all breaks */
+	/* TODO: Store function ptrs in LLYVAL rather than enum??? */
 	switch (ast->typ) {
 	case N_DEFS:
 		return codegen(ast->one.ast, module, builder);
@@ -233,12 +300,10 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	case N_IVALS:
 		break;
 	case N_STATEMENTS:
-		printf("=======");
-		LLVMValueRef tmp = codegen_statements(ast, module, builder);
-		printf("-------");
-		return tmp;
+		return codegen_statements(ast, module, builder);
 		break;
 	case N_AUTO:
+		return codegen_auto(ast, module, builder);
 		break;
 	case N_EXTRN:
 		return codegen_extrn(ast, module, builder);
@@ -267,12 +332,12 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	case N_INIT:
 		break;
 	case N_NAMES:
+
 		break;
 	case N_COMMA:
 		break;
 	case N_ASSIGN:
-		return codegen(ast->one.ast, module, builder);
-		return codegen(ast->two.ast, module, builder);
+		return codegen_assign(ast, module, builder);
 		break;
 	case N_MUL_ASSIGN:
 		break;
@@ -281,6 +346,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	case N_MOD_ASSIGN:
 		break;
 	case N_ADD_ASSIGN:
+		return codegen_add_assign(ast, module, builder);
 		break;
 	case N_SUB_ASSIGN:
 		break;
@@ -354,19 +420,24 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	case N_POSTINC:
 		break;
 	case N_POSTDEC:
+		return codegen_postdec(ast, module, builder);
 		break;
 	case N_ARGS:
 		break;
 	case N_NAME:
+		return codegen_name(ast, module, builder);
 		break;
 	case N_CONST:
-		return LLVMConstIntOfString(LLVMInt32Type(), ast->one.val, 10);
+		return codegen_const(ast, module, builder);
 		break;
 	default:
 		printf("Unhandled top-level type: %s\n", enumtostr(ast->typ));
 		generror("Stopping");
 		break;
 	}
+
+	generror("This should never happen.  Remove once all cases return something");
+	return NULL;
 }
 
 /* TODO: rename struct node to ast_node, rename arg ast to node */
@@ -375,14 +446,15 @@ void compile(struct node *ast)
 	/* TODO: Free module, define "dbc" as constant */
 	static LLVMBuilderRef builder;
 	static LLVMModuleRef module;
-	LLVMExecutionEngineRef engine;
 
 	builder = LLVMCreateBuilder();
 	module = LLVMModuleCreateWithName("dbc");
 
 
 	LLVMValueRef foo = (codegen(ast, module, builder));
+	printf("\n====================================\n");
 	LLVMDumpValue(foo);
+	printf("====================================\n");
 
 	if (LLVMWriteBitcodeToFile(module, "cgram.bc") != 0) {
 		generror("Failed to write bitcode");

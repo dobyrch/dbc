@@ -1,4 +1,6 @@
 main() {
-	extrn putchar;
-	putchar(68);
+	b = 'A';
+	b =+ 2;
+	b--;
+	putchar(b);
 }

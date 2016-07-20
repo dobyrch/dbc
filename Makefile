@@ -6,4 +6,4 @@ cgram: cgram.y cgram.l external.c  external.h types.h
 	xsltproc /usr/share/bison/xslt/xml2xhtml.xsl cgram.xml > cgram.html
 
 test: cgram
-	./cgram < ./sample.b
+	./cgram < ./simple.b
