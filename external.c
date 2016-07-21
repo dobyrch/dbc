@@ -129,6 +129,61 @@ void dump_ast(struct node *ast) {
 
 LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder);
 
+LLVMValueRef codegen_if(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	LLVMValueRef condition, zero, func, else_value, then_value;
+	LLVMBasicBlockRef then_block, else_block, end;
+
+	condition = codegen(ast->one.ast, module, builder);
+	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
+	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "ifcond");
+	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
+	then_block = LLVMAppendBasicBlock(func, "then");
+	else_block = LLVMAppendBasicBlock(func, "else");
+	end = LLVMAppendBasicBlock(func, "end");
+
+	LLVMBuildCondBr(builder, condition, then_block, else_block);
+	LLVMPositionBuilderAtEnd(builder, then_block);
+	/* TODO: I don't think we need to collect values from then/else blocks */
+	then_value = codegen(ast->two.ast, module, builder);
+
+	LLVMBuildBr(builder, end);
+	/* TODO: What's the point of this? */
+	then_block = LLVMGetInsertBlock(builder);
+
+	LLVMPositionBuilderAtEnd(builder, else_block);
+
+	if (ast->three.ast) {
+		else_value = codegen(ast->three.ast, module, builder);
+		LLVMBuildBr(builder, end);
+		else_block = LLVMGetInsertBlock(builder);
+	}
+
+	LLVMPositionBuilderAtEnd(builder, end);
+	LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt32Type(), "phi");
+	LLVMAddIncoming(phi, &then_value, &then_block, 1);
+	LLVMAddIncoming(phi, &else_value, &else_block, 1);
+
+	return phi;
+}
+
+LLVMValueRef codegen_lt(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	return LLVMBuildICmp(builder,
+		LLVMIntSLT,
+		codegen(ast->one.ast, module, builder),
+		codegen(ast->two.ast, module, builder),
+		"lttmp");
+}
+
+LLVMValueRef codegen_add(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	return LLVMBuildAdd(builder,
+		codegen(ast->one.ast, module, builder),
+		codegen(ast->two.ast, module, builder),
+		"addtmp");
+}
+
 static LLVMValueRef myvar = NULL;
 LLVMValueRef codegen_auto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
@@ -234,6 +289,7 @@ LLVMValueRef codegen_statements(struct node *ast, LLVMModuleRef module, LLVMBuil
 
 LLVMValueRef codegen_call(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
+	static int first = 1;
 	LLVMValueRef func, *args;
 
 	LLVMTypeRef signew;
@@ -242,8 +298,13 @@ LLVMValueRef codegen_call(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 
 	signew = LLVMFunctionType(LLVMInt32Type(), &intarg, 1, 0);
 	/* TODO: Macro for accessing leaf val: LEAFVAL(ast->one) */
-	funcnew = LLVMAddGlobal(module, signew, ast->one.ast->one.val);
-	LLVMSetLinkage(funcnew, LLVMExternalLinkage);
+	if (first) {
+		funcnew = LLVMAddGlobal(module, signew, ast->one.ast->one.val);
+		LLVMSetLinkage(funcnew, LLVMExternalLinkage);
+		first = 0;
+	} else {
+		funcnew = LLVMGetNamedGlobal(module, ast->one.ast->one.val);
+	}
 	//LLVMInsertIntoBuilder(builder, funcnew);
 	//func = LLVMGetNamedGlobal(module, ast->one.ast->one.val);
 	func = funcnew;
@@ -340,6 +401,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 		return codegen(ast->one.ast, module, builder);
 		break;
 	case N_IF:
+		return codegen_if(ast, module, builder);
 		break;
 	case N_WHILE:
 		break;
@@ -401,6 +463,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	case N_NE:
 		break;
 	case N_LT:
+		return codegen_lt(ast, module, builder);
 		break;
 	case N_GT:
 		break;
@@ -413,8 +476,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	case N_RIGHT:
 		break;
 	case N_ADD:
-		return codegen(ast->one.ast, module, builder);
-		return codegen(ast->two.ast, module, builder);
+		return codegen_add(ast, module, builder);
 		break;
 	case N_SUB:
 		break;
@@ -468,6 +530,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 void compile(struct node *ast)
 {
 	/* TODO: Free module, define "dbc" as constant */
+	/* TODO: Make builder/module static in codegen so we don't have to pass them around */
 	static LLVMBuilderRef builder;
 	static LLVMModuleRef module;
 
