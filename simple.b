@@ -1,11 +1,11 @@
 main() {
 	auto b;
 	b = 'A';
-	b = &b;
 
-	if (0 < b)
+	if (b < 'Z' + 1) {
 		/* this doesn't work right since putchar expects 32 bit int */
-		putchar(*b);
-	else
+		b =+ 1;
+		putchar(b);
+	} else
 		putchar(48);
 }

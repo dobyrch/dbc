@@ -128,7 +128,20 @@ void dump_ast(struct node *ast) {
 
 
 static LLVMValueRef myvar = NULL;
+static LLVMBasicBlockRef mylabel = NULL;
 LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder);
+
+LLVMValueRef codegen_label(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	LLVMValueRef parent = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
+	mylabel = LLVMAppendBasicBlock(parent, "label");
+	return codegen(ast->one.ast, module, builder);
+}
+
+LLVMValueRef codegen_goto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	return LLVMBuildBr(builder, mylabel);
+}
 
 LLVMValueRef codegen_addr(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
@@ -158,6 +171,7 @@ LLVMValueRef codegen_if(struct node *ast, LLVMModuleRef module, LLVMBuilderRef b
 	condition = codegen(ast->one.ast, module, builder);
 	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
 	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "ifcond");
+	/* TODO: func isn't always a func... rename to "block" */
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 	then_block = LLVMAppendBasicBlock(func, "then");
 	else_block = LLVMAppendBasicBlock(func, "else");
@@ -414,6 +428,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 		return codegen_extrn(ast, module, builder);
 		break;
 	case N_LABEL:
+		return codegen_label(ast, module, builder);
 		break;
 	case N_CASE:
 		break;
@@ -429,6 +444,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	case N_SWITCH:
 		break;
 	case N_GOTO:
+		return codegen_goto(ast, module, builder);
 		break;
 	case N_RETURN:
 		break;
