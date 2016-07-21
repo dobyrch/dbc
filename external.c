@@ -391,7 +391,7 @@ LLVMValueRef codegen_funcdef(struct node *ast, LLVMModuleRef module, LLVMBuilder
 	func = LLVMAddFunction(module, ast->one.ast->one.val, sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
-	block = LLVMAppendBasicBlock(func, "entry");
+	block = LLVMAppendBasicBlock(func, "");
 	LLVMPositionBuilderAtEnd(builder, block);
 
 	body = codegen(ast->three.ast, module, builder);
