@@ -127,7 +127,28 @@ void dump_ast(struct node *ast) {
 }
 
 
+static LLVMValueRef myvar = NULL;
 LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder);
+
+LLVMValueRef codegen_addr(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	/* TODO: Function pointers? */
+	return LLVMBuildPtrToInt(builder, myvar, LLVMInt64Type(), "addr");
+}
+
+LLVMValueRef codegen_indir(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	/* TODO: Different semantics if being assigned to? */
+
+	return LLVMBuildLoad(builder,
+		LLVMBuildIntToPtr(
+			builder,
+			codegen(ast->one.ast, module, builder),
+			LLVMPointerType(LLVMInt64Type(), 0),
+			"indir"),
+		"loadtmp");
+
+}
 
 LLVMValueRef codegen_if(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
@@ -160,7 +181,7 @@ LLVMValueRef codegen_if(struct node *ast, LLVMModuleRef module, LLVMBuilderRef b
 	}
 
 	LLVMPositionBuilderAtEnd(builder, end);
-	LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt32Type(), "phi");
+	LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt64Type(), "phi");
 	LLVMAddIncoming(phi, &then_value, &then_block, 1);
 	LLVMAddIncoming(phi, &else_value, &else_block, 1);
 
@@ -184,7 +205,6 @@ LLVMValueRef codegen_add(struct node *ast, LLVMModuleRef module, LLVMBuilderRef 
 		"addtmp");
 }
 
-static LLVMValueRef myvar = NULL;
 LLVMValueRef codegen_auto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
 	/*
@@ -193,7 +213,7 @@ LLVMValueRef codegen_auto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 	* Warn when using unitialized var
 	*/
 	printf("Alloca'ing %s\n", ast->one.ast->one.ast->one.val);
-	myvar = LLVMBuildAlloca(builder, LLVMInt32Type(), ast->one.ast->one.ast->one.val);
+	myvar = LLVMBuildAlloca(builder, LLVMInt64Type(), ast->one.ast->one.ast->one.val);
 	return myvar;
 }
 
@@ -247,7 +267,7 @@ LLVMValueRef codegen_postdec(struct node *ast, LLVMModuleRef module, LLVMBuilder
 	LLVMValueRef result;
 	result = LLVMBuildSub(builder,
 		codegen(ast->one.ast, module, builder),
-		LLVMConstInt(LLVMInt32Type(), 1, 0),
+		LLVMConstInt(LLVMInt64Type(), 1, 0),
 		"subtmp");
 
 	LLVMBuildStore(builder,
@@ -262,7 +282,7 @@ LLVMValueRef codegen_predec(struct node *ast, LLVMModuleRef module, LLVMBuilderR
 	LLVMValueRef tmp = myvar;
 	myvar = LLVMBuildSub(builder,
 		codegen(ast->one.ast, module, builder),
-		LLVMConstInt(LLVMInt32Type(), -1, 0),
+		LLVMConstInt(LLVMInt64Type(), -1, 0),
 		"subtmp");
 
 	return tmp;
@@ -274,9 +294,9 @@ LLVMValueRef codegen_const(struct node *ast, LLVMModuleRef module, LLVMBuilderRe
 	if (ast->one.val[0] == '"')
 		return NULL;
 	else if (ast->one.val[0] == '\'')
-		return LLVMConstInt(LLVMInt32Type(), ast->one.val[1], 0);
+		return LLVMConstInt(LLVMInt64Type(), ast->one.val[1], 0);
 	else
-		return LLVMConstIntOfString(LLVMInt32Type(), ast->one.val, 10);
+		return LLVMConstIntOfString(LLVMInt64Type(), ast->one.val, 10);
 }
 
 
@@ -294,9 +314,9 @@ LLVMValueRef codegen_call(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 
 	LLVMTypeRef signew;
 	LLVMValueRef funcnew;
-	LLVMTypeRef intarg = LLVMInt32Type();
+	LLVMTypeRef intarg = LLVMInt64Type();
 
-	signew = LLVMFunctionType(LLVMInt32Type(), &intarg, 1, 0);
+	signew = LLVMFunctionType(LLVMInt64Type(), &intarg, 1, 0);
 	/* TODO: Macro for accessing leaf val: LEAFVAL(ast->one) */
 	if (first) {
 		funcnew = LLVMAddGlobal(module, signew, ast->one.ast->one.val);
@@ -338,7 +358,7 @@ LLVMValueRef codegen_funcdef(struct node *ast, LLVMModuleRef module, LLVMBuilder
 	LLVMBasicBlockRef block;
 
 	/* TODO: Check if function already defined */
-	sig = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
+	sig = LLVMFunctionType(LLVMInt64Type(), NULL, 0, 0);
 	func = LLVMAddFunction(module, ast->one.ast->one.val, sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
@@ -397,6 +417,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 		break;
 	case N_CASE:
 		break;
+	/* TODO: Remove N_COMPOUND from grammar */
 	case N_COMPOUND:
 		return codegen(ast->one.ast, module, builder);
 		break;
@@ -487,8 +508,10 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	case N_MOD:
 		break;
 	case N_INDIR:
+		return codegen_indir(ast, module, builder);
 		break;
 	case N_ADDR:
+		return codegen_addr(ast, module, builder);
 		break;
 	case N_NEG:
 		break;
