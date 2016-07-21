@@ -163,9 +163,36 @@ LLVMValueRef codegen_indir(struct node *ast, LLVMModuleRef module, LLVMBuilderRe
 
 }
 
+LLVMValueRef codegen_while(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	LLVMValueRef condition, zero, func, body_value;
+	LLVMBasicBlockRef body_block, end;
+
+	condition = codegen(ast->one.ast, module, builder);
+	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
+	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "ifcond");
+	/* TODO: func isn't always a func... rename to "block" */
+	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
+	body_block = LLVMAppendBasicBlock(func, "body");
+	end = LLVMAppendBasicBlock(func, "end");
+
+	LLVMBuildCondBr(builder, condition, body_block, end);
+	LLVMPositionBuilderAtEnd(builder, body_block);
+	/* TODO: I don't think we need to collect values from then/else blocks */
+	body_value = codegen(ast->two.ast, module, builder);
+
+	LLVMBuildBr(builder, end);
+	/* TODO: What's the point of this? */
+	body_block = LLVMGetInsertBlock(builder);
+
+	LLVMPositionBuilderAtEnd(builder, end);
+
+	return body_value;
+}
+
 LLVMValueRef codegen_if(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
-	LLVMValueRef condition, zero, func, else_value, then_value;
+	LLVMValueRef condition, zero, func, ref;
 	LLVMBasicBlockRef then_block, else_block, end;
 
 	condition = codegen(ast->one.ast, module, builder);
@@ -179,27 +206,19 @@ LLVMValueRef codegen_if(struct node *ast, LLVMModuleRef module, LLVMBuilderRef b
 
 	LLVMBuildCondBr(builder, condition, then_block, else_block);
 	LLVMPositionBuilderAtEnd(builder, then_block);
-	/* TODO: I don't think we need to collect values from then/else blocks */
-	then_value = codegen(ast->two.ast, module, builder);
+	codegen(ast->two.ast, module, builder);
 
-	LLVMBuildBr(builder, end);
-	/* TODO: What's the point of this? */
-	then_block = LLVMGetInsertBlock(builder);
+	ref = LLVMBuildBr(builder, end);
 
 	LLVMPositionBuilderAtEnd(builder, else_block);
 
 	if (ast->three.ast) {
-		else_value = codegen(ast->three.ast, module, builder);
-		LLVMBuildBr(builder, end);
-		else_block = LLVMGetInsertBlock(builder);
+		codegen(ast->three.ast, module, builder);
+		ref = LLVMBuildBr(builder, end);
 	}
 
 	LLVMPositionBuilderAtEnd(builder, end);
-	LLVMValueRef phi = LLVMBuildPhi(builder, LLVMInt64Type(), "phi");
-	LLVMAddIncoming(phi, &then_value, &then_block, 1);
-	LLVMAddIncoming(phi, &else_value, &else_block, 1);
-
-	return phi;
+	return ref;
 }
 
 LLVMValueRef codegen_lt(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
@@ -372,7 +391,7 @@ LLVMValueRef codegen_funcdef(struct node *ast, LLVMModuleRef module, LLVMBuilder
 	LLVMBasicBlockRef block;
 
 	/* TODO: Check if function already defined */
-	sig = LLVMFunctionType(LLVMInt64Type(), NULL, 0, 0);
+	sig = LLVMFunctionType(LLVMVoidType(), NULL, 0, 0);
 	func = LLVMAddFunction(module, ast->one.ast->one.val, sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
@@ -381,13 +400,8 @@ LLVMValueRef codegen_funcdef(struct node *ast, LLVMModuleRef module, LLVMBuilder
 
 	body = codegen(ast->three.ast, module, builder);
 
-	if (body == NULL) {
-		LLVMDeleteFunction(func);
-		return NULL;
-	}
 
-
-	LLVMBuildRet(builder, body);
+	LLVMBuildRetVoid(builder);
 
 	if (LLVMVerifyFunction(func, LLVMPrintMessageAction)) {
 		LLVMDeleteFunction(func);
@@ -440,6 +454,7 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 		return codegen_if(ast, module, builder);
 		break;
 	case N_WHILE:
+		return codegen_while(ast, module, builder);
 		break;
 	case N_SWITCH:
 		break;
