@@ -192,30 +192,26 @@ LLVMValueRef codegen_while(struct node *ast, LLVMModuleRef module, LLVMBuilderRe
 
 LLVMValueRef codegen_if(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
-	LLVMValueRef condition, zero, func, ref;
+	LLVMValueRef zero, condition, parent, ref;
 	LLVMBasicBlockRef then_block, else_block, end;
 
-	condition = codegen(ast->one.ast, module, builder);
 	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
-	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "ifcond");
-	/* TODO: func isn't always a func... rename to "block" */
-	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
-	then_block = LLVMAppendBasicBlock(func, "then");
-	else_block = LLVMAppendBasicBlock(func, "else");
-	end = LLVMAppendBasicBlock(func, "end");
+	condition = codegen(ast->one.ast, module, builder);
+	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "tmp_cond");
+	parent = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 
+	then_block = LLVMAppendBasicBlock(parent, "then");
+	else_block = LLVMAppendBasicBlock(parent, "else");
+	end = LLVMAppendBasicBlock(parent, "end");
 	LLVMBuildCondBr(builder, condition, then_block, else_block);
+
 	LLVMPositionBuilderAtEnd(builder, then_block);
 	codegen(ast->two.ast, module, builder);
-
 	ref = LLVMBuildBr(builder, end);
 
 	LLVMPositionBuilderAtEnd(builder, else_block);
-
-	if (ast->three.ast) {
-		codegen(ast->three.ast, module, builder);
-		ref = LLVMBuildBr(builder, end);
-	}
+	codegen(ast->three.ast, module, builder);
+	ref = LLVMBuildBr(builder, end);
 
 	LLVMPositionBuilderAtEnd(builder, end);
 	return ref;
@@ -414,6 +410,11 @@ LLVMValueRef codegen_funcdef(struct node *ast, LLVMModuleRef module, LLVMBuilder
 
 LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
+	if (!ast) {
+		return NULL;
+		//generror("Passed NULL to codegen");
+	}
+
 	printf("...compiling %s\n", enumtostr(ast->typ));
 
 	/* TODO: Remove all breaks */
