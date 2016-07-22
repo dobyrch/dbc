@@ -1,3 +1,4 @@
+#include <search.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,6 +12,8 @@
 #include "dbc.tab.h"
 #include "astnode.h"
 #include "codegen.h"
+
+#define SYMTAB_SIZE 1024
 
 
 static LLVMBuilderRef builder;
@@ -452,10 +455,14 @@ LLVMValueRef gen_xor_assign(struct node *ast) { generror("Not yet implemented: g
 void compile(struct node *ast)
 {
 	/* TODO: Free module, define "dbc" as constant */
-	/* TODO: Make builder/module static in codegen so we don't have to pass them around */
+	if ((module = LLVMModuleCreateWithName("dbc")) == NULL)
+		generror("Failed to create LLVM module");
 
-	builder = LLVMCreateBuilder();
-	module = LLVMModuleCreateWithName("dbc");
+	if ((builder = LLVMCreateBuilder()) == NULL)
+		generror("Failed to create LLVM instruction builder");
+
+	if (hcreate(SYMTAB_SIZE) == 0)
+		generror("Failed to allocate space for symbol table");
 
 
 	/* TODO: Remove superfluous returns from gen_ */

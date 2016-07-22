@@ -65,27 +65,27 @@ definition
 
 simple_definition
 	: NAME ';'
-		{ $$ = node1(gen_simpledef, leaf(gen_name, $1)); }
+		{ $$ = node1(gen_simpledef, leafnode(gen_name, $1)); }
 	| NAME  ival_list ';'
-		{ $$ = node2(gen_simpledef, leaf(gen_name, $1), $2); }
+		{ $$ = node2(gen_simpledef, leafnode(gen_name, $1), $2); }
 	;
 
 vector_definition
 	: NAME '[' ']' ';'
-		{ $$ = node3(gen_vecdef, leaf(gen_name, $1), NULL, NULL); }
+		{ $$ = node3(gen_vecdef, leafnode(gen_name, $1), NULL, NULL); }
 	| NAME '[' ']' ival_list ';'
-		{ $$ = node3(gen_vecdef, leaf(gen_name, $1), NULL, $4); }
+		{ $$ = node3(gen_vecdef, leafnode(gen_name, $1), NULL, $4); }
 	| NAME '[' constant ']' ';'
-		{ $$ = node3(gen_vecdef, leaf(gen_name, $1), $3, NULL); }
+		{ $$ = node3(gen_vecdef, leafnode(gen_name, $1), $3, NULL); }
 	| NAME '[' constant ']' ival_list ';'
-		{ $$ = node3(gen_vecdef, leaf(gen_name, $1), $3, $5); }
+		{ $$ = node3(gen_vecdef, leafnode(gen_name, $1), $3, $5); }
 	;
 
 function_definition
 	: NAME '(' ')' statement
-		{ $$ = node3(gen_funcdef, leaf(gen_name, $1), NULL, $4); }
+		{ $$ = node3(gen_funcdef, leafnode(gen_name, $1), NULL, $4); }
 	| NAME '(' name_list ')' statement
-		{ $$ = node3(gen_funcdef, leaf(gen_name, $1), $3, $5); }
+		{ $$ = node3(gen_funcdef, leafnode(gen_name, $1), $3, $5); }
 	;
 
 ival_list
@@ -99,7 +99,7 @@ ival_list
 ival
 	: constant
 	| NAME
-		{ $$ = leaf(gen_name, $1); }
+		{ $$ = leafnode(gen_name, $1); }
 	;
 
 statement_list
@@ -114,7 +114,7 @@ statement
 	| EXTRN name_list ';'
 		{ $$ = node1(gen_extrn, $2); }
 	| NAME ':' statement
-		{ $$ = node2(gen_label, leaf(gen_name, $1), $3); }
+		{ $$ = node2(gen_label, leafnode(gen_name, $1), $3); }
 	| CASE constant ':' statement
 		{ $$ = node2(gen_case, $2, $4); }
 
@@ -133,7 +133,7 @@ statement
 	| SWITCH '(' expression ')' statement
 		{ $$ = node2(gen_switch, $3, $5); }
 	| GOTO NAME ';'
-		{ $$ = node1(gen_goto, leaf(gen_name, $2)); }
+		{ $$ = node1(gen_goto, leafnode(gen_name, $2)); }
 
 	| RETURN ';'
 		{ $$ = node0(gen_return); }
@@ -153,16 +153,16 @@ init_list
 
 init
 	: NAME
-		{ $$ = node1(gen_init, leaf(gen_name, $1)); }
+		{ $$ = node1(gen_init, leafnode(gen_name, $1)); }
 	| NAME constant
-		{ $$ = node2(gen_init, leaf(gen_name, $1), $2); }
+		{ $$ = node2(gen_init, leafnode(gen_name, $1), $2); }
 	;
 
 name_list
 	: name_list ',' NAME
-		{ $$ = node2(gen_names, $1, leaf(gen_name, $3)); }
+		{ $$ = node2(gen_names, $1, leafnode(gen_name, $3)); }
 	| NAME
-		{ $$ = leaf(gen_name, $1); }
+		{ $$ = leafnode(gen_name, $1); }
 	;
 
 expression
@@ -309,7 +309,7 @@ argument_expression_list
 
 primary_expression
 	: NAME
-		{ $$ = leaf(gen_name, $1); }
+		{ $$ = leafnode(gen_name, $1); }
 	| constant
 	| '(' expression ')'
 		{ $$ = $2; }
@@ -317,9 +317,9 @@ primary_expression
 
 constant
 	: LITERAL
-		{ $$ = leaf(gen_const, $1); }
+		{ $$ = leafnode(gen_const, $1); }
 	| STRING_LITERAL
-		{ $$ = leaf(gen_const, $1); }
+		{ $$ = leafnode(gen_const, $1); }
 	;
 
 %%

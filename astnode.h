@@ -11,7 +11,7 @@ struct node *one(struct node *ast);
 struct node *two(struct node *ast);
 struct node *three(struct node *ast);
 
-struct node *leaf(codegen_func, char *value);
+struct node *leafnode(codegen_func, char *value);
 struct node *node0(codegen_func);
 struct node *node1(codegen_func, struct node *one);
 struct node *node2(codegen_func, struct node *one, struct node *two);
