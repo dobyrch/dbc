@@ -76,7 +76,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 			 * chars and octal constants
 			 * TODO: Check for invalid (negative) array size
 			 */
-			minsize = atoi(leafval(two(ast)));
+			minsize = atoi(val(two(ast)));
 
 		elems = calloc(sizeof(LLVMValueRef), size >= minsize ? size : minsize);
 		/* TODO: Check all allocs for errors */
@@ -100,7 +100,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		/* TODO: Figure out why "foo[6];" has size of 0 */
 		array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
 
-		global = LLVMAddGlobal(module, type, leafval(one(ast)));
+		global = LLVMAddGlobal(module, type, val(one(ast)));
 		LLVMSetInitializer(global, array);
 		LLVMSetLinkage(global, LLVMExternalLinkage);
 
@@ -237,7 +237,7 @@ LLVMValueRef gen_auto(struct node *ast)
 	* see "http://llvm.org/docs/GetElementPtr.html#how-is-gep-different-from-ptrtoint-arithmetic-and-inttoptr" -- LLVM assumes pointers are <= 64 bits
 	* accept commandline argument or look at sizeof(void *)
 	*/
-	myvar = LLVMBuildAlloca(builder, LLVMInt64Type(), leafval(one(one(ast))));
+	myvar = LLVMBuildAlloca(builder, LLVMInt64Type(), val(one(one(ast))));
 	return myvar;
 }
 
@@ -338,16 +338,15 @@ LLVMValueRef gen_call(struct node *ast)
 	LLVMTypeRef intarg = LLVMInt64Type();
 
 	signew = LLVMFunctionType(LLVMInt64Type(), &intarg, 1, 0);
-	/* TODO: Macro for accessing leaf val: LEAFVAL(ast->one) */
 	if (first) {
-		funcnew = LLVMAddGlobal(module, signew, leafval(one(ast)));
+		funcnew = LLVMAddGlobal(module, signew, val(one(ast)));
 		LLVMSetLinkage(funcnew, LLVMExternalLinkage);
 		first = 0;
 	} else {
-		funcnew = LLVMGetNamedGlobal(module, leafval(one(ast)));
+		funcnew = LLVMGetNamedGlobal(module, val(one(ast)));
 	}
 	//LLVMInsertIntoBuilder(builder, funcnew);
-	//func = LLVMGetNamedGlobal(module, leafval(one(ast)));
+	//func = LLVMGetNamedGlobal(module, val(one(ast)));
 	func = funcnew;
 
 	if (func == NULL) {
@@ -380,7 +379,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 
 	/* TODO: Check if function already defined */
 	sig = LLVMFunctionType(LLVMInt64Type(), NULL, 0, 0);
-	func = LLVMAddFunction(module, leafval(one(ast)), sig);
+	func = LLVMAddFunction(module, val(one(ast)), sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	block = LLVMAppendBasicBlock(func, "");

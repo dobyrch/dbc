@@ -12,6 +12,12 @@ LLVMValueRef codegen(struct node *ast)
 }
 
 
+char *val(struct node *ast)
+{
+	return ast->one.val;
+}
+
+
 struct node *one(struct node *ast)
 {
 	return ast->one.ast;
@@ -30,51 +36,46 @@ struct node *three(struct node *ast)
 }
 
 
-char *leafval(struct node *ast)
+struct node *leaf(codegen_func codegen, char *value)
 {
-	return ast->one.val;
+	struct node *new_leaf = malloc(sizeof(struct node));
+
+	new_leaf->codegen = codegen;
+	new_leaf->one.val = value;
+	new_leaf->two.ast = NULL;
+	new_leaf->three.ast = NULL;
+
+	return new_leaf;
 }
 
 
-struct node *leaf(LLVMValueRef (*codegen)(struct node *), char *value)
+struct node *node0(codegen_func codegen)
 {
-	struct node *nleaf = malloc(sizeof(struct node));
-	nleaf->codegen = codegen;
-	nleaf->one.val = value;
-	nleaf->two.ast = NULL;
-	nleaf->three.ast = NULL;
-
-	return nleaf;
+	return node3(codegen, NULL, NULL, NULL);
 }
 
 
-struct node *node3(LLVMValueRef (*codegen)(struct node *), struct node *one, struct node *two, struct node *three)
-{
-	/* TODO: Error handling */
-	struct node *nnode = malloc(sizeof(struct node));
-
-	nnode->codegen = codegen;
-	nnode->one.ast = one;
-	nnode->two.ast = two;
-	nnode->three.ast = three;
-
-	return nnode;
-}
-
-
-struct node *node2(LLVMValueRef (*codegen)(struct node *), struct node *one, struct node *two)
-{
-	return node3(codegen, one, two, NULL);
-}
-
-
-struct node *node1(LLVMValueRef (*codegen)(struct node *), struct node *one)
+struct node *node1(codegen_func codegen, struct node *one)
 {
 	return node3(codegen, one, NULL, NULL);
 }
 
 
-struct node *node0(LLVMValueRef (*codegen)(struct node *))
+struct node *node2(codegen_func codegen, struct node *one, struct node *two)
 {
-	return node3(codegen, NULL, NULL, NULL);
+	return node3(codegen, one, two, NULL);
+}
+
+
+struct node *node3(codegen_func codegen, struct node *one, struct node *two, struct node *three)
+{
+	/* TODO: Error handling */
+	struct node *new_node = malloc(sizeof(struct node));
+
+	new_node->codegen = codegen;
+	new_node->one.ast = one;
+	new_node->two.ast = two;
+	new_node->three.ast = three;
+
+	return new_node;
 }
