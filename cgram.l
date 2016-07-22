@@ -2,8 +2,11 @@
 #include <string.h>
 #include "cgram.tab.h"
 
-void count(void);
-void comment(void);
+static void comment(void);
+static void count(void);
+
+int lex_line = 0;
+int lex_column = 0;
 %}
 
 %option noyywrap
@@ -83,7 +86,7 @@ H			[a-fA-F0-9]
 %%
 
 
-void comment(void)
+static void comment(void)
 {
 	char c, c1;
 
@@ -99,22 +102,21 @@ loop:
 
 	if (c != 0)
 		putchar(c1);
-
-	ECHO;
 }
 
 
-int column = 0;
-
-void count(void)
+static void count(void)
 {
 	int i;
 
 	for (i = 0; yytext[i] != '\0'; i++)
-		if (yytext[i] == '\n')
-			column = 0;
-		else if (yytext[i] == '\t')
-			column += 8 - (column % 8);
+		if (yytext[i] == '\n') {
+			lex_line++;
+			lex_column = 0;
+		} else if (yytext[i] == '\t')
+			lex_column += 8 - (lex_column % 8);
 		else
-			column++;
+			lex_column++;
+
+	ECHO;
 }

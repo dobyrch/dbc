@@ -41,8 +41,7 @@ char *leafval(struct node *ast)
 
 void yyerror(const char *msg)
 {
-	printf("\n%*s\n%*s\n", column, "^", column, msg);
-	printf("column %d\n", column);
+	printf("\n%*s\n%*s\n", lex_column, "^", lex_column, msg);
 	fflush(stdout);
 }
 
@@ -266,7 +265,6 @@ LLVMValueRef gen_auto(struct node *ast)
 	* see "http://llvm.org/docs/GetElementPtr.html#how-is-gep-different-from-ptrtoint-arithmetic-and-inttoptr" -- LLVM assumes pointers are <= 64 bits
 	* accept commandline argument or look at sizeof(void *)
 	*/
-	printf("Alloca'ing %s\n", leafval(one(one(ast))));
 	myvar = LLVMBuildAlloca(builder, LLVMInt64Type(), leafval(one(one(ast))));
 	return myvar;
 }
@@ -278,12 +276,7 @@ LLVMValueRef gen_name(struct node *ast)
 		/* TODO: make global if not declared */
 		generror("Wuh oh, attempted to access unitialized variable");
 	}
-	printf("Building loader for %s\n", ast->one.val);
-	printf("@@@@@@@@\n");
-	LLVMDumpValue(myvar);
-	printf("@@@@@@@@\n");
 	LLVMValueRef tmp = LLVMBuildLoad(builder, myvar, ast->one.val);
-	printf("########\n");
 	return tmp;
 
 }

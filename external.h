@@ -1,7 +1,8 @@
 int yylex(void);
 void yyerror(const char *msg);
 char *yytext;
-int column;
+extern int lex_line;
+extern int lex_column;
 
 struct node {
 	LLVMValueRef (*codegen)(struct node *);
