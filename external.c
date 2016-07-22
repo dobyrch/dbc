@@ -14,6 +14,7 @@
 void yyerror(const char *msg)
 {
 	printf("\n%*s\n%*s\n", column, "^", column, msg);
+	printf("column %d\n", column);
 	fflush(stdout);
 }
 
@@ -130,6 +131,23 @@ void dump_ast(struct node *ast) {
 static LLVMValueRef myvar = NULL;
 static LLVMBasicBlockRef mylabel = NULL;
 LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder);
+
+LLVMValueRef codegen_expression(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	return NULL;
+}
+
+LLVMValueRef retval;
+LLVMValueRef codegen_return(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	if (ast->one.ast)
+		LLVMBuildStore(
+			builder,
+			codegen(ast->one.ast, module, builder),
+			retval);
+
+	return NULL;
+}
 
 LLVMValueRef codegen_label(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
@@ -387,17 +405,20 @@ LLVMValueRef codegen_funcdef(struct node *ast, LLVMModuleRef module, LLVMBuilder
 	LLVMBasicBlockRef block;
 
 	/* TODO: Check if function already defined */
-	sig = LLVMFunctionType(LLVMVoidType(), NULL, 0, 0);
+	sig = LLVMFunctionType(LLVMInt64Type(), NULL, 0, 0);
 	func = LLVMAddFunction(module, ast->one.ast->one.val, sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	block = LLVMAppendBasicBlock(func, "");
 	LLVMPositionBuilderAtEnd(builder, block);
 
+	retval = LLVMBuildAlloca(builder, LLVMInt64Type(), "retval");
+	LLVMBuildStore(builder,
+		LLVMConstInt(LLVMInt64Type(), 0, 0),
+		retval);
 	body = codegen(ast->three.ast, module, builder);
 
-
-	LLVMBuildRetVoid(builder);
+	LLVMBuildRet(builder, LLVMBuildLoad(builder, retval, "retval"));
 
 	if (LLVMVerifyFunction(func, LLVMPrintMessageAction)) {
 		LLVMDeleteFunction(func);
@@ -463,8 +484,10 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 		return codegen_goto(ast, module, builder);
 		break;
 	case N_RETURN:
+		return codegen_return(ast, module, builder);
 		break;
 	case N_EXPRESSION:
+		return codegen_expression(ast, module, builder);
 		break;
 	case N_INITS:
 		break;
