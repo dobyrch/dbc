@@ -132,6 +132,60 @@ static LLVMValueRef myvar = NULL;
 static LLVMBasicBlockRef mylabel = NULL;
 LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder);
 
+LLVMValueRef codegen_vecdef(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+		/*
+		 * TODO: Make a note that a "vector" in B terminology equates to
+		 * an LLVM array, not an LLVM vector
+		 */
+		LLVMValueRef global, array, *elems;
+		LLVMTypeRef type;
+		struct node *p = ast->three.ast;
+		uint64_t i, size = 0, minsize = 0;
+
+		while (p) {
+			size++;
+			p = p->one.ast;
+		}
+
+		if (ast->two.ast)
+			/*
+			 * TODO: check that type is not string;
+			 * use convenience function for handling
+			 * chars and octal constants
+			 * TODO: Check for invalid (negative) array size
+			 */
+			minsize = atoi(ast->two.ast->one.val);
+
+		elems = calloc(sizeof(LLVMValueRef), size >= minsize ? size : minsize);
+		/* TODO: Check all allocs for errors */
+		if (!elems)
+			generror("Out of memory");
+
+		p = ast->three.ast;
+		i = size;
+		while (p) {
+			/* TODO: handle NAMES (convert global pointer to int) */
+			elems[--i] = codegen(p->two.ast, module, builder);
+			p = p->one.ast;
+		}
+
+		i = size;
+		while (i < minsize)
+			elems[i++] = LLVMConstInt(LLVMInt64Type(), 0, 0);
+
+
+		type = LLVMArrayType(LLVMInt64Type(), size);
+		/* TODO: Figure out why "foo[6];" has size of 0 */
+		array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
+
+		global = LLVMAddGlobal(module, type, ast->one.ast->one.val);
+		LLVMSetInitializer(global, array);
+		LLVMSetLinkage(global, LLVMExternalLinkage);
+
+		return global;
+}
+
 LLVMValueRef codegen_expression(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
 	return NULL;
@@ -269,8 +323,10 @@ LLVMValueRef codegen_auto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 LLVMValueRef codegen_name(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
 	/* TODO: Retrieve variables by name */
-	if (!myvar)
+	if (!myvar) {
+		/* TODO: make global if not declared */
 		generror("Wuh oh, attempted to access unitialized variable");
+	}
 	printf("Building loader for %s\n", ast->one.val);
 	printf("@@@@@@@@\n");
 	LLVMDumpValue(myvar);
@@ -444,12 +500,13 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 	/* TODO: Store function ptrs in LLYVAL rather than enum??? */
 	switch (ast->typ) {
 	case N_DEFS:
-		return codegen(ast->one.ast, module, builder);
+		codegen(ast->one.ast, module, builder);
 		return codegen(ast->two.ast, module, builder);
 		break;
 	case N_SIMPLEDEF:
 		break;
 	case N_VECDEF:
+		return codegen_vecdef(ast, module, builder);
 		break;
 	case N_FUNCDEF:
 		return codegen_funcdef(ast, module, builder);
@@ -620,7 +677,7 @@ void compile(struct node *ast)
 
 	LLVMValueRef foo = (codegen(ast, module, builder));
 	printf("\n====================================\n");
-	LLVMDumpValue(foo);
+	LLVMDumpModule(module);
 	printf("====================================\n");
 
 	if (LLVMWriteBitcodeToFile(module, "cgram.bc") != 0) {

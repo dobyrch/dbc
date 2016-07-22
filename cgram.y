@@ -81,6 +81,8 @@ ival_list
 	: ival_list ',' ival
 		{ $$ = node2(N_IVALS, $1, $3); }
 	| ival
+		/* TODO: decide on consistent ordering for lists */
+		{ $$ = node2(N_IVALS, NULL, $1); }
 	;
 
 ival
