@@ -3,7 +3,6 @@ typedef union {
 	struct node *ast;
 } YYSTYPE;
 
-
 struct node {
 	/* TODO: figure out why LLVMValueRef doesn't work */
 	/* LLVMValueRef (*codegen)(struct node *); */
