@@ -8,7 +8,7 @@
 #include <llvm-c/Analysis.h>
 #include <llvm-c/BitWriter.h>
 
-#include "types.h"
+#include "cgram.tab.h"
 #include "external.h"
 
 static LLVMBuilderRef builder;

@@ -1,7 +1,11 @@
+%union {
+	char *val;
+	struct node *ast;
+}
+
 %{
 #include <stddef.h>
 #include <llvm-c/Core.h>
-#include "types.h"
 #include "external.h"
 %}
 

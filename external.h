@@ -3,6 +3,11 @@ void yyerror(const char *msg);
 char *yytext;
 int column;
 
+struct node {
+	LLVMValueRef (*codegen)(struct node *);
+	YYSTYPE one, two, three;
+};
+
 void dump_ast(struct node *ast);
 void compinit(void);
 void compile(struct node *ast);

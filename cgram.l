@@ -1,6 +1,5 @@
 %{
 #include <string.h>
-#include "types.h"
 #include "cgram.tab.h"
 
 void count(void);
