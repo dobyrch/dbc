@@ -1,5 +1,6 @@
 %{
 #include <stddef.h>
+#include <llvm-c/Core.h>
 #include "types.h"
 #include "external.h"
 %}
@@ -42,7 +43,7 @@ program
 
 definitions
 	: definitions definition
-		{ $$ = node2(N_DEFS, $1, $2); }
+		{ $$ = node2(codegen_defs, $1, $2); }
 	| definition
 	;
 
@@ -54,251 +55,251 @@ definition
 
 simple_definition
 	: NAME ';'
-		{ $$ = node1(N_SIMPLEDEF, leaf(N_NAME, $1)); }
+		{ $$ = node1(codegen_SIMPLEDEF, leaf(codegen_name, $1)); }
 	| NAME  ival_list ';'
-		{ $$ = node2(N_SIMPLEDEF, leaf(N_NAME, $1), $2); }
+		{ $$ = node2(codegen_simpledef, leaf(codegen_name, $1), $2); }
 	;
 
 vector_definition
 	: NAME '[' ']' ';'
-		{ $$ = node3(N_VECDEF, leaf(N_NAME, $1), NULL, NULL); }
+		{ $$ = node3(codegen_vecdef, leaf(codegen_name, $1), NULL, NULL); }
 	| NAME '[' ']' ival_list ';'
-		{ $$ = node3(N_VECDEF, leaf(N_NAME, $1), NULL, $4); }
+		{ $$ = node3(codegen_vecdef, leaf(codegen_name, $1), NULL, $4); }
 	| NAME '[' constant ']' ';'
-		{ $$ = node3(N_VECDEF, leaf(N_NAME, $1), $3, NULL); }
+		{ $$ = node3(codegen_vecdef, leaf(codegen_name, $1), $3, NULL); }
 	| NAME '[' constant ']' ival_list ';'
-		{ $$ = node3(N_VECDEF, leaf(N_NAME, $1), $3, $5); }
+		{ $$ = node3(codegen_vecdef, leaf(codegen_name, $1), $3, $5); }
 	;
 
 function_definition
 	: NAME '(' ')' statement
-		{ $$ = node3(N_FUNCDEF, leaf(N_NAME, $1), NULL, $4); }
+		{ $$ = node3(codegen_funcdef, leaf(codegen_name, $1), NULL, $4); }
 	| NAME '(' name_list ')' statement
-		{ $$ = node3(N_FUNCDEF, leaf(N_NAME, $1), $3, $5); }
+		{ $$ = node3(codegen_funcdef, leaf(codegen_name, $1), $3, $5); }
 	;
 
 ival_list
 	: ival_list ',' ival
-		{ $$ = node2(N_IVALS, $1, $3); }
+		{ $$ = node2(codegen_ivals, $1, $3); }
 	| ival
 		/* TODO: decide on consistent ordering for lists */
-		{ $$ = node2(N_IVALS, NULL, $1); }
+		{ $$ = node2(codegen_ivals, NULL, $1); }
 	;
 
 ival
 	: constant
 	| NAME
-		{ $$ = leaf(N_NAME, $1); }
+		{ $$ = leaf(codegen_name, $1); }
 	;
 
 statement_list
 	: statement_list statement
-		{ $$ = node2(N_STATEMENTS, $1, $2); }
+		{ $$ = node2(codegen_statements, $1, $2); }
 	| statement
 	;
 
 statement
 	: AUTO init_list ';'
-		{ $$ = node1(N_AUTO, $2); }
+		{ $$ = node1(codegen_auto, $2); }
 	| EXTRN name_list ';'
-		{ $$ = node1(N_EXTRN, $2); }
+		{ $$ = node1(codegen_extrn, $2); }
 	| NAME ':' statement
-		{ $$ = node2(N_LABEL, leaf(N_NAME, $1), $3); }
+		{ $$ = node2(codegen_label, leaf(codegen_name, $1), $3); }
 	| CASE constant ':' statement
-		{ $$ = node2(N_CASE, $2, $4); }
+		{ $$ = node2(codegen_case, $2, $4); }
 
 	| '{' '}'
-		{ $$ = node0(N_COMPOUND); }
+		{ $$ = node0(codegen_compound); }
 	| '{' statement_list '}'
-		{ $$ = node1(N_COMPOUND, $2); }
+		{ $$ = node1(codegen_compound, $2); }
 
 	| IF '(' expression ')' statement
-		{ $$ = node2(N_IF, $3, $5); }
+		{ $$ = node2(codegen_if, $3, $5); }
 	| IF '(' expression ')' statement ELSE statement
-		{ $$ = node3(N_IF, $3, $5, $7); }
+		{ $$ = node3(codegen_if, $3, $5, $7); }
 
 	| WHILE '(' expression ')' statement
-		{ $$ = node2(N_WHILE, $3, $5); }
+		{ $$ = node2(codegen_while, $3, $5); }
 	| SWITCH '(' expression ')' statement
-		{ $$ = node2(N_SWITCH, $3, $5); }
+		{ $$ = node2(codegen_switch, $3, $5); }
 	| GOTO NAME ';'
-		{ $$ = node1(N_GOTO, leaf(N_NAME, $2)); }
+		{ $$ = node1(codegen_goto, leaf(codegen_name, $2)); }
 
 	| RETURN ';'
-		{ $$ = node0(N_RETURN); }
+		{ $$ = node0(codegen_return); }
 	| RETURN '(' expression ')' ';'
-		{ $$ = node1(N_RETURN, $3); }
+		{ $$ = node1(codegen_return, $3); }
 
 	| expression ';'
 	| ';'
-		{ $$ = node0(N_EXPRESSION); }
+		{ $$ = node0(codegen_expression); }
 	;
 
 init_list
 	: init_list ',' init
-		{ $$ = node2(N_INITS, $1, $3); }
+		{ $$ = node2(codegen_inits, $1, $3); }
 	| init
 	;
 
 init
 	: NAME
-		{ $$ = node1(N_INIT, leaf(N_NAME, $1)); }
+		{ $$ = node1(codegen_init, leaf(codegen_name, $1)); }
 	| NAME constant
-		{ $$ = node2(N_INIT, leaf(N_NAME, $1), $2); }
+		{ $$ = node2(codegen_init, leaf(codegen_name, $1), $2); }
 	;
 
 name_list
 	: name_list ',' NAME
-		{ $$ = node2(N_NAMES, $1, leaf(N_NAME, $3)); }
+		{ $$ = node2(codegen_names, $1, leaf(codegen_name, $3)); }
 	| NAME
-		{ $$ = leaf(N_NAME, $1); }
+		{ $$ = leaf(codegen_name, $1); }
 	;
 
 expression
 	: expression ',' assignment_expression
-		{ $$ = node2(N_COMMA, $3, $1); }
+		{ $$ = node2(codegen_comma, $3, $1); }
 	| assignment_expression
 	;
 
 assignment_expression
 	: unary_expression '=' assignment_expression
-		{ $$ = node2(N_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_assign, $1, $3); }
 	| unary_expression MUL_ASSIGN assignment_expression
-		{ $$ = node2(N_MUL_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_mul_assign, $1, $3); }
 	| unary_expression DIV_ASSIGN assignment_expression
-		{ $$ = node2(N_DIV_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_div_assign, $1, $3); }
 	| unary_expression MOD_ASSIGN assignment_expression
-		{ $$ = node2(N_MOD_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_mod_assign, $1, $3); }
 	| unary_expression ADD_ASSIGN assignment_expression
-		{ $$ = node2(N_ADD_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_add_assign, $1, $3); }
 	| unary_expression SUB_ASSIGN assignment_expression
-		{ $$ = node2(N_SUB_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_sub_assign, $1, $3); }
 	| unary_expression LEFT_ASSIGN assignment_expression
-		{ $$ = node2(N_LEFT_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_left_assign, $1, $3); }
 	| unary_expression RIGHT_ASSIGN assignment_expression
-		{ $$ = node2(N_RIGHT_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_right_assign, $1, $3); }
 	| unary_expression AND_ASSIGN assignment_expression
-		{ $$ = node2(N_AND_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_and_assign, $1, $3); }
 	| unary_expression XOR_ASSIGN assignment_expression
-		{ $$ = node2(N_XOR_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_xor_assign, $1, $3); }
 	| unary_expression OR_ASSIGN assignment_expression
-		{ $$ = node2(N_OR_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_or_assign, $1, $3); }
 	| unary_expression EQ_ASSIGN assignment_expression
-		{ $$ = node2(N_EQ_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_eq_assign, $1, $3); }
 	| unary_expression NE_ASSIGN assignment_expression
-		{ $$ = node2(N_NE_ASSIGN, $1, $3); }
+		{ $$ = node2(codegen_ne_assign, $1, $3); }
 	| conditional_expression
 	;
 
 conditional_expression
 	: inclusive_or_expression '?' expression ':' conditional_expression
-		{ $$ = node3(N_COND, $1, $3, $5); }
+		{ $$ = node3(codegen_cond, $1, $3, $5); }
 	| inclusive_or_expression
 	;
 
 inclusive_or_expression
 	: inclusive_or_expression '|' exclusive_or_expression
-		{ $$ = node2(N_IOR, $1, $3); }
+		{ $$ = node2(codegen_ior, $1, $3); }
 	| exclusive_or_expression
 	;
 
 exclusive_or_expression
 	: exclusive_or_expression '^' and_expression
-		{ $$ = node2(N_XOR, $1, $3); }
+		{ $$ = node2(codegen_xor, $1, $3); }
 	| and_expression
 	;
 
 and_expression
 	: and_expression '&' equality_expression
-		{ $$ = node2(N_AND, $1, $3); }
+		{ $$ = node2(codegen_and, $1, $3); }
 	| equality_expression
 	;
 
 equality_expression
 	: equality_expression EQ_OP relational_expression
-		{ $$ = node2(N_EQ, $1, $3); }
+		{ $$ = node2(codegen_eq, $1, $3); }
 	| equality_expression NE_OP relational_expression
-		{ $$ = node2(N_NE, $1, $3); }
+		{ $$ = node2(codegen_ne, $1, $3); }
 	| relational_expression
 	;
 
 relational_expression
 	: relational_expression '<' shift_expression
-		{ $$ = node2(N_LT, $1, $3); }
+		{ $$ = node2(codegen_lt, $1, $3); }
 	| relational_expression '>' shift_expression
-		{ $$ = node2(N_GT, $1, $3); }
+		{ $$ = node2(codegen_gt, $1, $3); }
 	| relational_expression LE_OP shift_expression
-		{ $$ = node2(N_LE, $1, $3); }
+		{ $$ = node2(codegen_le, $1, $3); }
 	| relational_expression GE_OP shift_expression
-		{ $$ = node2(N_GE, $1, $3); }
+		{ $$ = node2(codegen_ge, $1, $3); }
 	| shift_expression
 	;
 
 shift_expression
 	: shift_expression LEFT_OP additive_expression
-		{ $$ = node2(N_LEFT, $1, $3); }
+		{ $$ = node2(codegen_left, $1, $3); }
 	| shift_expression RIGHT_OP additive_expression
-		{ $$ = node2(N_RIGHT, $1, $3); }
+		{ $$ = node2(codegen_right, $1, $3); }
 	| additive_expression
 	;
 
 additive_expression
 	: additive_expression '+' multiplicative_expression
-		{ $$ = node2(N_ADD, $1, $3); }
+		{ $$ = node2(codegen_add, $1, $3); }
 	| additive_expression '-' multiplicative_expression
-		{ $$ = node2(N_SUB, $1, $3); }
+		{ $$ = node2(codegen_sub, $1, $3); }
 	| multiplicative_expression
 	;
 
 multiplicative_expression
 	: multiplicative_expression '*' unary_expression
-		{ $$ = node2(N_MUL, $1, $3); }
+		{ $$ = node2(codegen_mul, $1, $3); }
 	| multiplicative_expression '/' unary_expression
-		{ $$ = node2(N_DIV, $1, $3); }
+		{ $$ = node2(codegen_div, $1, $3); }
 	| multiplicative_expression '%' unary_expression
-		{ $$ = node2(N_MOD, $1, $3); }
+		{ $$ = node2(codegen_mod, $1, $3); }
 	| unary_expression
 	;
 
 unary_expression
 	: '*' unary_expression
-		{ $$ = node1(N_INDIR, $2); }
+		{ $$ = node1(codegen_indir, $2); }
 	| '&' unary_expression
-		{ $$ = node1(N_ADDR, $2); }
+		{ $$ = node1(codegen_addr, $2); }
 	| '-' unary_expression
-		{ $$ = node1(N_NEG, $2); }
+		{ $$ = node1(codegen_neg, $2); }
 	| '!' unary_expression
-		{ $$ = node1(N_NOT, $2); }
+		{ $$ = node1(codegen_not, $2); }
 	| INC_OP unary_expression
-		{ $$ = node1(N_PREINC, $2); }
+		{ $$ = node1(codegen_preinc, $2); }
 	| DEC_OP unary_expression
-		{ $$ = node1(N_PREDEC, $2); }
+		{ $$ = node1(codegen_predec, $2); }
 	| postfix_expression
 	;
 
 postfix_expression
 	: postfix_expression '[' expression ']'
-		{ $$ = node2(N_INDEX, $1, $3); }
+		{ $$ = node2(codegen_index, $1, $3); }
 	| postfix_expression '(' ')'
-		{ $$ = node1(N_CALL, $1); }
+		{ $$ = node1(codegen_call, $1); }
 	| postfix_expression '(' argument_expression_list ')'
-		{ $$ = node2(N_CALL, $1, $3); }
+		{ $$ = node2(codegen_call, $1, $3); }
 	| postfix_expression INC_OP
-		{ $$ = node1(N_POSTINC, $1); }
+		{ $$ = node1(codegen_postinc, $1); }
 	| postfix_expression DEC_OP
-		{ $$ = node1(N_POSTDEC, $1); }
+		{ $$ = node1(codegen_postdec, $1); }
 	| primary_expression
 	;
 
 argument_expression_list
 	: argument_expression_list ',' assignment_expression
-		{ $$ = node2(N_ARGS, $1, $3); }
+		{ $$ = node2(codegen_args, $1, $3); }
 	| assignment_expression
 	;
 
 primary_expression
 	: NAME
-		{ $$ = leaf(N_NAME, $1); }
+		{ $$ = leaf(codegen_name, $1); }
 	| constant
 	| '(' expression ')'
 		{ $$ = $2; }
@@ -306,9 +307,9 @@ primary_expression
 
 constant
 	: LITERAL
-		{ $$ = leaf(N_CONST, $1); }
+		{ $$ = leaf(codegen_const, $1); }
 	| STRING_LITERAL
-		{ $$ = leaf(N_CONST, $1); }
+		{ $$ = leaf(codegen_const, $1); }
 	;
 
 %%
