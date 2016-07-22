@@ -1,6 +1,5 @@
 *.bc
 *.html
-*.js
 *.ll
 *.o
 *.out
@@ -9,7 +8,5 @@
 *.swp
 *.tab.?
 *.xml
-NOTES
 cgram
 lex.yy.c
-sample.*

@@ -1,0 +1,11 @@
+-Assigment operators: =+
+-Escape chars: *n
+-Single statement allowed as function definition
+-No types
+-No XOR in PDP-11 implementation?
+-No for? no do-while? no break/continue?
+-Required parens around return
+-Architecture-dependent multi-chars (this is in C too!! C char literals are actually INTS, not chars--but they _are_ chars in C++)
+-Triple === : equality assignment
+-All functions are global?
+-Auto required
