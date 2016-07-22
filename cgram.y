@@ -1,6 +1,11 @@
 %{
 #include <stddef.h>
 #include <llvm-c/Core.h>
+#include <llvm-c/Core.h>
+#include <llvm-c/ExecutionEngine.h>
+#include <llvm-c/Target.h>
+#include <llvm-c/Analysis.h>
+#include <llvm-c/BitWriter.h>
 #include "types.h"
 #include "external.h"
 %}
@@ -36,7 +41,7 @@
 
 program
 	: definitions
-		{ dump_ast($1); compile($1); free_tree($1); }
+		{ compile($1); free_tree($1); }
 	| %empty
 		{ yyerror("Empty program\n"); }
 	;
@@ -55,7 +60,7 @@ definition
 
 simple_definition
 	: NAME ';'
-		{ $$ = node1(codegen_SIMPLEDEF, leaf(codegen_name, $1)); }
+		{ $$ = node1(codegen_simpledef, leaf(codegen_name, $1)); }
 	| NAME  ival_list ';'
 		{ $$ = node2(codegen_simpledef, leaf(codegen_name, $1), $2); }
 	;
