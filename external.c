@@ -257,7 +257,9 @@ LLVMValueRef codegen_auto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 	/*
 	* TODO: store name to indicate it was initialized.
 	* also set up vector initialization.
-	* Warn when using unitialized var
+	* TODO: Warn when using unitialized var
+	* TODO: Determine type to use at runtime;
+	* accept commandline argument or look at sizeof(void *)
 	*/
 	printf("Alloca'ing %s\n", ast->one.ast->one.ast->one.val);
 	myvar = LLVMBuildAlloca(builder, LLVMInt64Type(), ast->one.ast->one.ast->one.val);
