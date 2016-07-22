@@ -1,13 +1,13 @@
-myarray[] 1, 2, 3, 4, 5;
+myarray[] 65, 66, 67, 68, 69;
 
 main() {
 	auto b;
-	b = 'A';
+	b = getchar(1);
 
-	if (b < 'Z') {
+	if (b < 91) {
 		b =+ 1;
 		/* this doesn't work right since putchar expects 32 bit int */
-		putchar(b);
+		putchar(myarray[4]);
 	} else {
 		return(1);
 	}

@@ -132,6 +132,26 @@ static LLVMValueRef myvar = NULL;
 static LLVMBasicBlockRef mylabel = NULL;
 LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder);
 
+LLVMValueRef codegen_index(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
+{
+	LLVMValueRef gep, indices[2];
+
+	indices[0] = LLVMConstInt(LLVMInt64Type(), 0, 0);
+	indices[1] = codegen(ast->two.ast, module, builder);
+
+	/*
+	 * TODO: allow indexing arbitrary expressions
+	 * TODO: ensure x[y] == y[x] holds
+	 */
+	gep = LLVMBuildGEP(builder,
+		LLVMGetNamedGlobal(module, "myarray"),
+		indices,
+		2,
+		"tmp_subscript");
+
+	return LLVMBuildLoad(builder, gep, "tmp_load");
+}
+
 LLVMValueRef codegen_vecdef(struct node *ast, LLVMModuleRef module, LLVMBuilderRef builder)
 {
 		/*
@@ -312,7 +332,8 @@ LLVMValueRef codegen_auto(struct node *ast, LLVMModuleRef module, LLVMBuilderRef
 	* TODO: store name to indicate it was initialized.
 	* also set up vector initialization.
 	* TODO: Warn when using unitialized var
-	* TODO: Determine type to use at runtime;
+	* TODO: Determine type to use at runtime (or maybe always use Int64..
+	* see "http://llvm.org/docs/GetElementPtr.html#how-is-gep-different-from-ptrtoint-arithmetic-and-inttoptr" -- LLVM assumes pointers are <= 64 bits
 	* accept commandline argument or look at sizeof(void *)
 	*/
 	printf("Alloca'ing %s\n", ast->one.ast->one.ast->one.val);
@@ -635,7 +656,9 @@ LLVMValueRef codegen(struct node *ast, LLVMModuleRef module, LLVMBuilderRef buil
 		break;
 	case N_PREDEC:
 		break;
+	/* TODO: rename to SUBSCRIPT? Look up official names */
 	case N_INDEX:
+		return codegen_index(ast, module, builder);
 		break;
 	case N_CALL:
 		return codegen_call(ast, module, builder);
@@ -675,7 +698,8 @@ void compile(struct node *ast)
 	module = LLVMModuleCreateWithName("dbc");
 
 
-	LLVMValueRef foo = (codegen(ast, module, builder));
+	/* TODO: Remove superfluous returns from codegen_ */
+	codegen(ast, module, builder);
 	printf("\n====================================\n");
 	LLVMDumpModule(module);
 	printf("====================================\n");
