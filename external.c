@@ -14,6 +14,31 @@
 static LLVMBuilderRef builder;
 static LLVMModuleRef module;
 
+LLVMValueRef codegen(struct node *ast)
+{
+	return ast->codegen(ast);
+}
+
+struct node *one(struct node *ast)
+{
+	return ast->one.ast;
+}
+
+struct node *two(struct node *ast)
+{
+	return ast->two.ast;
+}
+
+struct node *three(struct node *ast)
+{
+	return ast->three.ast;
+}
+
+char *leafval(struct node *ast)
+{
+	return ast->one.val;
+}
+
 void yyerror(const char *msg)
 {
 	printf("\n%*s\n%*s\n", column, "^", column, msg);
@@ -34,7 +59,7 @@ static LLVMBasicBlockRef mylabel = NULL;
 
 LLVMValueRef gen_compound(struct node *ast)
 {
-	return ast->one.ast->codegen(ast->one.ast);
+	return codegen(one(ast));
 }
 
 LLVMValueRef gen_index(struct node *ast)
@@ -42,7 +67,7 @@ LLVMValueRef gen_index(struct node *ast)
 	LLVMValueRef gep, indices[2];
 
 	indices[0] = LLVMConstInt(LLVMInt64Type(), 0, 0);
-	indices[1] = ast->two.ast->codegen(ast->two.ast);
+	indices[1] = codegen(two(ast));
 
 	/*
 	 * TODO: allow indexing arbitrary expressions
@@ -65,7 +90,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		 */
 		LLVMValueRef global, array, *elems;
 		LLVMTypeRef type;
-		struct node *p = ast->three.ast;
+		struct node *p = three(ast);
 		uint64_t i, size = 0, minsize = 0;
 
 		while (p) {
@@ -73,25 +98,25 @@ LLVMValueRef gen_vecdef(struct node *ast)
 			p = p->one.ast;
 		}
 
-		if (ast->two.ast)
+		if (two(ast))
 			/*
 			 * TODO: check that type is not string;
 			 * use convenience function for handling
 			 * chars and octal constants
 			 * TODO: Check for invalid (negative) array size
 			 */
-			minsize = atoi(ast->two.ast->one.val);
+			minsize = atoi(leafval(two(ast)));
 
 		elems = calloc(sizeof(LLVMValueRef), size >= minsize ? size : minsize);
 		/* TODO: Check all allocs for errors */
 		if (!elems)
 			generror("Out of memory");
 
-		p = ast->three.ast;
+		p = three(ast);
 		i = size;
 		while (p) {
 			/* TODO: handle NAMES (convert global pointer to int) */
-			elems[--i] = p->two.ast->codegen(p->two.ast);
+			elems[--i] = codegen(p->two.ast);
 			p = p->one.ast;
 		}
 
@@ -104,7 +129,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		/* TODO: Figure out why "foo[6];" has size of 0 */
 		array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
 
-		global = LLVMAddGlobal(module, type, ast->one.ast->one.val);
+		global = LLVMAddGlobal(module, type, leafval(one(ast)));
 		LLVMSetInitializer(global, array);
 		LLVMSetLinkage(global, LLVMExternalLinkage);
 
@@ -119,10 +144,10 @@ LLVMValueRef gen_expression(struct node *ast)
 LLVMValueRef retval;
 LLVMValueRef gen_return(struct node *ast)
 {
-	if (ast->one.ast)
+	if (one(ast))
 		LLVMBuildStore(
 			builder,
-			ast->one.ast->codegen(ast->one.ast),
+			codegen(one(ast)),
 			retval);
 
 	return NULL;
@@ -132,7 +157,7 @@ LLVMValueRef gen_label(struct node *ast)
 {
 	LLVMValueRef parent = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 	mylabel = LLVMAppendBasicBlock(parent, "label");
-	return ast->one.ast->codegen(ast->one.ast);
+	return codegen(one(ast));
 }
 
 LLVMValueRef gen_goto(struct node *ast)
@@ -153,7 +178,7 @@ LLVMValueRef gen_indir(struct node *ast)
 	return LLVMBuildLoad(builder,
 		LLVMBuildIntToPtr(
 			builder,
-			ast->one.ast->codegen(ast->one.ast),
+			codegen(one(ast)),
 			LLVMPointerType(LLVMInt64Type(), 0),
 			"indir"),
 		"loadtmp");
@@ -165,7 +190,7 @@ LLVMValueRef gen_while(struct node *ast)
 	LLVMValueRef condition, zero, func, body_value;
 	LLVMBasicBlockRef body_block, end;
 
-	condition = ast->one.ast->codegen(ast->one.ast);
+	condition = codegen(one(ast));
 	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
 	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "ifcond");
 	/* TODO: func isn't always a func... rename to "block" */
@@ -176,7 +201,7 @@ LLVMValueRef gen_while(struct node *ast)
 	LLVMBuildCondBr(builder, condition, body_block, end);
 	LLVMPositionBuilderAtEnd(builder, body_block);
 	/* TODO: I don't think we need to collect values from then/else blocks */
-	body_value = ast->two.ast->codegen(ast->two.ast);
+	body_value = codegen(two(ast));
 
 	LLVMBuildBr(builder, end);
 	/* TODO: What's the point of this? */
@@ -193,7 +218,7 @@ LLVMValueRef gen_if(struct node *ast)
 	LLVMBasicBlockRef then_block, else_block, end;
 
 	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
-	condition = ast->one.ast->codegen(ast->one.ast);
+	condition = codegen(one(ast));
 	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "tmp_cond");
 	parent = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 
@@ -203,11 +228,11 @@ LLVMValueRef gen_if(struct node *ast)
 	LLVMBuildCondBr(builder, condition, then_block, else_block);
 
 	LLVMPositionBuilderAtEnd(builder, then_block);
-	ast->two.ast->codegen(ast->two.ast);
+	codegen(two(ast));
 	ref = LLVMBuildBr(builder, end);
 
 	LLVMPositionBuilderAtEnd(builder, else_block);
-	ast->three.ast->codegen(ast->three.ast);
+	codegen(three(ast));
 	ref = LLVMBuildBr(builder, end);
 
 	LLVMPositionBuilderAtEnd(builder, end);
@@ -218,16 +243,16 @@ LLVMValueRef gen_lt(struct node *ast)
 {
 	return LLVMBuildICmp(builder,
 		LLVMIntSLT,
-		ast->one.ast->codegen(ast->one.ast),
-		ast->two.ast->codegen(ast->two.ast),
+		codegen(one(ast)),
+		codegen(two(ast)),
 		"lttmp");
 }
 
 LLVMValueRef gen_add(struct node *ast)
 {
 	return LLVMBuildAdd(builder,
-		ast->one.ast->codegen(ast->one.ast),
-		ast->two.ast->codegen(ast->two.ast),
+		codegen(one(ast)),
+		codegen(two(ast)),
 		"addtmp");
 }
 
@@ -241,8 +266,8 @@ LLVMValueRef gen_auto(struct node *ast)
 	* see "http://llvm.org/docs/GetElementPtr.html#how-is-gep-different-from-ptrtoint-arithmetic-and-inttoptr" -- LLVM assumes pointers are <= 64 bits
 	* accept commandline argument or look at sizeof(void *)
 	*/
-	printf("Alloca'ing %s\n", ast->one.ast->one.ast->one.val);
-	myvar = LLVMBuildAlloca(builder, LLVMInt64Type(), ast->one.ast->one.ast->one.val);
+	printf("Alloca'ing %s\n", leafval(one(one(ast))));
+	myvar = LLVMBuildAlloca(builder, LLVMInt64Type(), leafval(one(one(ast))));
 	return myvar;
 }
 
@@ -265,7 +290,7 @@ LLVMValueRef gen_name(struct node *ast)
 
 LLVMValueRef gen_assign(struct node *ast)
 {
-	LLVMValueRef result = ast->two.ast->codegen(ast->two.ast);
+	LLVMValueRef result = codegen(two(ast));
 	LLVMBuildStore(builder,
 		result,
 		myvar);
@@ -276,8 +301,8 @@ LLVMValueRef gen_assign(struct node *ast)
 LLVMValueRef gen_add_assign(struct node *ast)
 {
 	LLVMValueRef result;
-	LLVMValueRef lhs = ast->one.ast->codegen(ast->one.ast);
-	LLVMValueRef rhs = ast->two.ast->codegen(ast->two.ast);
+	LLVMValueRef lhs = codegen(one(ast));
+	LLVMValueRef rhs = codegen(two(ast));
 
 
 	if (lhs == NULL || rhs == NULL) {
@@ -297,7 +322,7 @@ LLVMValueRef gen_postdec(struct node *ast)
 {
 	LLVMValueRef result;
 	result = LLVMBuildSub(builder,
-		ast->one.ast->codegen(ast->one.ast),
+		codegen(one(ast)),
 		LLVMConstInt(LLVMInt64Type(), 1, 0),
 		"subtmp");
 
@@ -312,7 +337,7 @@ LLVMValueRef gen_predec(struct node *ast)
 {
 	LLVMValueRef tmp = myvar;
 	myvar = LLVMBuildSub(builder,
-		ast->one.ast->codegen(ast->one.ast),
+		codegen(one(ast)),
 		LLVMConstInt(LLVMInt64Type(), -1, 0),
 		"subtmp");
 
@@ -333,8 +358,8 @@ LLVMValueRef gen_const(struct node *ast)
 
 LLVMValueRef gen_statements(struct node *ast)
 {
-	ast->one.ast->codegen(ast->one.ast);
-	return ast->two.ast->codegen(ast->two.ast);
+	codegen(one(ast));
+	return codegen(two(ast));
 }
 
 
@@ -350,14 +375,14 @@ LLVMValueRef gen_call(struct node *ast)
 	signew = LLVMFunctionType(LLVMInt64Type(), &intarg, 1, 0);
 	/* TODO: Macro for accessing leaf val: LEAFVAL(ast->one) */
 	if (first) {
-		funcnew = LLVMAddGlobal(module, signew, ast->one.ast->one.val);
+		funcnew = LLVMAddGlobal(module, signew, leafval(one(ast)));
 		LLVMSetLinkage(funcnew, LLVMExternalLinkage);
 		first = 0;
 	} else {
-		funcnew = LLVMGetNamedGlobal(module, ast->one.ast->one.val);
+		funcnew = LLVMGetNamedGlobal(module, leafval(one(ast)));
 	}
 	//LLVMInsertIntoBuilder(builder, funcnew);
-	//func = LLVMGetNamedGlobal(module, ast->one.ast->one.val);
+	//func = LLVMGetNamedGlobal(module, leafval(one(ast)));
 	func = funcnew;
 
 	if (func == NULL) {
@@ -366,7 +391,7 @@ LLVMValueRef gen_call(struct node *ast)
 
 	args = malloc(sizeof(LLVMValueRef));
 	/* TODO: support multiple args */
-	*args = ast->two.ast->codegen(ast->two.ast);
+	*args = codegen(two(ast));
 
 	return LLVMBuildCall(builder, func, args, 1, "calltmp");
 }
@@ -390,7 +415,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 
 	/* TODO: Check if function already defined */
 	sig = LLVMFunctionType(LLVMInt64Type(), NULL, 0, 0);
-	func = LLVMAddFunction(module, ast->one.ast->one.val, sig);
+	func = LLVMAddFunction(module, leafval(one(ast)), sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	block = LLVMAppendBasicBlock(func, "");
@@ -400,7 +425,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMBuildStore(builder,
 		LLVMConstInt(LLVMInt64Type(), 0, 0),
 		retval);
-	body = ast->three.ast->codegen(ast->three.ast);
+	body = codegen(three(ast));
 
 	LLVMBuildRet(builder, LLVMBuildLoad(builder, retval, "retval"));
 
@@ -415,8 +440,8 @@ LLVMValueRef gen_funcdef(struct node *ast)
 LLVMValueRef gen_defs(struct node *ast)
 {
 
-	ast->one.ast->codegen(ast->one.ast);
-	return ast->two.ast->codegen(ast->two.ast);
+	codegen(one(ast));
+	return codegen(two(ast));
 }
 
 LLVMValueRef gen_and(struct node *ast) { generror("Not yet implemented: gen_and"); return NULL; }
@@ -470,7 +495,7 @@ void compile(struct node *ast)
 
 
 	/* TODO: Remove superfluous returns from gen_ */
-	ast->codegen(ast);
+	codegen(ast);
 	printf("\n====================================\n");
 	LLVMDumpModule(module);
 	printf("====================================\n");
