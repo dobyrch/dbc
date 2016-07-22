@@ -36,6 +36,9 @@
 #include <stddef.h>
 #include <llvm-c/Core.h>
 #include "external.h"
+
+extern int yylex(void);
+void yyerror(const char *msg);
 %}
 
 %%
@@ -319,6 +322,14 @@ constant
 	;
 
 %%
+
+
+void yyerror(const char *msg)
+{
+	printf("\n%*s\n%*s\n", lex_column, "^", lex_column, msg);
+	fflush(stdout);
+}
+
 
 int main(void)
 {

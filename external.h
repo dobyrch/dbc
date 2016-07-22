@@ -1,6 +1,3 @@
-int yylex(void);
-void yyerror(const char *msg);
-char *yytext;
 extern int lex_line;
 extern int lex_column;
 
@@ -9,11 +6,8 @@ struct node {
 	YYSTYPE one, two, three;
 };
 
-void dump_ast(struct node *ast);
-void compinit(void);
 void compile(struct node *ast);
 void free_tree(struct node *ast);
-
 
 struct node *node0(LLVMValueRef (*)(struct node *));
 struct node *node1(LLVMValueRef (*)(struct node *), struct node *one);

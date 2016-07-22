@@ -39,12 +39,6 @@ char *leafval(struct node *ast)
 	return ast->one.val;
 }
 
-void yyerror(const char *msg)
-{
-	printf("\n%*s\n%*s\n", lex_column, "^", lex_column, msg);
-	fflush(stdout);
-}
-
 void generror(const char *msg)
 {
 	printf("ERROR: %s\n", msg);
