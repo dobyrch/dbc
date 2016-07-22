@@ -1,7 +1,7 @@
-typedef LLVMValueRef (*codegen_func)(struct node *);
+typedef LLVMValueRef (codegen_func)(struct node *);
 
 struct node {
-	codegen_func codegen;
+	codegen_func *codegen;
 	YYSTYPE one, two, three;
 };
 

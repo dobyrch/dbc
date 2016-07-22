@@ -38,6 +38,7 @@ struct node *three(struct node *ast)
 
 struct node *leaf(codegen_func codegen, char *value)
 {
+	/* TODO: Error handling */
 	struct node *new_leaf = malloc(sizeof(struct node));
 
 	new_leaf->codegen = codegen;

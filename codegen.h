@@ -4,70 +4,22 @@ extern int lex_column;
 void compile(struct node *ast);
 void free_tree(struct node *ast);
 
-LLVMValueRef gen_and(struct node *ast);
-LLVMValueRef gen_SIMPLEDEF(struct node *ast);
-LLVMValueRef gen_add(struct node *ast);
-LLVMValueRef gen_add_assign(struct node *ast);
-LLVMValueRef gen_addr(struct node *ast);
-LLVMValueRef gen_and(struct node *ast);
-LLVMValueRef gen_and_assign(struct node *ast);
-LLVMValueRef gen_args(struct node *ast);
-LLVMValueRef gen_assign(struct node *ast);
-LLVMValueRef gen_auto(struct node *ast);
-LLVMValueRef gen_call(struct node *ast);
-LLVMValueRef gen_case(struct node *ast);
-LLVMValueRef gen_comma(struct node *ast);
-LLVMValueRef gen_compound(struct node *ast);
-LLVMValueRef gen_cond(struct node *ast);
-LLVMValueRef gen_const(struct node *ast);
-LLVMValueRef gen_defs(struct node *ast);
-LLVMValueRef gen_div(struct node *ast);
-LLVMValueRef gen_div_assign(struct node *ast);
-LLVMValueRef gen_eq(struct node *ast);
-LLVMValueRef gen_eq_assign(struct node *ast);
-LLVMValueRef gen_expression(struct node *ast);
-LLVMValueRef gen_extrn(struct node *ast);
-LLVMValueRef gen_funcdef(struct node *ast);
-LLVMValueRef gen_ge(struct node *ast);
-LLVMValueRef gen_goto(struct node *ast);
-LLVMValueRef gen_gt(struct node *ast);
-LLVMValueRef gen_if(struct node *ast);
-LLVMValueRef gen_index(struct node *ast);
-LLVMValueRef gen_indir(struct node *ast);
-LLVMValueRef gen_init(struct node *ast);
-LLVMValueRef gen_inits(struct node *ast);
-LLVMValueRef gen_ior(struct node *ast);
-LLVMValueRef gen_ivals(struct node *ast);
-LLVMValueRef gen_label(struct node *ast);
-LLVMValueRef gen_le(struct node *ast);
-LLVMValueRef gen_left(struct node *ast);
-LLVMValueRef gen_left_assign(struct node *ast);
-LLVMValueRef gen_lt(struct node *ast);
-LLVMValueRef gen_mod(struct node *ast);
-LLVMValueRef gen_mod_assign(struct node *ast);
-LLVMValueRef gen_mul(struct node *ast);
-LLVMValueRef gen_mul_assign(struct node *ast);
-LLVMValueRef gen_name(struct node *ast);
-LLVMValueRef gen_names(struct node *ast);
-LLVMValueRef gen_ne(struct node *ast);
-LLVMValueRef gen_ne_assign(struct node *ast);
-LLVMValueRef gen_neg(struct node *ast);
-LLVMValueRef gen_not(struct node *ast);
-LLVMValueRef gen_or_assign(struct node *ast);
-LLVMValueRef gen_postdec(struct node *ast);
-LLVMValueRef gen_postinc(struct node *ast);
-LLVMValueRef gen_predec(struct node *ast);
-LLVMValueRef gen_preinc(struct node *ast);
-LLVMValueRef gen_return(struct node *ast);
-LLVMValueRef gen_right(struct node *ast);
-LLVMValueRef gen_right_assign(struct node *ast);
-LLVMValueRef gen_simpledef(struct node *ast);
-LLVMValueRef gen_statements(struct node *ast);
-LLVMValueRef gen_sub(struct node *ast);
-LLVMValueRef gen_sub_assign(struct node *ast);
-LLVMValueRef gen_switch(struct node *ast);
-LLVMValueRef gen_switch(struct node *ast);
-LLVMValueRef gen_vecdef(struct node *ast);
-LLVMValueRef gen_while(struct node *ast);
-LLVMValueRef gen_xor(struct node *ast);
-LLVMValueRef gen_xor_assign(struct node *ast);
+/*
+ * It'd be awfully repetitive declare every code generation function
+ * with its full signature, so they're all declared in this big ugly
+ * block instead.
+ */
+codegen_func
+	gen_add_assign, gen_addr, gen_and, gen_and, gen_add,
+	gen_and_assign, gen_args, gen_assign, gen_auto, gen_call,
+	gen_case, gen_comma, gen_compound, gen_cond, gen_const, gen_defs,
+	gen_div, gen_div_assign, gen_eq, gen_eq_assign, gen_expression,
+	gen_extrn, gen_funcdef, gen_ge, gen_goto, gen_gt, gen_if,
+	gen_index, gen_indir, gen_init, gen_inits, gen_ior, gen_ivals,
+	gen_label, gen_le, gen_left, gen_left_assign, gen_lt, gen_mod,
+	gen_mod_assign, gen_mul, gen_mul_assign, gen_name, gen_names,
+	gen_ne, gen_ne_assign, gen_neg, gen_not, gen_or_assign,
+	gen_postdec, gen_postinc, gen_predec, gen_preinc, gen_return,
+	gen_right, gen_right_assign, gen_simpledef, gen_statements,
+	gen_sub, gen_sub_assign, gen_switch, gen_switch, gen_vecdef,
+	gen_while, gen_xor, gen_xor_assign;
