@@ -3,12 +3,6 @@
 	struct node *ast;
 }
 
-%{
-#include <stddef.h>
-#include <llvm-c/Core.h>
-#include "external.h"
-%}
-
 %token <val> NAME LITERAL STRING_LITERAL
 %token INC_OP DEC_OP
 %token LEFT_OP RIGHT_OP
@@ -35,6 +29,14 @@
 %type <ast> shift_expression additive_expression multiplicative_expression
 %type <ast> unary_expression postfix_expression argument_expression_list
 %type <ast> primary_expression constant
+
+%define parse.error verbose
+
+%{
+#include <stddef.h>
+#include <llvm-c/Core.h>
+#include "external.h"
+%}
 
 %%
 
