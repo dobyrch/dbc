@@ -1,19 +1,8 @@
 extern int lex_line;
 extern int lex_column;
 
-struct node {
-	LLVMValueRef (*codegen)(struct node *);
-	YYSTYPE one, two, three;
-};
-
 void compile(struct node *ast);
 void free_tree(struct node *ast);
-
-struct node *node0(LLVMValueRef (*)(struct node *));
-struct node *node1(LLVMValueRef (*)(struct node *), struct node *one);
-struct node *node2(LLVMValueRef (*)(struct node *), struct node *one, struct node *two);
-struct node *node3(LLVMValueRef (*)(struct node *), struct node *one, struct node *two, struct node *three);
-struct node *leaf(LLVMValueRef (*)(struct node *), char *value);
 
 LLVMValueRef gen_and(struct node *ast);
 LLVMValueRef gen_SIMPLEDEF(struct node *ast);

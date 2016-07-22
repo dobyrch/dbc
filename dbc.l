@@ -1,6 +1,6 @@
 %{
 #include <string.h>
-#include "cgram.tab.h"
+#include "dbc.tab.h"
 
 static void comment(void);
 static void count(void);

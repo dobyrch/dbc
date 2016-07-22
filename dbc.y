@@ -35,7 +35,8 @@
 %{
 #include <stddef.h>
 #include <llvm-c/Core.h>
-#include "external.h"
+#include "astnode.h"
+#include "codegen.h"
 
 extern int yylex(void);
 void yyerror(const char *msg);

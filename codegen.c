@@ -8,36 +8,14 @@
 #include <llvm-c/Analysis.h>
 #include <llvm-c/BitWriter.h>
 
-#include "cgram.tab.h"
-#include "external.h"
+#include "dbc.tab.h"
+#include "astnode.h"
+#include "codegen.h"
+
 
 static LLVMBuilderRef builder;
 static LLVMModuleRef module;
 
-LLVMValueRef codegen(struct node *ast)
-{
-	return ast->codegen(ast);
-}
-
-struct node *one(struct node *ast)
-{
-	return ast->one.ast;
-}
-
-struct node *two(struct node *ast)
-{
-	return ast->two.ast;
-}
-
-struct node *three(struct node *ast)
-{
-	return ast->three.ast;
-}
-
-char *leafval(struct node *ast)
-{
-	return ast->one.val;
-}
 
 void generror(const char *msg)
 {
@@ -487,7 +465,7 @@ void compile(struct node *ast)
 	LLVMDumpModule(module);
 	printf("====================================\n");
 
-	if (LLVMWriteBitcodeToFile(module, "cgram.bc") != 0) {
+	if (LLVMWriteBitcodeToFile(module, "dbc.bc") != 0) {
 		generror("Failed to write bitcode");
 	}
 }
@@ -495,43 +473,4 @@ void compile(struct node *ast)
 void free_tree(struct node *ast)
 {
 	/* TODO:  Free while compiling instead? */
-}
-
-struct node *leaf(LLVMValueRef (*codegen)(struct node *), char *value)
-{
-	struct node *nleaf = malloc(sizeof(struct node));
-	nleaf->codegen = codegen;
-	nleaf->one.val = value;
-	nleaf->two.ast = NULL;
-	nleaf->three.ast = NULL;
-
-	return nleaf;
-}
-
-struct node *node3(LLVMValueRef (*codegen)(struct node *), struct node *one, struct node *two, struct node *three)
-{
-	/* TODO: Error handling */
-	struct node *nnode = malloc(sizeof(struct node));
-
-	nnode->codegen = codegen;
-	nnode->one.ast = one;
-	nnode->two.ast = two;
-	nnode->three.ast = three;
-
-	return nnode;
-}
-
-struct node *node2(LLVMValueRef (*codegen)(struct node *), struct node *one, struct node *two)
-{
-	return node3(codegen, one, two, NULL);
-}
-
-struct node *node1(LLVMValueRef (*codegen)(struct node *), struct node *one)
-{
-	return node3(codegen, one, NULL, NULL);
-}
-
-struct node *node0(LLVMValueRef (*codegen)(struct node *))
-{
-	return node3(codegen, NULL, NULL, NULL);
 }

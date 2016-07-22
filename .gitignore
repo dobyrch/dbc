@@ -8,5 +8,5 @@
 *.swp
 *.tab.?
 *.xml
-cgram
+dbc
 lex.yy.c
