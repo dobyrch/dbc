@@ -14,6 +14,7 @@
 #include "codegen.h"
 
 #define SYMTAB_SIZE 1024
+#define ITYPE LLVMInt64Type()
 
 
 static LLVMBuilderRef builder;
@@ -58,7 +59,6 @@ void generror(const char *msg)
 }
 
 
-static LLVMValueRef myvar = NULL;
 static LLVMBasicBlockRef mylabel = NULL;
 
 LLVMValueRef gen_compound(struct node *ast)
@@ -70,7 +70,7 @@ LLVMValueRef gen_index(struct node *ast)
 {
 	LLVMValueRef gep, indices[2];
 
-	indices[0] = LLVMConstInt(LLVMInt64Type(), 0, 0);
+	indices[0] = LLVMConstInt(ITYPE, 0, 0);
 	indices[1] = codegen(two(ast));
 
 	/*
@@ -126,10 +126,10 @@ LLVMValueRef gen_vecdef(struct node *ast)
 
 		i = size;
 		while (i < minsize)
-			elems[i++] = LLVMConstInt(LLVMInt64Type(), 0, 0);
+			elems[i++] = LLVMConstInt(ITYPE, 0, 0);
 
 
-		type = LLVMArrayType(LLVMInt64Type(), size);
+		type = LLVMArrayType(ITYPE, size);
 		/* TODO: Figure out why "foo[6];" has size of 0 */
 		array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
 
@@ -172,7 +172,8 @@ LLVMValueRef gen_goto(struct node *ast)
 LLVMValueRef gen_addr(struct node *ast)
 {
 	/* TODO: Function pointers? */
-	return LLVMBuildPtrToInt(builder, myvar, LLVMInt64Type(), "addr");
+
+	return LLVMBuildPtrToInt(builder, codegen(one(ast)), ITYPE, "tmp_addr");
 }
 
 LLVMValueRef gen_indir(struct node *ast)
@@ -183,7 +184,7 @@ LLVMValueRef gen_indir(struct node *ast)
 		LLVMBuildIntToPtr(
 			builder,
 			codegen(one(ast)),
-			LLVMPointerType(LLVMInt64Type(), 0),
+			LLVMPointerType(ITYPE, 0),
 			"indir"),
 		"loadtmp");
 
@@ -249,7 +250,7 @@ LLVMValueRef gen_lt(struct node *ast)
 		LLVMIntSLT,
 		codegen(one(ast)),
 		codegen(two(ast)),
-		"lttmp");
+		"tmp_lt");
 }
 
 LLVMValueRef gen_add(struct node *ast)
@@ -257,71 +258,94 @@ LLVMValueRef gen_add(struct node *ast)
 	return LLVMBuildAdd(builder,
 		codegen(one(ast)),
 		codegen(two(ast)),
-		"addtmp");
+		"tmp_add");
 }
 
 LLVMValueRef gen_auto(struct node *ast)
 {
 	/*
-	* TODO: store name to indicate it was initialized.
+	* TODO: initialize all variables in list
 	* also set up vector initialization.
 	* TODO: Warn when using unitialized var
 	* TODO: Determine type to use at runtime (or maybe always use Int64..
 	* see "http://llvm.org/docs/GetElementPtr.html#how-is-gep-different-from-ptrtoint-arithmetic-and-inttoptr" -- LLVM assumes pointers are <= 64 bits
 	* accept commandline argument or look at sizeof(void *)
 	*/
-	myvar = LLVMBuildAlloca(builder, LLVMInt64Type(), val(one(one(ast))));
-	return myvar;
+
+	ENTRY symtab_entry;
+
+	symtab_entry.key = val(one(one(ast)));
+	symtab_entry.data = LLVMBuildAlloca(builder, ITYPE, symtab_entry.key);
+
+	if (hsearch(symtab_entry, FIND) != NULL)
+		/* TODO: pass variable name to generror */
+		generror("Variable declared twice");
+
+	if (hsearch(symtab_entry, ENTER) == NULL)
+		generror("Symbol table full");
+
+	return NULL;
 }
 
 LLVMValueRef gen_name(struct node *ast)
 {
-	/* TODO: Retrieve variables by name */
-	if (!myvar) {
-		/* TODO: make global if not declared */
+	ENTRY symtab_lookup, *symtab_entry;
+
+	symtab_lookup.key = val(one(ast));
+	symtab_lookup.data = NULL;
+
+	symtab_entry = hsearch(symtab_lookup, FIND);
+
+	if (symtab_entry == NULL)
 		generror("Wuh oh, attempted to access unitialized variable");
-	}
-	LLVMValueRef tmp = LLVMBuildLoad(builder, myvar, ast->one.val);
-	return tmp;
+
+	return LLVMBuildLoad(builder, symtab_entry->data, symtab_entry->key);
 
 }
 
 LLVMValueRef gen_assign(struct node *ast)
 {
-	LLVMValueRef result = codegen(two(ast));
-	LLVMBuildStore(builder,
-		result,
-		myvar);
+	LLVMValueRef result;
+	ENTRY symtab_lookup, *symtab_entry;
+
+	symtab_lookup.key = val(one(ast));
+	symtab_lookup.data = NULL;
+
+	symtab_entry = hsearch(symtab_lookup, FIND);
+
+	if (symtab_entry == NULL)
+		generror("Wuh oh, attempted to assign to uninitialized variable");
+
+	result = codegen(two(ast));
+	LLVMBuildStore(builder, result, symtab_entry->data);
 
 	return result;
 }
 
 LLVMValueRef gen_add_assign(struct node *ast)
 {
-	LLVMValueRef result;
-	LLVMValueRef lhs = codegen(one(ast));
-	LLVMValueRef rhs = codegen(two(ast));
+	LLVMValueRef result, left, right;
 
+	left = codegen(one(ast));
+	right = codegen(two(ast));
 
-	if (lhs == NULL || rhs == NULL) {
+	if (!left || !right)
 		return NULL;
-	}
 
-	result = LLVMBuildAdd(builder, lhs, rhs, "addtmp");
-
-	LLVMBuildStore(builder,
-		result,
-		myvar);
+	result = LLVMBuildAdd(builder, left, right, "tmp_add");
+	LLVMBuildStore(builder, result, left);
 
 	return result;
 }
 
 LLVMValueRef gen_postdec(struct node *ast)
 {
+	return NULL;
+	/*
 	LLVMValueRef result;
 	result = LLVMBuildSub(builder,
 		codegen(one(ast)),
-		LLVMConstInt(LLVMInt64Type(), 1, 0),
+		LLVMConstInt(ITYPE, 1, 0),
 		"subtmp");
 
 	LLVMBuildStore(builder,
@@ -329,17 +353,21 @@ LLVMValueRef gen_postdec(struct node *ast)
 		myvar);
 
 	return result;
+	*/
 }
 
 LLVMValueRef gen_predec(struct node *ast)
 {
+	return NULL;
+	/*
 	LLVMValueRef tmp = myvar;
 	myvar = LLVMBuildSub(builder,
 		codegen(one(ast)),
-		LLVMConstInt(LLVMInt64Type(), -1, 0),
+		LLVMConstInt(ITYPE, -1, 0),
 		"subtmp");
 
 	return tmp;
+	*/
 }
 
 LLVMValueRef gen_const(struct node *ast)
@@ -348,9 +376,9 @@ LLVMValueRef gen_const(struct node *ast)
 	if (ast->one.val[0] == '"')
 		return NULL;
 	else if (ast->one.val[0] == '\'')
-		return LLVMConstInt(LLVMInt64Type(), ast->one.val[1], 0);
+		return LLVMConstInt(ITYPE, ast->one.val[1], 0);
 	else
-		return LLVMConstIntOfString(LLVMInt64Type(), ast->one.val, 10);
+		return LLVMConstIntOfString(ITYPE, ast->one.val, 10);
 }
 
 
@@ -368,9 +396,9 @@ LLVMValueRef gen_call(struct node *ast)
 
 	LLVMTypeRef signew;
 	LLVMValueRef funcnew;
-	LLVMTypeRef intarg = LLVMInt64Type();
+	LLVMTypeRef intarg = ITYPE;
 
-	signew = LLVMFunctionType(LLVMInt64Type(), &intarg, 1, 0);
+	signew = LLVMFunctionType(ITYPE, &intarg, 1, 0);
 	if (first) {
 		funcnew = LLVMAddGlobal(module, signew, val(one(ast)));
 		LLVMSetLinkage(funcnew, LLVMExternalLinkage);
@@ -411,16 +439,16 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMBasicBlockRef block;
 
 	/* TODO: Check if function already defined */
-	sig = LLVMFunctionType(LLVMInt64Type(), NULL, 0, 0);
+	sig = LLVMFunctionType(ITYPE, NULL, 0, 0);
 	func = LLVMAddFunction(module, val(one(ast)), sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	block = LLVMAppendBasicBlock(func, "");
 	LLVMPositionBuilderAtEnd(builder, block);
 
-	retval = LLVMBuildAlloca(builder, LLVMInt64Type(), "retval");
+	retval = LLVMBuildAlloca(builder, ITYPE, "retval");
 	LLVMBuildStore(builder,
-		LLVMConstInt(LLVMInt64Type(), 0, 0),
+		LLVMConstInt(ITYPE, 0, 0),
 		retval);
 	body = codegen(three(ast));
 
