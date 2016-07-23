@@ -99,7 +99,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 
 		while (p) {
 			size++;
-			p = p->one.ast;
+			p = one(p);
 		}
 
 		if (two(ast))
@@ -121,7 +121,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		while (p) {
 			/* TODO: handle NAMES (convert global pointer to int) */
 			elems[--i] = codegen(p->two.ast);
-			p = p->one.ast;
+			p = one(p);
 		}
 
 		i = size;
@@ -264,7 +264,6 @@ LLVMValueRef gen_add(struct node *ast)
 LLVMValueRef gen_auto(struct node *ast)
 {
 	/*
-	* TODO: initialize all variables in list
 	* also set up vector initialization.
 	* TODO: Warn when using unitialized var
 	* TODO: Determine type to use at runtime (or maybe always use Int64..
@@ -272,17 +271,28 @@ LLVMValueRef gen_auto(struct node *ast)
 	* accept commandline argument or look at sizeof(void *)
 	*/
 
+	struct node *init_list, *init;
 	ENTRY symtab_entry;
 
-	symtab_entry.key = val(one(one(ast)));
-	symtab_entry.data = LLVMBuildAlloca(builder, ITYPE, symtab_entry.key);
+	init_list = one(ast);
 
-	if (hsearch(symtab_entry, FIND) != NULL)
-		/* TODO: pass variable name to generror */
-		generror("Variable declared twice");
+	while (init_list) {
+		init = two(init_list);
+		symtab_entry.key = val(one(init));
+		symtab_entry.data = LLVMBuildAlloca(builder, ITYPE, symtab_entry.key);
 
-	if (hsearch(symtab_entry, ENTER) == NULL)
-		generror("Symbol table full");
+		if (hsearch(symtab_entry, FIND) != NULL)
+			/* TODO: pass variable name to generror */
+			generror("Variable declared twice");
+
+		if (hsearch(symtab_entry, ENTER) == NULL)
+			generror("Symbol table full");
+
+		if (two(init))
+			LLVMBuildStore(builder, codegen(two(init)), symtab_entry.data);
+
+		init_list = one(init_list);
+	}
 
 	return NULL;
 }
@@ -291,7 +301,7 @@ LLVMValueRef gen_name(struct node *ast)
 {
 	ENTRY symtab_lookup, *symtab_entry;
 
-	symtab_lookup.key = val(one(ast));
+	symtab_lookup.key = val(ast);
 	symtab_lookup.data = NULL;
 
 	symtab_entry = hsearch(symtab_lookup, FIND);

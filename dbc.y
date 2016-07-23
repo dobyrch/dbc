@@ -149,10 +149,16 @@ init_list
 	: init_list ',' init
 		{ $$ = node2(gen_inits, $1, $3); }
 	| init
+		{ $$ = node2(gen_inits, NULL, $1); }
 	;
 
 init
 	: NAME
+		/*
+		 * TODO: Remove unused gen_* funcs:
+		 * neither gen_init nor gen_name are called in this context
+		 * perhaps call "gen_fail" which prints an error
+		 */
 		{ $$ = node1(gen_init, leafnode(gen_name, $1)); }
 	| NAME constant
 		{ $$ = node2(gen_init, leafnode(gen_name, $1), $2); }
