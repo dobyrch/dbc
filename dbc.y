@@ -16,7 +16,7 @@
 %token CASE IF ELSE SWITCH WHILE GOTO RETURN
 %token AUTO EXTRN
 
-%type <ast> definitions definition
+%type <ast> definition_list definition
 %type <ast> simple_definition vector_definition function_definition
 %type <ast> ival_list ival
 %type <ast> statement_list statement
@@ -44,14 +44,15 @@ void yyerror(const char *msg);
 %%
 
 program
-	: definitions
+	: definition_list
 		{ compile($1); free_tree($1); }
 	| %empty
 		{ yyerror("Empty program\n"); }
 	;
 
-definitions
-	: definitions definition
+definition_list
+	/* TODO: consistently name all code generation functions */
+	: definition_list definition
 		{ $$ = node2(gen_defs, $1, $2); }
 	| definition
 	;
@@ -88,11 +89,10 @@ function_definition
 	;
 
 ival_list
-	: ival_list ',' ival
+	: ival ',' ival_list
 		{ $$ = node2(gen_ivals, $1, $3); }
 	| ival
-		/* TODO: decide on consistent ordering for lists */
-		{ $$ = node2(gen_ivals, NULL, $1); }
+		{ $$ = node1(gen_ivals, $1); }
 	;
 
 ival
@@ -145,11 +145,13 @@ statement
 		{ $$ = node0(gen_expression); }
 	;
 
+/* TODO: rename to something like "name_const_list" to avoid confusion with ival_list */
+/* TODO: and remember to change the name in codegen too! */
 init_list
-	: init_list ',' init
+	: init ',' init_list
 		{ $$ = node2(gen_inits, $1, $3); }
 	| init
-		{ $$ = node2(gen_inits, NULL, $1); }
+		{ $$ = node1(gen_inits, $1); }
 	;
 
 init
@@ -165,8 +167,8 @@ init
 	;
 
 name_list
-	: name_list ',' NAME
-		{ $$ = node2(gen_names, $1, leafnode(gen_name, $3)); }
+	: NAME ',' name_list
+		{ $$ = node2(gen_names, leafnode(gen_name, $1), $3); }
 	| NAME
 		{ $$ = leafnode(gen_name, $1); }
 	;

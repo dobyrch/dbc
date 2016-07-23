@@ -94,12 +94,13 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		 */
 		LLVMValueRef global, array, *elems;
 		LLVMTypeRef type;
-		struct node *p = three(ast);
-		uint64_t i, size = 0, minsize = 0;
+		struct node *ival_list;
+		uint64_t i = 0, size = 0, minsize = 0;
 
-		while (p) {
+		ival_list = three(ast);
+		while (ival_list) {
 			size++;
-			p = one(p);
+			ival_list = two(ival_list);
 		}
 
 		if (two(ast))
@@ -116,15 +117,13 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		if (!elems)
 			generror("Out of memory");
 
-		p = three(ast);
-		i = size;
-		while (p) {
+		ival_list = three(ast);
+		while (ival_list) {
 			/* TODO: handle NAMES (convert global pointer to int) */
-			elems[--i] = codegen(p->two.ast);
-			p = one(p);
+			elems[i++] = codegen(one(ival_list));
+			ival_list = two(ival_list);
 		}
 
-		i = size;
 		while (i < minsize)
 			elems[i++] = LLVMConstInt(ITYPE, 0, 0);
 
@@ -277,7 +276,7 @@ LLVMValueRef gen_auto(struct node *ast)
 	init_list = one(ast);
 
 	while (init_list) {
-		init = two(init_list);
+		init = one(init_list);
 		symtab_entry.key = val(one(init));
 		symtab_entry.data = LLVMBuildAlloca(builder, ITYPE, symtab_entry.key);
 
@@ -291,7 +290,7 @@ LLVMValueRef gen_auto(struct node *ast)
 		if (two(init))
 			LLVMBuildStore(builder, codegen(two(init)), symtab_entry.data);
 
-		init_list = one(init_list);
+		init_list = two(init_list);
 	}
 
 	return NULL;
