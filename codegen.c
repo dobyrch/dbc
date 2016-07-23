@@ -20,6 +20,36 @@ static LLVMBuilderRef builder;
 static LLVMModuleRef module;
 
 
+/* TODO: rename struct node to ast_node, rename arg ast to node */
+void compile(struct node *ast)
+{
+	/* TODO: Free module, define "dbc" as constant */
+	if ((module = LLVMModuleCreateWithName("dbc")) == NULL)
+		generror("Failed to create LLVM module");
+
+	if ((builder = LLVMCreateBuilder()) == NULL)
+		generror("Failed to create LLVM instruction builder");
+
+	if (hcreate(SYMTAB_SIZE) == 0)
+		generror("Failed to allocate space for symbol table");
+
+
+	/* TODO: Remove superfluous returns from gen_ */
+	codegen(ast);
+	printf("\n====================================\n");
+	LLVMDumpModule(module);
+	printf("====================================\n");
+
+	if (LLVMWriteBitcodeToFile(module, "dbc.bc") != 0) {
+		generror("Failed to write bitcode");
+	}
+}
+
+void free_tree(struct node *ast)
+{
+	/* TODO:  Free while compiling instead? */
+}
+
 void generror(const char *msg)
 {
 	printf("ERROR: %s\n", msg);
@@ -450,33 +480,3 @@ LLVMValueRef gen_sub_assign(struct node *ast) { generror("Not yet implemented: g
 LLVMValueRef gen_switch(struct node *ast) { generror("Not yet implemented: gen_switch"); return NULL; }
 LLVMValueRef gen_xor(struct node *ast) { generror("Not yet implemented: gen_xor"); return NULL; }
 LLVMValueRef gen_xor_assign(struct node *ast) { generror("Not yet implemented: gen_xor_assign"); return NULL; }
-
-/* TODO: rename struct node to ast_node, rename arg ast to node */
-void compile(struct node *ast)
-{
-	/* TODO: Free module, define "dbc" as constant */
-	if ((module = LLVMModuleCreateWithName("dbc")) == NULL)
-		generror("Failed to create LLVM module");
-
-	if ((builder = LLVMCreateBuilder()) == NULL)
-		generror("Failed to create LLVM instruction builder");
-
-	if (hcreate(SYMTAB_SIZE) == 0)
-		generror("Failed to allocate space for symbol table");
-
-
-	/* TODO: Remove superfluous returns from gen_ */
-	codegen(ast);
-	printf("\n====================================\n");
-	LLVMDumpModule(module);
-	printf("====================================\n");
-
-	if (LLVMWriteBitcodeToFile(module, "dbc.bc") != 0) {
-		generror("Failed to write bitcode");
-	}
-}
-
-void free_tree(struct node *ast)
-{
-	/* TODO:  Free while compiling instead? */
-}

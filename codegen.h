@@ -3,6 +3,7 @@ extern int lex_column;
 
 void compile(struct node *ast);
 void free_tree(struct node *ast);
+void generror(const char *msg);
 
 /*
  * It'd be awfully repetitive declare every code generation function
