@@ -8,7 +8,6 @@
 %token LEFT_OP RIGHT_OP
 %token LE_OP GE_OP
 %token EQ_OP NE_OP
-%token AND_OP OR_OP
 %token MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN
 %token ADD_ASSIGN SUB_ASSIGN
 %token LEFT_ASSIGN RIGHT_ASSIGN
@@ -123,6 +122,7 @@ statement
 	| '{' statement_list '}'
 		{ $$ = node1(gen_compound, $2); }
 
+	/* shift-reduce conflict: ELSE binds to nearest IF by default */
 	| IF '(' expression ')' statement
 		{ $$ = node2(gen_if, $3, $5); }
 	| IF '(' expression ')' statement ELSE statement
