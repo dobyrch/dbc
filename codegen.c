@@ -165,23 +165,13 @@ LLVMValueRef gen_goto(struct node *ast)
 LLVMValueRef gen_addr(struct node *ast)
 {
 	/* TODO: Function pointers? */
-
-	printf("Yup, generating ADDR\n");
+	/* TODO: Check that lvalue is actually an lvalue */
 	return LLVMBuildPtrToInt(builder, lvalue(one(ast)), TYPE_INT, "tmp_addr");
 }
 
 LLVMValueRef gen_indir(struct node *ast)
 {
-	/* TODO: Different semantics if being assigned to? */
-
-	return LLVMBuildLoad(builder,
-		LLVMBuildIntToPtr(
-			builder,
-			codegen(one(ast)),
-			TYPE_PTR,
-			"indir"),
-		"loadtmp");
-
+	return LLVMBuildLoad(builder, lvalue(ast), "tmp_load");
 }
 
 LLVMValueRef gen_while(struct node *ast)
@@ -341,7 +331,7 @@ LLVMValueRef lvalue_name(struct node *ast)
 
 LLVMValueRef lvalue_indir(struct node *ast)
 {
-	return LLVMBuildIntToPtr(builder, codegen(ast), TYPE_PTR, "tmp_indir");
+	return LLVMBuildIntToPtr(builder, codegen(one(ast)), TYPE_PTR, "tmp_indir");
 }
 
 LLVMValueRef lvalue_index(struct node *ast)
