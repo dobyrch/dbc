@@ -72,7 +72,10 @@ static LLVMBasicBlockRef mylabel = NULL;
 
 LLVMValueRef gen_compound(struct node *ast)
 {
-	return codegen(one(ast));
+	if (one(ast))
+		return codegen(one(ast));
+
+	return NULL;
 }
 
 LLVMValueRef gen_index(struct node *ast)
