@@ -168,10 +168,19 @@ LLVMValueRef gen_label(struct node *ast)
 	/* TODO: Use separate table for labels */
 	/* TODO: Prepend "label_" to name so a label with a name like "else" doesn't
 	 * clash with other blocks (then, else, end). Or will LLVM auto number? */
-	LLVMBasicBlockRef block = LLVMGetInsertBlock(builder);
-	LLVMValueRef parent = LLVMGetBasicBlockParent(block);
-	mylabel = LLVMAppendBasicBlock(parent, val(one(ast)));
-	LLVMPositionBuilderAtEnd(builder, block);
+	LLVMBasicBlockRef prev_block;
+
+	prev_block = LLVMGetInsertBlock(builder);
+
+	/* TODO: Use GetBasicBlockParent() instead of relying on global? */
+	if (mylabel == NULL) {
+		mylabel = LLVMAppendBasicBlock(func, val(one(ast)));
+	} else {
+		LLVMMoveBasicBlockAfter(mylabel, prev_block);
+		LLVMSetValueName((LLVMValueRef)mylabel, val(one(ast)));
+	}
+
+	LLVMPositionBuilderAtEnd(builder, prev_block);
 	LLVMBuildBr(builder, mylabel);
 	LLVMPositionBuilderAtEnd(builder, mylabel);
 	codegen(two(ast));
@@ -181,9 +190,16 @@ LLVMValueRef gen_label(struct node *ast)
 
 LLVMValueRef gen_goto(struct node *ast)
 {
+	LLVMBasicBlockRef next_block;
 	/* TODO: check that NAME is LabelTypeKind in lvalue */
+	/* or should labels be in different namespace? */
+	if (mylabel == NULL)
+		mylabel = LLVMAppendBasicBlock(func, "");
+
 	LLVMBuildBr(builder, mylabel);
-	LLVMPositionBuilderAtEnd(builder, LLVMGetNextBasicBlock(mylabel));
+
+	next_block = LLVMAppendBasicBlock(func, "block");
+	LLVMPositionBuilderAtEnd(builder, next_block);
 
 	return NULL;
 }
@@ -511,7 +527,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	body_block = LLVMAppendBasicBlock(func, "");
-	ret_block = LLVMAppendBasicBlock(func, "");
+	ret_block = LLVMAppendBasicBlock(func, "ret_block");
 	LLVMPositionBuilderAtEnd(builder, body_block);
 
 	retval = LLVMBuildAlloca(builder, TYPE_INT, "tmp_ret");
