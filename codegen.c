@@ -166,8 +166,6 @@ LLVMValueRef gen_return(struct node *ast)
 LLVMValueRef gen_label(struct node *ast)
 {
 	/* TODO: Use separate table for labels */
-	/* TODO: Prepend "label_" to name so a label with a name like "else" doesn't
-	 * clash with other blocks (then, else, end). Or will LLVM auto number? */
 	LLVMBasicBlockRef prev_block;
 
 	prev_block = LLVMGetInsertBlock(builder);
@@ -263,7 +261,8 @@ LLVMValueRef gen_if(struct node *ast)
 	ref = LLVMBuildBr(builder, end);
 
 	LLVMPositionBuilderAtEnd(builder, else_block);
-	codegen(three(ast));
+	if (three(ast))
+		codegen(three(ast));
 	ref = LLVMBuildBr(builder, end);
 
 	LLVMPositionBuilderAtEnd(builder, end);
@@ -536,6 +535,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	codegen(three(ast));
 	LLVMBuildBr(builder, ret_block);
 
+	/* TODO: Untangle out-of-order blocks */
 	LLVMPositionBuilderAtEnd(builder, ret_block);
 	LLVMBuildRet(builder, LLVMBuildLoad(builder, retval, "tmp_ret"));
 

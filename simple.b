@@ -5,14 +5,11 @@ main() {
 
 	a = 1;
 	b = 4;
+	goto foo;
 	c = &b;
 	return;
 	b = 5;
 
-	goto foo;
-
-
-	return(a + *c + myarray[2]);
 
 foo:
 	b = 7;
