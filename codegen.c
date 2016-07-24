@@ -283,22 +283,21 @@ LLVMValueRef gen_auto(struct node *ast)
 
 LLVMValueRef gen_name(struct node *ast)
 {
-	LLVMValueRef global;
-	ENTRY symtab_lookup, *symtab_entry;
+	LLVMValueRef ptr;
+	LLVMTypeRef type;
 
-	symtab_lookup.key = val(ast);
-	symtab_lookup.data = NULL;
+	ptr = lvalue(ast);
+	type = LLVMGetElementType(LLVMTypeOf(ptr));
 
-	symtab_entry = hsearch(symtab_lookup, FIND);
-	if (symtab_entry != NULL)
-		return LLVMBuildLoad(builder, symtab_entry->data, symtab_entry->key);
-
-	global = LLVMGetNamedGlobal(module, val(ast));
-	if (global != NULL)
-		return LLVMBuildPtrToInt(builder, global, TYPE_INT, "tmp_addr");
-
-	generror("Use of undeclared identifier '%s'", val(ast));
-	return NULL;
+	switch (LLVMGetTypeKind(type)) {
+		case LLVMIntegerTypeKind:
+			return LLVMBuildLoad(builder, ptr, val(ast));
+		case LLVMArrayTypeKind:
+			return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "tmp_addr");
+		default:
+			generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
+			return NULL;
+	}
 }
 
 LLVMValueRef lvalue(struct node *ast)
@@ -316,6 +315,7 @@ LLVMValueRef lvalue(struct node *ast)
 
 LLVMValueRef lvalue_name(struct node *ast)
 {
+	LLVMValueRef global;
 	ENTRY symtab_lookup, *symtab_entry;
 
 	symtab_lookup.key = val(ast);
@@ -323,10 +323,16 @@ LLVMValueRef lvalue_name(struct node *ast)
 
 	symtab_entry = hsearch(symtab_lookup, FIND);
 
-	if (symtab_entry == NULL)
-		generror("Wuh oh, attempted to assign to uninitialized variable");
+	if (symtab_entry != NULL)
+		return symtab_entry->data;
 
-	return symtab_entry->data;
+	global = LLVMGetNamedGlobal(module, val(ast));
+
+	if (global != NULL)
+		return global;
+
+	generror("Use of undeclared identifier '%s'", val(ast));
+	return NULL;
 }
 
 LLVMValueRef lvalue_indir(struct node *ast)
