@@ -14,7 +14,8 @@
 #include "codegen.h"
 
 #define SYMTAB_SIZE 1024
-#define ITYPE LLVMInt64Type()
+#define TYPE_INT LLVMInt64Type()
+#define TYPE_PTR LLVMPointerType(TYPE_INT, 0)
 
 
 static LLVMBuilderRef builder;
@@ -51,10 +52,18 @@ void free_tree(struct node *ast)
 	/* TODO:  Free while compiling instead? */
 }
 
-void generror(const char *msg)
+void generror(const char *msg, ...)
 {
-	printf("ERROR: %s\n", msg);
-	fflush(stdout);
+	va_list args;
+
+	printf("ERROR: ");
+
+	va_start(args, msg);
+	vprintf(msg, args);
+	va_end(args);
+
+	putchar('\n');
+
 	exit(EXIT_FAILURE);
 }
 
@@ -68,22 +77,7 @@ LLVMValueRef gen_compound(struct node *ast)
 
 LLVMValueRef gen_index(struct node *ast)
 {
-	LLVMValueRef gep, indices[2];
-
-	indices[0] = LLVMConstInt(ITYPE, 0, 0);
-	indices[1] = codegen(two(ast));
-
-	/*
-	 * TODO: allow indexing arbitrary expressions
-	 * TODO: ensure x[y] == y[x] holds
-	 */
-	gep = LLVMBuildGEP(builder,
-		LLVMGetNamedGlobal(module, "myarray"),
-		indices,
-		2,
-		"tmp_subscript");
-
-	return LLVMBuildLoad(builder, gep, "tmp_load");
+	return LLVMBuildLoad(builder, lvalue(ast), "tmp_load");
 }
 
 LLVMValueRef gen_vecdef(struct node *ast)
@@ -125,10 +119,10 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		}
 
 		while (i < minsize)
-			elems[i++] = LLVMConstInt(ITYPE, 0, 0);
+			elems[i++] = LLVMConstInt(TYPE_INT, 0, 0);
 
 
-		type = LLVMArrayType(ITYPE, size);
+		type = LLVMArrayType(TYPE_INT, size);
 		/* TODO: Figure out why "foo[6];" has size of 0 */
 		array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
 
@@ -172,7 +166,8 @@ LLVMValueRef gen_addr(struct node *ast)
 {
 	/* TODO: Function pointers? */
 
-	return LLVMBuildPtrToInt(builder, codegen(one(ast)), ITYPE, "tmp_addr");
+	printf("Yup, generating ADDR\n");
+	return LLVMBuildPtrToInt(builder, lvalue(one(ast)), TYPE_INT, "tmp_addr");
 }
 
 LLVMValueRef gen_indir(struct node *ast)
@@ -183,7 +178,7 @@ LLVMValueRef gen_indir(struct node *ast)
 		LLVMBuildIntToPtr(
 			builder,
 			codegen(one(ast)),
-			LLVMPointerType(ITYPE, 0),
+			TYPE_PTR,
 			"indir"),
 		"loadtmp");
 
@@ -278,7 +273,7 @@ LLVMValueRef gen_auto(struct node *ast)
 	while (init_list) {
 		init = one(init_list);
 		symtab_entry.key = val(one(init));
-		symtab_entry.data = LLVMBuildAlloca(builder, ITYPE, symtab_entry.key);
+		symtab_entry.data = LLVMBuildAlloca(builder, TYPE_INT, symtab_entry.key);
 
 		if (hsearch(symtab_entry, FIND) != NULL)
 			/* TODO: pass variable name to generror */
@@ -298,6 +293,39 @@ LLVMValueRef gen_auto(struct node *ast)
 
 LLVMValueRef gen_name(struct node *ast)
 {
+	LLVMValueRef global;
+	ENTRY symtab_lookup, *symtab_entry;
+
+	symtab_lookup.key = val(ast);
+	symtab_lookup.data = NULL;
+
+	symtab_entry = hsearch(symtab_lookup, FIND);
+	if (symtab_entry != NULL)
+		return LLVMBuildLoad(builder, symtab_entry->data, symtab_entry->key);
+
+	global = LLVMGetNamedGlobal(module, val(ast));
+	if (global != NULL)
+		return LLVMBuildPtrToInt(builder, global, TYPE_INT, "tmp_addr");
+
+	generror("Use of undeclared identifier '%s'", val(ast));
+	return NULL;
+}
+
+LLVMValueRef lvalue(struct node *ast)
+{
+	if (ast->codegen == gen_name)
+		return lvalue_name(ast);
+	else if (ast->codegen == gen_indir)
+		return lvalue_indir(ast);
+	else if (ast->codegen == gen_index)
+		return lvalue_index(ast);
+	else
+		/* TODO: handle NULL in gen_addr/gen_assign and print "expected lvalue" */
+		return NULL;
+}
+
+LLVMValueRef lvalue_name(struct node *ast)
+{
 	ENTRY symtab_lookup, *symtab_entry;
 
 	symtab_lookup.key = val(ast);
@@ -306,27 +334,36 @@ LLVMValueRef gen_name(struct node *ast)
 	symtab_entry = hsearch(symtab_lookup, FIND);
 
 	if (symtab_entry == NULL)
-		generror("Wuh oh, attempted to access unitialized variable");
+		generror("Wuh oh, attempted to assign to uninitialized variable");
 
-	return LLVMBuildLoad(builder, symtab_entry->data, symtab_entry->key);
+	return symtab_entry->data;
+}
 
+LLVMValueRef lvalue_indir(struct node *ast)
+{
+	return LLVMBuildIntToPtr(builder, codegen(ast), TYPE_PTR, "tmp_indir");
+}
+
+LLVMValueRef lvalue_index(struct node *ast)
+{
+	LLVMValueRef ptr, index, gep;
+
+	/*
+	 * TODO: ensure x[y] == y[x] holds
+	 */
+	ptr = LLVMBuildIntToPtr(builder, codegen(one(ast)), TYPE_PTR, "tmp_ptr");
+	index = codegen(two(ast));
+	gep = LLVMBuildGEP(builder, ptr, &index, 1, "tmp_subscript");
+
+	return gep;
 }
 
 LLVMValueRef gen_assign(struct node *ast)
 {
+
 	LLVMValueRef result;
-	ENTRY symtab_lookup, *symtab_entry;
-
-	symtab_lookup.key = val(one(ast));
-	symtab_lookup.data = NULL;
-
-	symtab_entry = hsearch(symtab_lookup, FIND);
-
-	if (symtab_entry == NULL)
-		generror("Wuh oh, attempted to assign to uninitialized variable");
-
 	result = codegen(two(ast));
-	LLVMBuildStore(builder, result, symtab_entry->data);
+	LLVMBuildStore(builder, result, lvalue(one(ast)));
 
 	return result;
 }
@@ -354,7 +391,7 @@ LLVMValueRef gen_postdec(struct node *ast)
 	LLVMValueRef result;
 	result = LLVMBuildSub(builder,
 		codegen(one(ast)),
-		LLVMConstInt(ITYPE, 1, 0),
+		LLVMConstInt(TYPE_INT, 1, 0),
 		"subtmp");
 
 	LLVMBuildStore(builder,
@@ -372,7 +409,7 @@ LLVMValueRef gen_predec(struct node *ast)
 	LLVMValueRef tmp = myvar;
 	myvar = LLVMBuildSub(builder,
 		codegen(one(ast)),
-		LLVMConstInt(ITYPE, -1, 0),
+		LLVMConstInt(TYPE_INT, -1, 0),
 		"subtmp");
 
 	return tmp;
@@ -385,9 +422,9 @@ LLVMValueRef gen_const(struct node *ast)
 	if (ast->one.val[0] == '"')
 		return NULL;
 	else if (ast->one.val[0] == '\'')
-		return LLVMConstInt(ITYPE, ast->one.val[1], 0);
+		return LLVMConstInt(TYPE_INT, ast->one.val[1], 0);
 	else
-		return LLVMConstIntOfString(ITYPE, ast->one.val, 10);
+		return LLVMConstIntOfString(TYPE_INT, ast->one.val, 10);
 }
 
 
@@ -405,9 +442,9 @@ LLVMValueRef gen_call(struct node *ast)
 
 	LLVMTypeRef signew;
 	LLVMValueRef funcnew;
-	LLVMTypeRef intarg = ITYPE;
+	LLVMTypeRef intarg = TYPE_INT;
 
-	signew = LLVMFunctionType(ITYPE, &intarg, 1, 0);
+	signew = LLVMFunctionType(TYPE_INT, &intarg, 1, 0);
 	if (first) {
 		funcnew = LLVMAddGlobal(module, signew, val(one(ast)));
 		LLVMSetLinkage(funcnew, LLVMExternalLinkage);
@@ -448,16 +485,16 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMBasicBlockRef block;
 
 	/* TODO: Check if function already defined */
-	sig = LLVMFunctionType(ITYPE, NULL, 0, 0);
+	sig = LLVMFunctionType(TYPE_INT, NULL, 0, 0);
 	func = LLVMAddFunction(module, val(one(ast)), sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	block = LLVMAppendBasicBlock(func, "");
 	LLVMPositionBuilderAtEnd(builder, block);
 
-	retval = LLVMBuildAlloca(builder, ITYPE, "retval");
+	retval = LLVMBuildAlloca(builder, TYPE_INT, "retval");
 	LLVMBuildStore(builder,
-		LLVMConstInt(ITYPE, 0, 0),
+		LLVMConstInt(TYPE_INT, 0, 0),
 		retval);
 	body = codegen(three(ast));
 
