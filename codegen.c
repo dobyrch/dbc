@@ -32,6 +32,7 @@ void compile(struct node *ast)
 	if ((builder = LLVMCreateBuilder()) == NULL)
 		generror("Failed to create LLVM instruction builder");
 
+	/* TODO: create/destroy symbol table for each function definition */
 	if (hcreate(SYMTAB_SIZE) == 0)
 		generror("Failed to allocate space for symbol table");
 
@@ -70,8 +71,10 @@ void generror(const char *msg, ...)
 	exit(EXIT_FAILURE);
 }
 
-
+/* TODO: Store necessary globales in struct called "state" */
 static LLVMBasicBlockRef mylabel = NULL;
+static LLVMValueRef func;
+static LLVMValueRef retval;
 
 LLVMValueRef gen_compound(struct node *ast)
 {
@@ -144,30 +147,45 @@ LLVMValueRef gen_expression(struct node *ast)
 	return NULL;
 }
 
-LLVMValueRef retval;
 LLVMValueRef gen_return(struct node *ast)
 {
-	if (one(ast))
-		LLVMBuildStore(
-			builder,
-			codegen(one(ast)),
-			retval);
+	LLVMBasicBlockRef next_block, ret_block;
 
-	/* TODO: Jump to end of function */
+	if (one(ast))
+		LLVMBuildStore(builder, codegen(one(ast)), retval);
+
+	ret_block = LLVMGetLastBasicBlock(func);
+	LLVMBuildBr(builder, ret_block);
+
+	next_block = LLVMInsertBasicBlock(ret_block, "");
+	LLVMPositionBuilderAtEnd(builder, next_block);;
 
 	return NULL;
 }
 
 LLVMValueRef gen_label(struct node *ast)
 {
-	LLVMValueRef parent = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
-	mylabel = LLVMAppendBasicBlock(parent, "label");
-	return codegen(one(ast));
+	/* TODO: Use separate table for labels */
+	/* TODO: Prepend "label_" to name so a label with a name like "else" doesn't
+	 * clash with other blocks (then, else, end). Or will LLVM auto number? */
+	LLVMBasicBlockRef block = LLVMGetInsertBlock(builder);
+	LLVMValueRef parent = LLVMGetBasicBlockParent(block);
+	mylabel = LLVMAppendBasicBlock(parent, val(one(ast)));
+	LLVMPositionBuilderAtEnd(builder, block);
+	LLVMBuildBr(builder, mylabel);
+	LLVMPositionBuilderAtEnd(builder, mylabel);
+	codegen(two(ast));
+
+	return NULL;
 }
 
 LLVMValueRef gen_goto(struct node *ast)
 {
-	return LLVMBuildBr(builder, mylabel);
+	/* TODO: check that NAME is LabelTypeKind in lvalue */
+	LLVMBuildBr(builder, mylabel);
+	LLVMPositionBuilderAtEnd(builder, LLVMGetNextBasicBlock(mylabel));
+
+	return NULL;
 }
 
 LLVMValueRef gen_addr(struct node *ast)
@@ -484,24 +502,26 @@ LLVMValueRef gen_extrn(struct node *ast)
 LLVMValueRef gen_funcdef(struct node *ast)
 {
 	LLVMTypeRef sig;
-	LLVMValueRef func, body;
-	LLVMBasicBlockRef block;
+	LLVMBasicBlockRef body_block, ret_block;
 
-	/* TODO: Check if function already defined */
+	/* TODO: Check if function already defined
+	 * ? Can functions be looked up like globals ? */
 	sig = LLVMFunctionType(TYPE_INT, NULL, 0, 0);
 	func = LLVMAddFunction(module, val(one(ast)), sig);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
-	block = LLVMAppendBasicBlock(func, "");
-	LLVMPositionBuilderAtEnd(builder, block);
+	body_block = LLVMAppendBasicBlock(func, "");
+	ret_block = LLVMAppendBasicBlock(func, "");
+	LLVMPositionBuilderAtEnd(builder, body_block);
 
-	retval = LLVMBuildAlloca(builder, TYPE_INT, "retval");
-	LLVMBuildStore(builder,
-		LLVMConstInt(TYPE_INT, 0, 0),
-		retval);
-	body = codegen(three(ast));
+	retval = LLVMBuildAlloca(builder, TYPE_INT, "tmp_ret");
+	LLVMBuildStore(builder, LLVMConstInt(TYPE_INT, 0, 0), retval);
 
-	LLVMBuildRet(builder, LLVMBuildLoad(builder, retval, "retval"));
+	codegen(three(ast));
+	LLVMBuildBr(builder, ret_block);
+
+	LLVMPositionBuilderAtEnd(builder, ret_block);
+	LLVMBuildRet(builder, LLVMBuildLoad(builder, retval, "tmp_ret"));
 
 	if (LLVMVerifyFunction(func, LLVMPrintMessageAction)) {
 		LLVMDeleteFunction(func);
