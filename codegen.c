@@ -52,6 +52,9 @@ void free_tree(struct node *ast)
 	/* TODO:  Free while compiling instead? */
 }
 
+/* TODO: Separate functions for internal compiler error, code error, code warning, etc. */
+/* TODO: Colorize output */
+/* TODO: Look at clang/gcc for examples of error messages */
 void generror(const char *msg, ...)
 {
 	va_list args;
@@ -149,6 +152,8 @@ LLVMValueRef gen_return(struct node *ast)
 			builder,
 			codegen(one(ast)),
 			retval);
+
+	/* TODO: Jump to end of function */
 
 	return NULL;
 }
@@ -269,8 +274,7 @@ LLVMValueRef gen_auto(struct node *ast)
 		symtab_entry.data = LLVMBuildAlloca(builder, TYPE_INT, symtab_entry.key);
 
 		if (hsearch(symtab_entry, FIND) != NULL)
-			/* TODO: pass variable name to generror */
-			generror("Variable declared twice");
+			generror("redefinition of '%s'", symtab_entry.key);
 
 		if (hsearch(symtab_entry, ENTER) == NULL)
 			generror("Symbol table full");
