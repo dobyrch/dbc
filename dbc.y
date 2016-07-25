@@ -90,6 +90,7 @@ function_definition
 	;
 
 ival_list
+	/* TODO: Make everything left recursive, use helper functions */
 	: ival ',' ival_list
 		{ $$ = node2(gen_ivals, $1, $3); }
 	| ival

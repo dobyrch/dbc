@@ -14,25 +14,25 @@ LLVMValueRef codegen(struct node *ast)
 
 char *val(struct node *ast)
 {
-	return ast->one.val;
+	return ast->val;
 }
 
 
 struct node *one(struct node *ast)
 {
-	return ast->one.ast;
+	return ast->one;
 }
 
 
 struct node *two(struct node *ast)
 {
-	return ast->two.ast;
+	return ast->two;
 }
 
 
 struct node *three(struct node *ast)
 {
-	return ast->three.ast;
+	return ast->three;
 }
 
 
@@ -42,9 +42,10 @@ struct node *leafnode(codegen_func codegen, char *value)
 	struct node *new_leaf = malloc(sizeof(struct node));
 
 	new_leaf->codegen = codegen;
-	new_leaf->one.val = value;
-	new_leaf->two.ast = NULL;
-	new_leaf->three.ast = NULL;
+	new_leaf->val = value;
+	new_leaf->one = NULL;
+	new_leaf->two = NULL;
+	new_leaf->three = NULL;
 
 	return new_leaf;
 }
@@ -74,9 +75,10 @@ struct node *node3(codegen_func codegen, struct node *one, struct node *two, str
 	struct node *new_node = malloc(sizeof(struct node));
 
 	new_node->codegen = codegen;
-	new_node->one.ast = one;
-	new_node->two.ast = two;
-	new_node->three.ast = three;
+	new_node->val = NULL;
+	new_node->one = one;
+	new_node->two = two;
+	new_node->three = three;
 
 	return new_node;
 }

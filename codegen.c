@@ -22,6 +22,37 @@ static LLVMBuilderRef builder;
 static LLVMModuleRef module;
 
 
+/* TODO: Take all helper functions out of header and make static */
+static void symtab_enter(char *key, void *data)
+{
+
+	ENTRY symtab_entry;
+
+	symtab_entry.key = key;
+	symtab_entry.data = data;
+	printf("About to add data: %p\n", data);
+	printf("About to add d2ta: %p\n", symtab_entry.data);
+
+	if (hsearch(symtab_entry, FIND) != NULL)
+		generror("redefinition of '%s'", symtab_entry.key);
+
+	if (hsearch(symtab_entry, ENTER) == NULL)
+		generror("Symbol table full");
+}
+
+static void *symtab_find(char *key)
+{
+
+	ENTRY symtab_lookup, *symtab_entry;
+
+	symtab_lookup.key = key;
+	symtab_lookup.data = NULL;
+
+	symtab_entry = hsearch(symtab_lookup, FIND);
+
+	return symtab_entry ? symtab_entry->data : NULL;
+}
+
 /* TODO: rename struct node to ast_node, rename arg ast to node */
 void compile(struct node *ast)
 {
@@ -71,7 +102,6 @@ void generror(const char *msg, ...)
 }
 
 /* TODO: Store necessary globales in struct called "state" */
-static LLVMBasicBlockRef mylabel = NULL;
 static LLVMValueRef func;
 static LLVMValueRef retval;
 
@@ -194,6 +224,7 @@ LLVMValueRef gen_return(struct node *ast)
 	ret_block = LLVMGetLastBasicBlock(func);
 	LLVMBuildBr(builder, ret_block);
 
+	printf("Inserting basicblock before ret_block (gen_return)\n");
 	next_block = LLVMInsertBasicBlock(ret_block, "");
 	LLVMPositionBuilderAtEnd(builder, next_block);;
 
@@ -202,23 +233,20 @@ LLVMValueRef gen_return(struct node *ast)
 
 LLVMValueRef gen_label(struct node *ast)
 {
-	/* TODO: Use separate table for labels */
-	LLVMBasicBlockRef prev_block;
+	/* TODO: Use separate table for labels? */
+	LLVMBasicBlockRef label_block, prev_block;
 
 	prev_block = LLVMGetInsertBlock(builder);
+	label_block = symtab_find(ast->one->val);
 
-	/* TODO: Use GetBasicBlockParent() instead of relying on global? */
-	if (mylabel == NULL) {
-		mylabel = LLVMAppendBasicBlock(func, val(one(ast)));
-	} else {
-		LLVMMoveBasicBlockAfter(mylabel, prev_block);
-		/* TODO: Prefix label names to avoid clashes with do/then? */
-		LLVMSetValueName((LLVMValueRef)mylabel, val(one(ast)));
-	}
-
+	printf("Label name: %s\n", ast->one->val);
+	printf("Previous block: %p\n", prev_block);
+	printf("Label block: %p\n", label_block);
+	LLVMMoveBasicBlockAfter(label_block, prev_block);
 	LLVMPositionBuilderAtEnd(builder, prev_block);
-	LLVMBuildBr(builder, mylabel);
-	LLVMPositionBuilderAtEnd(builder, mylabel);
+	LLVMBuildBr(builder, label_block);
+	LLVMPositionBuilderAtEnd(builder, label_block);
+
 	codegen(two(ast));
 
 	return NULL;
@@ -229,10 +257,12 @@ LLVMValueRef gen_goto(struct node *ast)
 	LLVMBasicBlockRef next_block;
 	/* TODO: check that NAME is LabelTypeKind in lvalue */
 	/* or should labels be in different namespace? */
+	/*
 	if (mylabel == NULL)
 		mylabel = LLVMAppendBasicBlock(func, "");
+	*/
 
-	LLVMBuildBr(builder, mylabel);
+	LLVMBuildIndirectBr(builder, codegen(two(ast)), 0);
 
 	next_block = LLVMAppendBasicBlock(func, "block");
 	LLVMPositionBuilderAtEnd(builder, next_block);
@@ -260,7 +290,9 @@ LLVMValueRef gen_while(struct node *ast)
 	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
 	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(one(ast)), zero, "tmp_cond");
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
+	printf("Appending do block (gen_while)\n");
 	do_block = LLVMAppendBasicBlock(func, "do");
+	printf("Appending end block (gen_while)\n");
 	end = LLVMAppendBasicBlock(func, "end");
 
 	LLVMBuildCondBr(builder, condition, do_block, end);
@@ -286,8 +318,11 @@ LLVMValueRef gen_if(struct node *ast)
 	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "tmp_cond");
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 
+	printf("Appending then block (gen_if)\n");
 	then_block = LLVMAppendBasicBlock(func, "then");
+	printf("Appending else block (gen_if)\n");
 	else_block = LLVMAppendBasicBlock(func, "else");
+	printf("Appending end block (gen_if)\n");
 	end = LLVMAppendBasicBlock(func, "end");
 	LLVMBuildCondBr(builder, condition, then_block, else_block);
 
@@ -656,6 +691,29 @@ LLVMValueRef gen_extrn(struct node *ast)
 	return NULL;
 }
 
+static void predefine_labels(struct node *ast)
+{
+	char *name;
+
+	if (ast->one)
+		predefine_labels(ast->one);
+
+	if (ast->two)
+		predefine_labels(ast->two);
+
+	if (ast->three)
+		predefine_labels(ast->three);
+
+	if (ast->codegen == gen_label) {
+		name = ast->one->val;
+
+		/* TODO: Prefix label names to avoid clashes with do/then? */
+		LLVMBasicBlockRef deletethis = LLVMAppendBasicBlock(func, name);
+		printf("Adding label %p '%s' (predefine_labels)\n", deletethis, name);
+		symtab_enter(name, deletethis);
+	}
+}
+
 LLVMValueRef gen_funcdef(struct node *ast)
 {
 	LLVMTypeRef sig;
@@ -668,13 +726,16 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	body_block = LLVMAppendBasicBlock(func, "");
+	printf("Adding body block %p (gen_funcdef)\n", body_block);
 	ret_block = LLVMAppendBasicBlock(func, "ret_block");
+	printf("Adding ret block %p (gen_funcdef)\n", ret_block);
 	LLVMPositionBuilderAtEnd(builder, body_block);
 
 	retval = LLVMBuildAlloca(builder, TYPE_INT, "tmp_ret");
 	LLVMBuildStore(builder, LLVMConstInt(TYPE_INT, 0, 0), retval);
 
-	codegen(three(ast));
+	predefine_labels(ast->three);
+	codegen(ast->three);
 	LLVMBuildBr(builder, ret_block);
 
 	/* TODO: Untangle out-of-order blocks */

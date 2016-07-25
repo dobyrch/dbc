@@ -4,12 +4,13 @@ main() {
 	auto i, c, col, a;
 
 	i = col = 0;
-
+foo:
 	while(i<n)
 		v[i++] = 1;
 
 	while(col<2*n) {
 		a = n+1 ;
+bar:
 		c = i = 0;
 		while(i<n) {
 			c =+ v[i]*10;
