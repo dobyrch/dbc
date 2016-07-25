@@ -5,5 +5,9 @@ dbc: dbc.y dbc.l astnode.c astnode.h codegen.c  codegen.h
 	clang++ `llvm-config --cxxflags --ldflags` astnode.o codegen.o dbc.tab.o lex.yy.o `llvm-config --libs --system-libs` -o dbc
 	xsltproc /usr/share/bison/xslt/xml2xhtml.xsl dbc.xml > dbc.html
 
-test: dbc
+test: dbc libb.c
 	./dbc < ./sample.b
+	clang -c dbc.bc
+	clang -c libb.c
+	clang libb.o dbc.o
+	./a.out

@@ -94,7 +94,7 @@ LLVMValueRef gen_simpledef(struct node *ast)
 	 * TODO: Make a note that a "vector" in B terminology equates to
 	 * an LLVM array, not an LLVM vector
 	 */
-	LLVMValueRef global, array, *elems;
+	LLVMValueRef newdef, olddef, array, *elems;
 	LLVMTypeRef type;
 	struct node *ival_list;
 	uint64_t i = 0, size = 0;
@@ -118,13 +118,19 @@ LLVMValueRef gen_simpledef(struct node *ast)
 	}
 
 	type = LLVMArrayType(TYPE_INT, size);
-	/* TODO: Figure out why "foo[6];" has size of 0 */
 	array = LLVMConstArray(type, elems, size);
 
-	/* TODO: Check if global is already defined */
-	global = LLVMAddGlobal(module, type, val(one(ast)));
-	LLVMSetInitializer(global, array);
-	LLVMSetLinkage(global, LLVMExternalLinkage);
+	newdef = LLVMAddGlobal(module, type, val(one(ast)));
+	olddef = LLVMGetNamedGlobal(module, val(one(ast)));
+
+	if (olddef != NULL) {
+		LLVMReplaceAllUsesWith(olddef, newdef);
+		LLVMDeleteGlobal(olddef);
+		LLVMSetValueName(newdef, val(one(ast)));
+	}
+
+	LLVMSetInitializer(newdef, array);
+	LLVMSetLinkage(newdef, LLVMExternalLinkage);
 
 	return NULL;
 }
@@ -135,7 +141,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	 * TODO: Make a note that a "vector" in B terminology equates to
 	 * an LLVM array, not an LLVM vector
 	 */
-	LLVMValueRef global, array, *elems;
+	LLVMValueRef newdef, olddef, array, *elems;
 	LLVMTypeRef type;
 	struct node *ival_list;
 	uint64_t i = 0, size = 0, minsize = 0;
@@ -170,14 +176,21 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	while (i < minsize)
 		elems[i++] = LLVMConstInt(TYPE_INT, 0, 0);
 
-	type = LLVMArrayType(TYPE_INT, size);
-	/* TODO: Figure out why "foo[6];" has size of 0 */
+	/* TODO: Store actual size for reuse */
+	type = LLVMArrayType(TYPE_INT, size >= minsize ? size : minsize);
 	array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
 
-	/* TODO: Check if global is already defined */
-	global = LLVMAddGlobal(module, type, val(one(ast)));
-	LLVMSetInitializer(global, array);
-	LLVMSetLinkage(global, LLVMExternalLinkage);
+	newdef = LLVMAddGlobal(module, type, val(one(ast)));
+	olddef = LLVMGetNamedGlobal(module, val(one(ast)));
+
+	if (olddef != NULL) {
+		LLVMReplaceAllUsesWith(olddef, newdef);
+		LLVMDeleteGlobal(olddef);
+		LLVMSetValueName(newdef, val(one(ast)));
+	}
+
+	LLVMSetInitializer(newdef, array);
+	LLVMSetLinkage(newdef, LLVMExternalLinkage);
 
 	return NULL;
 }
@@ -215,6 +228,7 @@ LLVMValueRef gen_label(struct node *ast)
 		mylabel = LLVMAppendBasicBlock(func, val(one(ast)));
 	} else {
 		LLVMMoveBasicBlockAfter(mylabel, prev_block);
+		/* TODO: Prefix label names to avoid clashes with do/then? */
 		LLVMSetValueName((LLVMValueRef)mylabel, val(one(ast)));
 	}
 
@@ -257,24 +271,21 @@ LLVMValueRef gen_indir(struct node *ast)
 LLVMValueRef gen_while(struct node *ast)
 {
 	LLVMValueRef condition, zero, func, body_value;
-	LLVMBasicBlockRef body_block, end;
+	LLVMBasicBlockRef do_block, end;
 
-	condition = codegen(one(ast));
 	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
-	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "ifcond");
-	/* TODO: func isn't always a func... rename to "block" */
+	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(one(ast)), zero, "tmp_cond");
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
-	body_block = LLVMAppendBasicBlock(func, "body");
+	do_block = LLVMAppendBasicBlock(func, "do");
 	end = LLVMAppendBasicBlock(func, "end");
 
-	LLVMBuildCondBr(builder, condition, body_block, end);
-	LLVMPositionBuilderAtEnd(builder, body_block);
+	LLVMBuildCondBr(builder, condition, do_block, end);
+	LLVMPositionBuilderAtEnd(builder, do_block);
 	/* TODO: I don't think we need to collect values from then/else blocks */
 	body_value = codegen(two(ast));
 
-	LLVMBuildBr(builder, end);
-	/* TODO: What's the point of this? */
-	body_block = LLVMGetInsertBlock(builder);
+	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(one(ast)), zero, "tmp_cond");
+	LLVMBuildCondBr(builder, condition, do_block, end);
 
 	LLVMPositionBuilderAtEnd(builder, end);
 
@@ -283,17 +294,17 @@ LLVMValueRef gen_while(struct node *ast)
 
 LLVMValueRef gen_if(struct node *ast)
 {
-	LLVMValueRef zero, condition, parent, ref;
+	LLVMValueRef zero, condition, func, ref;
 	LLVMBasicBlockRef then_block, else_block, end;
 
 	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
 	condition = codegen(one(ast));
 	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "tmp_cond");
-	parent = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
+	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 
-	then_block = LLVMAppendBasicBlock(parent, "then");
-	else_block = LLVMAppendBasicBlock(parent, "else");
-	end = LLVMAppendBasicBlock(parent, "end");
+	then_block = LLVMAppendBasicBlock(func, "then");
+	else_block = LLVMAppendBasicBlock(func, "else");
+	end = LLVMAppendBasicBlock(func, "end");
 	LLVMBuildCondBr(builder, condition, then_block, else_block);
 
 	LLVMPositionBuilderAtEnd(builder, then_block);
@@ -321,8 +332,13 @@ LLVMValueRef gen_lt(struct node *ast)
 LLVMValueRef gen_cond(struct node *ast)
 {
 	/* TODO: Rename to avoid conflict with IF condition */
+	/* TODO: Figure out best way to convert to and from Int1 */
 	return LLVMBuildSelect(builder,
-		codegen(one(ast)),
+		LLVMBuildICmp(builder,
+			LLVMIntNE,
+			codegen(one(ast)),
+			LLVMConstInt(TYPE_INT, 0, 0),
+			"tmp_not"),
 		codegen(two(ast)),
 		codegen(three(ast)),
 		"tmp_cond");
@@ -401,6 +417,8 @@ LLVMValueRef gen_name(struct node *ast)
 		case LLVMIntegerTypeKind:
 			return LLVMBuildLoad(builder, ptr, val(ast));
 		case LLVMArrayTypeKind:
+			return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "tmp_addr");
+		case LLVMPointerTypeKind:
 			return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "tmp_addr");
 		default:
 			generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
@@ -520,7 +538,7 @@ LLVMValueRef gen_postinc(struct node *ast)
 
 	LLVMBuildStore(builder, result, lvalue(one(ast)));
 
-	return result;
+	return orig;
 }
 
 LLVMValueRef gen_preinc(struct node *ast)
@@ -540,45 +558,49 @@ LLVMValueRef gen_preinc(struct node *ast)
 
 LLVMValueRef gen_postdec(struct node *ast)
 {
-	return NULL;
-	/*
-	LLVMValueRef result;
+	LLVMValueRef orig, result;
+
+	orig = codegen(one(ast));
+
+	/* TODO: Add macro for creating constants */
 	result = LLVMBuildSub(builder,
-		codegen(one(ast)),
+		orig,
 		LLVMConstInt(TYPE_INT, 1, 0),
-		"subtmp");
+		"tmp_add");
 
-	LLVMBuildStore(builder,
-		result,
-		myvar);
+	LLVMBuildStore(builder, result, lvalue(one(ast)));
 
-	return result;
-	*/
+	return orig;
 }
 
 LLVMValueRef gen_predec(struct node *ast)
 {
-	return NULL;
-	/*
-	LLVMValueRef tmp = lvalue;
-	myvar = LLVMBuildSub(builder,
-		codegen(one(ast)),
-		LLVMConstInt(TYPE_INT, -1, 0),
-		"subtmp");
+	LLVMValueRef result;
 
-	return tmp;
-	*/
+	/* TODO: Add macro for creating constants */
+	result = LLVMBuildSub(builder,
+		codegen(one(ast)),
+		LLVMConstInt(TYPE_INT, 1, 0),
+		"tmp_add");
+
+	LLVMBuildStore(builder, result, lvalue(one(ast)));
+
+	return result;
 }
 
 LLVMValueRef gen_const(struct node *ast)
 {
 	/* TODO: Handle strings, multichars, escape sequences, and octal ints */
-	if (ast->one.val[0] == '"')
+	if (val(ast)[0] == '"')
 		return NULL;
-	else if (ast->one.val[0] == '\'')
-		return LLVMConstInt(TYPE_INT, ast->one.val[1], 0);
+	else if (strcmp("'*n'", val(ast)) == 0)
+		return LLVMConstInt(TYPE_INT, '\n', 0);
+	else if (val(ast)[0] == '\'')
+		return LLVMConstInt(TYPE_INT, val(ast)[1], 0);
+	else if (val(ast)[0] == '0')
+		return LLVMConstIntOfString(TYPE_INT, val(ast), 8);
 	else
-		return LLVMConstIntOfString(TYPE_INT, ast->one.val, 10);
+		return LLVMConstIntOfString(TYPE_INT, val(ast), 10);
 }
 
 
@@ -591,34 +613,26 @@ LLVMValueRef gen_statements(struct node *ast)
 
 LLVMValueRef gen_call(struct node *ast)
 {
-	static int first = 1;
-	LLVMValueRef func, *args;
+	LLVMValueRef global;
+	LLVMValueRef arg;
+	LLVMTypeRef sig, argtype;
 
-	LLVMTypeRef signew;
-	LLVMValueRef funcnew;
-	LLVMTypeRef intarg = TYPE_INT;
+	/* Rename global to func */
+	global = LLVMGetNamedGlobal(module, val(one(ast)));
 
-	signew = LLVMFunctionType(TYPE_INT, &intarg, 1, 0);
-	if (first) {
-		funcnew = LLVMAddGlobal(module, signew, val(one(ast)));
-		LLVMSetLinkage(funcnew, LLVMExternalLinkage);
-		first = 0;
-	} else {
-		funcnew = LLVMGetNamedGlobal(module, val(one(ast)));
-	}
-	//LLVMInsertIntoBuilder(builder, funcnew);
-	//func = LLVMGetNamedGlobal(module, val(one(ast)));
-	func = funcnew;
-
-	if (func == NULL) {
-		return NULL;
+	if (global == NULL) {
+		argtype = TYPE_INT;
+		sig = LLVMFunctionType(TYPE_INT, &argtype, 1, 0);
+		global = LLVMAddGlobal(module, sig, val(one(ast)));
+		LLVMSetLinkage(global, LLVMExternalLinkage);
 	}
 
-	args = malloc(sizeof(LLVMValueRef));
+	/* TODO: Check that existing global is a function with same # of args */
+
 	/* TODO: support multiple args */
-	*args = codegen(two(ast));
+	arg = codegen(two(ast));
 
-	return LLVMBuildCall(builder, func, args, 1, "calltmp");
+	return LLVMBuildCall(builder, global, &arg, 1, "tmp_call");
 }
 
 LLVMValueRef gen_extrn(struct node *ast)
@@ -629,6 +643,7 @@ LLVMValueRef gen_extrn(struct node *ast)
 	* TODO: Determine type to use at runtime (or maybe always use Int64..
 	* see "http://llvm.org/docs/GetElementPtr.html#how-is-gep-different-from-ptrtoint-arithmetic-and-inttoptr" -- LLVM assumes pointers are <= 64 bits
 	* accept commandline argument or look at sizeof(void *)
+	* TODO: Put global in symbol table
 	*/
 
 	LLVMValueRef extrn;
@@ -642,8 +657,11 @@ LLVMValueRef gen_extrn(struct node *ast)
 		name = val(one(name_list));
 
 		if (LLVMGetNamedGlobal(module, name) == NULL) {
-			extrn = LLVMAddGlobal(module, TYPE_INT, name);
-			LLVMSetLinkage(extrn, LLVMCommonLinkage);
+			/* TODO: Figure out what type should be used to allow both
+			 * array and integer globals */
+			//extrn = LLVMAddGlobal(module, TYPE_INT, name);
+			//extrn = LLVMAddGlobal(module, LLVMArrayType(TYPE_INT, 2000), name);
+			extrn = LLVMAddGlobal(module, LLVMPointerType(TYPE_INT, 0), name);
 		}
 
 		name_list = two(name_list);
@@ -695,8 +713,29 @@ LLVMValueRef gen_defs(struct node *ast)
 
 LLVMValueRef gen_not(struct node *ast)
 {
-	/* TODO: Check whether this is logical not or bitwise not */
-	return LLVMBuildNot(builder, codegen(one(ast)), "tmp_not");
+	return LLVMBuildICmp(builder,
+		LLVMIntEQ,
+		codegen(one(ast)),
+		LLVMConstInt(TYPE_INT, 0, 0),
+		"tmp_not");
+}
+
+LLVMValueRef gen_ne(struct node *ast)
+{
+	return LLVMBuildICmp(builder,
+		LLVMIntNE,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_ne");
+}
+
+LLVMValueRef gen_eq(struct node *ast)
+{
+	return LLVMBuildICmp(builder,
+		LLVMIntEQ,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_eq");
 }
 
 LLVMValueRef gen_and(struct node *ast) { generror("Not yet implemented: gen_and"); return NULL; }
@@ -705,7 +744,6 @@ LLVMValueRef gen_args(struct node *ast) { generror("Not yet implemented: gen_arg
 LLVMValueRef gen_case(struct node *ast) { generror("Not yet implemented: gen_case"); return NULL; }
 LLVMValueRef gen_comma(struct node *ast) { generror("Not yet implemented: gen_comma"); return NULL; }
 LLVMValueRef gen_div(struct node *ast) { generror("Not yet implemented: gen_div"); return NULL; }
-LLVMValueRef gen_eq(struct node *ast) { generror("Not yet implemented: gen_eq"); return NULL; }
 LLVMValueRef gen_eq_assign(struct node *ast) { generror("Not yet implemented: gen_eq_assign"); return NULL; }
 LLVMValueRef gen_ge(struct node *ast) { generror("Not yet implemented: gen_ge"); return NULL; }
 LLVMValueRef gen_gt(struct node *ast) { generror("Not yet implemented: gen_gt"); return NULL; }
@@ -719,7 +757,6 @@ LLVMValueRef gen_left_assign(struct node *ast) { generror("Not yet implemented: 
 LLVMValueRef gen_mod_assign(struct node *ast) { generror("Not yet implemented: gen_mod_assign"); return NULL; }
 LLVMValueRef gen_mul_assign(struct node *ast) { generror("Not yet implemented: gen_mul_assign"); return NULL; }
 LLVMValueRef gen_names(struct node *ast) { generror("Not yet implemented: gen_names"); return NULL; }
-LLVMValueRef gen_ne(struct node *ast) { generror("Not yet implemented: gen_ne"); return NULL; }
 LLVMValueRef gen_ne_assign(struct node *ast) { generror("Not yet implemented: gen_ne_assign"); return NULL; }
 LLVMValueRef gen_neg(struct node *ast) { generror("Not yet implemented: gen_neg"); return NULL; }
 LLVMValueRef gen_or_assign(struct node *ast) { generror("Not yet implemented: gen_or_assign"); return NULL; }
