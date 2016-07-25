@@ -423,7 +423,6 @@ LLVMValueRef lvalue(struct node *ast)
 
 LLVMValueRef lvalue_name(struct node *ast)
 {
-	LLVMValueRef global;
 	ENTRY symtab_lookup, *symtab_entry;
 
 	symtab_lookup.key = val(ast);
@@ -431,18 +430,10 @@ LLVMValueRef lvalue_name(struct node *ast)
 
 	symtab_entry = hsearch(symtab_lookup, FIND);
 
-	if (symtab_entry != NULL)
-		return symtab_entry->data;
+	if (symtab_entry == NULL)
+		generror("Use of undeclared identifier '%s'", val(ast));
 
-	/* TODO: Should extrns be added to symbol table to prevent accessing
-	 * global variables that weren't declared? */
-	global = LLVMGetNamedGlobal(module, val(ast));
-
-	if (global != NULL)
-		return global;
-
-	generror("Use of undeclared identifier '%s'", val(ast));
-	return NULL;
+	return symtab_entry->data;
 }
 
 LLVMValueRef lvalue_indir(struct node *ast)
