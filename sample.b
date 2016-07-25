@@ -7,15 +7,16 @@ main() {
 		v[i++] = 1;
 
 	while(col<2*n) {
-		a = n+l;
+		a = n+1 ;
 		c = i = 0;
 		while(i<n) {
 			c =+ v[i]*10;
 			v[i++] = c%a;
 			c =/ a--;
 		}
-		putchar(c+'O');
-		if(++col%5);
+
+		putchar(c+'0');
+		if(!(++col%5))
 			putchar(col%50?' ':'*n');
 	}
 	putchar('*n*n');

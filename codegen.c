@@ -36,7 +36,6 @@ void compile(struct node *ast)
 	if (hcreate(SYMTAB_SIZE) == 0)
 		generror("Failed to allocate space for symbol table");
 
-
 	/* TODO: Remove superfluous returns from gen_ */
 	codegen(ast);
 	printf("\n====================================\n");
@@ -89,57 +88,98 @@ LLVMValueRef gen_index(struct node *ast)
 	return LLVMBuildLoad(builder, lvalue(ast), "tmp_load");
 }
 
+LLVMValueRef gen_simpledef(struct node *ast)
+{
+	/*
+	 * TODO: Make a note that a "vector" in B terminology equates to
+	 * an LLVM array, not an LLVM vector
+	 */
+	LLVMValueRef global, array, *elems;
+	LLVMTypeRef type;
+	struct node *ival_list;
+	uint64_t i = 0, size = 0;
+
+	ival_list = two(ast);
+	while (ival_list) {
+		size++;
+		ival_list = two(ival_list);
+	}
+
+	elems = calloc(sizeof(LLVMValueRef), size);
+
+	if (elems == NULL)
+		generror("Out of memory");
+
+	ival_list = two(ast);
+	while (ival_list) {
+		/* TODO: handle NAMES (convert global pointer to int) */
+		elems[i++] = codegen(one(ival_list));
+		ival_list = two(ival_list);
+	}
+
+	type = LLVMArrayType(TYPE_INT, size);
+	/* TODO: Figure out why "foo[6];" has size of 0 */
+	array = LLVMConstArray(type, elems, size);
+
+	/* TODO: Check if global is already defined */
+	global = LLVMAddGlobal(module, type, val(one(ast)));
+	LLVMSetInitializer(global, array);
+	LLVMSetLinkage(global, LLVMExternalLinkage);
+
+	return NULL;
+}
+
 LLVMValueRef gen_vecdef(struct node *ast)
 {
+	/*
+	 * TODO: Make a note that a "vector" in B terminology equates to
+	 * an LLVM array, not an LLVM vector
+	 */
+	LLVMValueRef global, array, *elems;
+	LLVMTypeRef type;
+	struct node *ival_list;
+	uint64_t i = 0, size = 0, minsize = 0;
+
+	ival_list = three(ast);
+	while (ival_list) {
+		size++;
+		ival_list = two(ival_list);
+	}
+
+	if (two(ast))
 		/*
-		 * TODO: Make a note that a "vector" in B terminology equates to
-		 * an LLVM array, not an LLVM vector
+		 * TODO: check that type is not string;
+		 * use convenience function for handling
+		 * chars and octal constants
+		 * TODO: Check for invalid (negative) array size
 		 */
-		LLVMValueRef global, array, *elems;
-		LLVMTypeRef type;
-		struct node *ival_list;
-		uint64_t i = 0, size = 0, minsize = 0;
+		minsize = atoi(val(two(ast)));
 
-		ival_list = three(ast);
-		while (ival_list) {
-			size++;
-			ival_list = two(ival_list);
-		}
+	elems = calloc(sizeof(LLVMValueRef), size >= minsize ? size : minsize);
+	/* TODO: Check all allocs for errors */
+	if (elems == NULL)
+		generror("Out of memory");
 
-		if (two(ast))
-			/*
-			 * TODO: check that type is not string;
-			 * use convenience function for handling
-			 * chars and octal constants
-			 * TODO: Check for invalid (negative) array size
-			 */
-			minsize = atoi(val(two(ast)));
+	ival_list = three(ast);
+	while (ival_list) {
+		/* TODO: handle NAMES (convert global pointer to int) */
+		elems[i++] = codegen(one(ival_list));
+		ival_list = two(ival_list);
+	}
 
-		elems = calloc(sizeof(LLVMValueRef), size >= minsize ? size : minsize);
-		/* TODO: Check all allocs for errors */
-		if (!elems)
-			generror("Out of memory");
+	while (i < minsize)
+		elems[i++] = LLVMConstInt(TYPE_INT, 0, 0);
 
-		ival_list = three(ast);
-		while (ival_list) {
-			/* TODO: handle NAMES (convert global pointer to int) */
-			elems[i++] = codegen(one(ival_list));
-			ival_list = two(ival_list);
-		}
+	type = LLVMArrayType(TYPE_INT, size);
+	/* TODO: Figure out why "foo[6];" has size of 0 */
+	array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
 
-		while (i < minsize)
-			elems[i++] = LLVMConstInt(TYPE_INT, 0, 0);
+	/* TODO: Check if global is already defined */
+	global = LLVMAddGlobal(module, type, val(one(ast)));
+	LLVMSetInitializer(global, array);
+	LLVMSetLinkage(global, LLVMExternalLinkage);
 
-
-		type = LLVMArrayType(TYPE_INT, size);
-		/* TODO: Figure out why "foo[6];" has size of 0 */
-		array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
-
-		global = LLVMAddGlobal(module, type, val(one(ast)));
-		LLVMSetInitializer(global, array);
-		LLVMSetLinkage(global, LLVMExternalLinkage);
-
-		return global;
+	return NULL;
 }
 
 LLVMValueRef gen_expression(struct node *ast)
@@ -278,12 +318,38 @@ LLVMValueRef gen_lt(struct node *ast)
 		"tmp_lt");
 }
 
+LLVMValueRef gen_cond(struct node *ast)
+{
+	/* TODO: Rename to avoid conflict with IF condition */
+	return LLVMBuildSelect(builder,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		codegen(three(ast)),
+		"tmp_cond");
+}
+
 LLVMValueRef gen_add(struct node *ast)
 {
 	return LLVMBuildAdd(builder,
 		codegen(one(ast)),
 		codegen(two(ast)),
 		"tmp_add");
+}
+
+LLVMValueRef gen_mul(struct node *ast)
+{
+	return LLVMBuildMul(builder,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_mul");
+}
+
+LLVMValueRef gen_mod(struct node *ast)
+{
+	return LLVMBuildSRem(builder,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_mod");
 }
 
 LLVMValueRef gen_auto(struct node *ast)
@@ -317,6 +383,8 @@ LLVMValueRef gen_auto(struct node *ast)
 
 		init_list = two(init_list);
 	}
+
+	codegen(two(ast));
 
 	return NULL;
 }
@@ -366,6 +434,8 @@ LLVMValueRef lvalue_name(struct node *ast)
 	if (symtab_entry != NULL)
 		return symtab_entry->data;
 
+	/* TODO: Should extrns be added to symbol table to prevent accessing
+	 * global variables that weren't declared? */
 	global = LLVMGetNamedGlobal(module, val(ast));
 
 	if (global != NULL)
@@ -404,6 +474,22 @@ LLVMValueRef gen_assign(struct node *ast)
 	return result;
 }
 
+LLVMValueRef gen_div_assign(struct node *ast)
+{
+	LLVMValueRef result, left, right;
+
+	left = codegen(one(ast));
+	right = codegen(two(ast));
+
+	if (!left || !right)
+		return NULL;
+
+	result = LLVMBuildSDiv(builder, left, right, "tmp_div");
+	LLVMBuildStore(builder, result, lvalue(one(ast)));
+
+	return result;
+}
+
 LLVMValueRef gen_add_assign(struct node *ast)
 {
 	LLVMValueRef result, left, right;
@@ -415,7 +501,39 @@ LLVMValueRef gen_add_assign(struct node *ast)
 		return NULL;
 
 	result = LLVMBuildAdd(builder, left, right, "tmp_add");
-	LLVMBuildStore(builder, result, left);
+	LLVMBuildStore(builder, result, lvalue(one(ast)));
+
+	return result;
+}
+
+LLVMValueRef gen_postinc(struct node *ast)
+{
+	LLVMValueRef orig, result;
+
+	orig = codegen(one(ast));
+
+	/* TODO: Add macro for creating constants */
+	result = LLVMBuildAdd(builder,
+		orig,
+		LLVMConstInt(TYPE_INT, 1, 0),
+		"tmp_add");
+
+	LLVMBuildStore(builder, result, lvalue(one(ast)));
+
+	return result;
+}
+
+LLVMValueRef gen_preinc(struct node *ast)
+{
+	LLVMValueRef result;
+
+	/* TODO: Add macro for creating constants */
+	result = LLVMBuildAdd(builder,
+		codegen(one(ast)),
+		LLVMConstInt(TYPE_INT, 1, 0),
+		"tmp_add");
+
+	LLVMBuildStore(builder, result, lvalue(one(ast)));
 
 	return result;
 }
@@ -442,7 +560,7 @@ LLVMValueRef gen_predec(struct node *ast)
 {
 	return NULL;
 	/*
-	LLVMValueRef tmp = myvar;
+	LLVMValueRef tmp = lvalue;
 	myvar = LLVMBuildSub(builder,
 		codegen(one(ast)),
 		LLVMConstInt(TYPE_INT, -1, 0),
@@ -505,13 +623,35 @@ LLVMValueRef gen_call(struct node *ast)
 
 LLVMValueRef gen_extrn(struct node *ast)
 {
-	LLVMTypeRef sig;
-	LLVMValueRef func;
+	/*
+	* also set up vector initialization.
+	* TODO: Warn when using unitialized var
+	* TODO: Determine type to use at runtime (or maybe always use Int64..
+	* see "http://llvm.org/docs/GetElementPtr.html#how-is-gep-different-from-ptrtoint-arithmetic-and-inttoptr" -- LLVM assumes pointers are <= 64 bits
+	* accept commandline argument or look at sizeof(void *)
+	*/
 
-	sig = LLVMFunctionType(LLVMVoidType(), NULL, 0, 0);
-	func = LLVMAddGlobal(module, sig, "putchar");
-	LLVMSetLinkage(func, LLVMExternalLinkage);
-	return func;
+	LLVMValueRef extrn;
+
+	struct node *name_list;
+	char *name;
+
+	name_list = one(ast);
+
+	while (name_list) {
+		name = val(one(name_list));
+
+		if (LLVMGetNamedGlobal(module, name) == NULL) {
+			extrn = LLVMAddGlobal(module, TYPE_INT, name);
+			LLVMSetLinkage(extrn, LLVMCommonLinkage);
+		}
+
+		name_list = two(name_list);
+	}
+
+	codegen(two(ast));
+
+	return NULL;
 }
 
 LLVMValueRef gen_funcdef(struct node *ast)
@@ -539,12 +679,11 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMPositionBuilderAtEnd(builder, ret_block);
 	LLVMBuildRet(builder, LLVMBuildLoad(builder, retval, "tmp_ret"));
 
-	if (LLVMVerifyFunction(func, LLVMPrintMessageAction)) {
+	/* TODO: Handle failed verification and print internal compiler error */
+	if (LLVMVerifyFunction(func, LLVMPrintMessageAction))
 		LLVMDeleteFunction(func);
-		return NULL;
-	}
 
-	return func;
+	return NULL;
 }
 
 LLVMValueRef gen_defs(struct node *ast)
@@ -554,14 +693,18 @@ LLVMValueRef gen_defs(struct node *ast)
 	return codegen(two(ast));
 }
 
+LLVMValueRef gen_not(struct node *ast)
+{
+	/* TODO: Check whether this is logical not or bitwise not */
+	return LLVMBuildNot(builder, codegen(one(ast)), "tmp_not");
+}
+
 LLVMValueRef gen_and(struct node *ast) { generror("Not yet implemented: gen_and"); return NULL; }
 LLVMValueRef gen_and_assign(struct node *ast) { generror("Not yet implemented: gen_and_assign"); return NULL; }
 LLVMValueRef gen_args(struct node *ast) { generror("Not yet implemented: gen_args"); return NULL; }
 LLVMValueRef gen_case(struct node *ast) { generror("Not yet implemented: gen_case"); return NULL; }
 LLVMValueRef gen_comma(struct node *ast) { generror("Not yet implemented: gen_comma"); return NULL; }
-LLVMValueRef gen_cond(struct node *ast) { generror("Not yet implemented: gen_cond"); return NULL; }
 LLVMValueRef gen_div(struct node *ast) { generror("Not yet implemented: gen_div"); return NULL; }
-LLVMValueRef gen_div_assign(struct node *ast) { generror("Not yet implemented: gen_div_assign"); return NULL; }
 LLVMValueRef gen_eq(struct node *ast) { generror("Not yet implemented: gen_eq"); return NULL; }
 LLVMValueRef gen_eq_assign(struct node *ast) { generror("Not yet implemented: gen_eq_assign"); return NULL; }
 LLVMValueRef gen_ge(struct node *ast) { generror("Not yet implemented: gen_ge"); return NULL; }
@@ -573,21 +716,15 @@ LLVMValueRef gen_ivals(struct node *ast) { generror("Not yet implemented: gen_iv
 LLVMValueRef gen_le(struct node *ast) { generror("Not yet implemented: gen_le"); return NULL; }
 LLVMValueRef gen_left(struct node *ast) { generror("Not yet implemented: gen_left"); return NULL; }
 LLVMValueRef gen_left_assign(struct node *ast) { generror("Not yet implemented: gen_left_assign"); return NULL; }
-LLVMValueRef gen_mod(struct node *ast) { generror("Not yet implemented: gen_mod"); return NULL; }
 LLVMValueRef gen_mod_assign(struct node *ast) { generror("Not yet implemented: gen_mod_assign"); return NULL; }
-LLVMValueRef gen_mul(struct node *ast) { generror("Not yet implemented: gen_mul"); return NULL; }
 LLVMValueRef gen_mul_assign(struct node *ast) { generror("Not yet implemented: gen_mul_assign"); return NULL; }
 LLVMValueRef gen_names(struct node *ast) { generror("Not yet implemented: gen_names"); return NULL; }
 LLVMValueRef gen_ne(struct node *ast) { generror("Not yet implemented: gen_ne"); return NULL; }
 LLVMValueRef gen_ne_assign(struct node *ast) { generror("Not yet implemented: gen_ne_assign"); return NULL; }
 LLVMValueRef gen_neg(struct node *ast) { generror("Not yet implemented: gen_neg"); return NULL; }
-LLVMValueRef gen_not(struct node *ast) { generror("Not yet implemented: gen_not"); return NULL; }
 LLVMValueRef gen_or_assign(struct node *ast) { generror("Not yet implemented: gen_or_assign"); return NULL; }
-LLVMValueRef gen_postinc(struct node *ast) { generror("Not yet implemented: gen_postinc"); return NULL; }
-LLVMValueRef gen_preinc(struct node *ast) { generror("Not yet implemented: gen_preinc"); return NULL; }
 LLVMValueRef gen_right(struct node *ast) { generror("Not yet implemented: gen_right"); return NULL; }
 LLVMValueRef gen_right_assign(struct node *ast) { generror("Not yet implemented: gen_right_assign"); return NULL; }
-LLVMValueRef gen_simpledef(struct node *ast) { generror("Not yet implemented: gen_simpledef"); return NULL; }
 LLVMValueRef gen_sub(struct node *ast) { generror("Not yet implemented: gen_sub"); return NULL; }
 LLVMValueRef gen_sub_assign(struct node *ast) { generror("Not yet implemented: gen_sub_assign"); return NULL; }
 LLVMValueRef gen_switch(struct node *ast) { generror("Not yet implemented: gen_switch"); return NULL; }

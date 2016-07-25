@@ -108,10 +108,10 @@ statement_list
 	;
 
 statement
-	: AUTO init_list ';'
-		{ $$ = node1(gen_auto, $2); }
-	| EXTRN name_list ';'
-		{ $$ = node1(gen_extrn, $2); }
+	: AUTO init_list ';' statement
+		{ $$ = node2(gen_auto, $2, $4); }
+	| EXTRN name_list ';' statement
+		{ $$ = node2(gen_extrn, $2, $4); }
 	| NAME ':' statement
 		{ $$ = node2(gen_label, leafnode(gen_name, $1), $3); }
 	| CASE constant ':' statement
@@ -170,7 +170,7 @@ name_list
 	: NAME ',' name_list
 		{ $$ = node2(gen_names, leafnode(gen_name, $1), $3); }
 	| NAME
-		{ $$ = leafnode(gen_name, $1); }
+		{ $$ = node1(gen_names, leafnode(gen_name, $1)); }
 	;
 
 expression

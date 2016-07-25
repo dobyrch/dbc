@@ -6,4 +6,4 @@ dbc: dbc.y dbc.l astnode.c astnode.h codegen.c  codegen.h
 	xsltproc /usr/share/bison/xslt/xml2xhtml.xsl dbc.xml > dbc.html
 
 test: dbc
-	./dbc < ./simple.b
+	./dbc < ./sample.b
