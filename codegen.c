@@ -94,7 +94,7 @@ LLVMValueRef gen_simpledef(struct node *ast)
 	 * TODO: Make a note that a "vector" in B terminology equates to
 	 * an LLVM array, not an LLVM vector
 	 */
-	LLVMValueRef newdef, olddef, array, *elems;
+	LLVMValueRef global, array, *elems;
 	LLVMTypeRef type;
 	struct node *ival_list;
 	uint64_t i = 0, size = 0;
@@ -120,9 +120,9 @@ LLVMValueRef gen_simpledef(struct node *ast)
 	type = LLVMArrayType(TYPE_INT, size);
 	array = LLVMConstArray(type, elems, size);
 
-	newdef = LLVMAddGlobal(module, TYPE_INT, val(one(ast)));
-	LLVMSetInitializer(newdef, array);
-	LLVMSetLinkage(newdef, LLVMExternalLinkage);
+	global = LLVMAddGlobal(module, TYPE_INT, val(one(ast)));
+	LLVMSetInitializer(global, array);
+	LLVMSetLinkage(global, LLVMExternalLinkage);
 
 	return NULL;
 }
@@ -133,7 +133,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	 * TODO: Make a note that a "vector" in B terminology equates to
 	 * an LLVM array, not an LLVM vector
 	 */
-	LLVMValueRef newdef, olddef, array, *elems;
+	LLVMValueRef global, array, *elems;
 	LLVMTypeRef type;
 	struct node *ival_list;
 	uint64_t i = 0, size = 0, minsize = 0;
@@ -172,17 +172,9 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	type = LLVMArrayType(TYPE_INT, size >= minsize ? size : minsize);
 	array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
 
-	newdef = LLVMAddGlobal(module, type, val(one(ast)));
-	olddef = LLVMGetNamedGlobal(module, val(one(ast)));
-
-	if (olddef != NULL) {
-		LLVMReplaceAllUsesWith(olddef, newdef);
-		LLVMDeleteGlobal(olddef);
-		LLVMSetValueName(newdef, val(one(ast)));
-	}
-
-	LLVMSetInitializer(newdef, array);
-	LLVMSetLinkage(newdef, LLVMExternalLinkage);
+	global = LLVMAddGlobal(module, type, val(one(ast)));
+	LLVMSetInitializer(global, array);
+	LLVMSetLinkage(global, LLVMExternalLinkage);
 
 	return NULL;
 }
@@ -408,9 +400,7 @@ LLVMValueRef gen_name(struct node *ast)
 	switch (LLVMGetTypeKind(type)) {
 		case LLVMIntegerTypeKind:
 			return LLVMBuildLoad(builder, ptr, val(ast));
-		//case LLVMArrayTypeKind:
-			//return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "tmp_addr");
-		case LLVMPointerTypeKind:
+		case LLVMArrayTypeKind:
 			return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "tmp_addr");
 		default:
 			generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
@@ -650,18 +640,13 @@ LLVMValueRef gen_extrn(struct node *ast)
 		global = LLVMGetNamedGlobal(module, name);
 
 		if (global == NULL) {
-			/* TODO: Figure out what type should be used to allow both
-			 * array and integer globals */
+			/* TODO: Figure out what type should be used to allow
+			 * an type of external */
 			printf("ADDING GLOBAL FROM EXTRN (no global %s)\n", name);
 			global = LLVMAddGlobal(module, TYPE_INT, name);
 		}
 
 		symtab_entry.key = name;
-		/* TODO: TRY GEP */
-
-		LLVMValueRef indices[2];
-		indices[0] = LLVMConstInt(TYPE_INT, 0, 0);
-		indices[1] = LLVMConstInt(TYPE_INT, 1, 0);
 		symtab_entry.data = global;
 
 

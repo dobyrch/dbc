@@ -5,14 +5,13 @@ main() {
 
 	i = col = 0;
 
-	/* TODO: Allow accessing n directly */
-	while(i<*n)
+	while(i<n)
 		v[i++] = 1;
 
-	while(col<2**n) {
-		a = *n+1 ;
+	while(col<2*n) {
+		a = n+1 ;
 		c = i = 0;
-		while(i<*n) {
+		while(i<n) {
 			c =+ v[i]*10;
 			v[i++] = c%a;
 			c =/ a--;
@@ -22,7 +21,6 @@ main() {
 		if(!(++col%5))
 			putchar(col%50?' ':'*n');
 	}
-	putchar('*n');
 }
 
 v[2000];
