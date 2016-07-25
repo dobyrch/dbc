@@ -53,8 +53,9 @@ program
 definition_list
 	/* TODO: consistently name all code generation functions */
 	: definition_list definition
-		{ $$ = node2(gen_defs, $1, $2); }
+		{ $$ = node2(gen_defs, $2, $1); }
 	| definition
+		{ $$ = node1(gen_defs, $1); }
 	;
 
 definition

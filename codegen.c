@@ -120,15 +120,7 @@ LLVMValueRef gen_simpledef(struct node *ast)
 	type = LLVMArrayType(TYPE_INT, size);
 	array = LLVMConstArray(type, elems, size);
 
-	newdef = LLVMAddGlobal(module, type, val(one(ast)));
-	olddef = LLVMGetNamedGlobal(module, val(one(ast)));
-
-	if (olddef != NULL) {
-		LLVMReplaceAllUsesWith(olddef, newdef);
-		LLVMDeleteGlobal(olddef);
-		LLVMSetValueName(newdef, val(one(ast)));
-	}
-
+	newdef = LLVMAddGlobal(module, TYPE_INT, val(one(ast)));
 	LLVMSetInitializer(newdef, array);
 	LLVMSetLinkage(newdef, LLVMExternalLinkage);
 
@@ -378,8 +370,8 @@ LLVMValueRef gen_auto(struct node *ast)
 	* accept commandline argument or look at sizeof(void *)
 	*/
 
-	struct node *init_list, *init;
 	ENTRY symtab_entry;
+	struct node *init_list, *init;
 
 	init_list = one(ast);
 
@@ -416,8 +408,8 @@ LLVMValueRef gen_name(struct node *ast)
 	switch (LLVMGetTypeKind(type)) {
 		case LLVMIntegerTypeKind:
 			return LLVMBuildLoad(builder, ptr, val(ast));
-		case LLVMArrayTypeKind:
-			return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "tmp_addr");
+		//case LLVMArrayTypeKind:
+			//return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "tmp_addr");
 		case LLVMPointerTypeKind:
 			return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "tmp_addr");
 		default:
@@ -646,8 +638,8 @@ LLVMValueRef gen_extrn(struct node *ast)
 	* TODO: Put global in symbol table
 	*/
 
-	LLVMValueRef extrn;
-
+	LLVMValueRef global;
+	ENTRY symtab_entry;
 	struct node *name_list;
 	char *name;
 
@@ -655,14 +647,30 @@ LLVMValueRef gen_extrn(struct node *ast)
 
 	while (name_list) {
 		name = val(one(name_list));
+		global = LLVMGetNamedGlobal(module, name);
 
-		if (LLVMGetNamedGlobal(module, name) == NULL) {
+		if (global == NULL) {
 			/* TODO: Figure out what type should be used to allow both
 			 * array and integer globals */
-			//extrn = LLVMAddGlobal(module, TYPE_INT, name);
-			//extrn = LLVMAddGlobal(module, LLVMArrayType(TYPE_INT, 2000), name);
-			extrn = LLVMAddGlobal(module, LLVMPointerType(TYPE_INT, 0), name);
+			printf("ADDING GLOBAL FROM EXTRN (no global %s)\n", name);
+			global = LLVMAddGlobal(module, TYPE_INT, name);
 		}
+
+		symtab_entry.key = name;
+		/* TODO: TRY GEP */
+
+		LLVMValueRef indices[2];
+		indices[0] = LLVMConstInt(TYPE_INT, 0, 0);
+		indices[1] = LLVMConstInt(TYPE_INT, 1, 0);
+		symtab_entry.data = global;
+
+
+		if (hsearch(symtab_entry, FIND) != NULL)
+			generror("redefinition of '%s'", symtab_entry.key);
+
+		if (hsearch(symtab_entry, ENTER) == NULL)
+			generror("Symbol table full");
+
 
 		name_list = two(name_list);
 	}
@@ -706,9 +714,23 @@ LLVMValueRef gen_funcdef(struct node *ast)
 
 LLVMValueRef gen_defs(struct node *ast)
 {
+	struct node *def_list;
 
-	codegen(one(ast));
-	return codegen(two(ast));
+	def_list = ast;
+	do {
+		if (one(def_list)->codegen != gen_funcdef)
+			codegen(one(def_list));
+
+	} while ((def_list = two(def_list)));
+
+	def_list = ast;
+	do {
+		if (one(def_list)->codegen == gen_funcdef)
+			codegen(one(def_list));
+
+	} while ((def_list = two(def_list)));
+
+	return NULL;
 }
 
 LLVMValueRef gen_not(struct node *ast)
