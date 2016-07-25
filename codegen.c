@@ -697,23 +697,20 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	return NULL;
 }
 
+void filter_gen_defs(struct node *ast, codegen_func gen)
+{
+	if (one(ast)->codegen == gen)
+		codegen(one(ast));
+
+	if (two(ast))
+		filter_gen_defs(two(ast), gen);
+}
+
 LLVMValueRef gen_defs(struct node *ast)
 {
-	struct node *def_list;
-
-	def_list = ast;
-	do {
-		if (one(def_list)->codegen != gen_funcdef)
-			codegen(one(def_list));
-
-	} while ((def_list = two(def_list)));
-
-	def_list = ast;
-	do {
-		if (one(def_list)->codegen == gen_funcdef)
-			codegen(one(def_list));
-
-	} while ((def_list = two(def_list)));
+	filter_gen_defs(ast, gen_simpledef);
+	filter_gen_defs(ast, gen_vecdef);
+	filter_gen_defs(ast, gen_funcdef);
 
 	return NULL;
 }
