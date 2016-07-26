@@ -1,6 +1,5 @@
 main() {
-	/* TODO: Allow functions to be declared extrn */
-	extrn n, v;
+	extrn n, putchar, v;
 	auto i, c, col, a;
 
 	i = col = 0;

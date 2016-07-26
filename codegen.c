@@ -17,6 +17,7 @@
 #define MAX_LABELS 256
 #define TYPE_INT LLVMInt64Type()
 #define TYPE_PTR LLVMPointerType(TYPE_INT, 0)
+#define TYPE_FUNC LLVMFunctionType(TYPE_INT, NULL, 0, 1)
 #define TYPE_LABEL LLVMPointerType(LLVMInt8Type(), 0)
 #define TYPE_ARRAY(n) LLVMArrayType(TYPE_INT, (n))
 
@@ -437,6 +438,7 @@ LLVMValueRef gen_name(struct node *ast)
 	ptr = lvalue(ast);
 
 	/* TODO: Is there a nicer way of doing this without special casing labels? */
+	/* TODO: Convert function pointers to int */
 	if (LLVMGetTypeKind(LLVMTypeOf(ptr)) == LLVMLabelTypeKind)
 		return LLVMBuildPtrToInt(
 			builder,
@@ -472,17 +474,14 @@ LLVMValueRef lvalue(struct node *ast)
 
 LLVMValueRef lvalue_name(struct node *ast)
 {
-	ENTRY symtab_lookup, *symtab_entry;
+	LLVMValueRef lvalue;
 
-	symtab_lookup.key = val(ast);
-	symtab_lookup.data = NULL;
+	lvalue = symtab_find(ast->val);
 
-	symtab_entry = hsearch(symtab_lookup, FIND);
-
-	if (symtab_entry == NULL)
+	if (lvalue == NULL)
 		generror("Use of undeclared identifier '%s'", val(ast));
 
-	return symtab_entry->data;
+	return lvalue;
 }
 
 LLVMValueRef lvalue_indir(struct node *ast)
@@ -635,26 +634,25 @@ LLVMValueRef gen_statements(struct node *ast)
 
 LLVMValueRef gen_call(struct node *ast)
 {
-	LLVMValueRef global;
-	LLVMValueRef arg;
-	LLVMTypeRef sig, argtype;
-
-	/* Rename global to func */
-	global = LLVMGetNamedGlobal(module, val(one(ast)));
-
-	if (global == NULL) {
-		argtype = TYPE_INT;
-		sig = LLVMFunctionType(TYPE_INT, &argtype, 1, 0);
-		global = LLVMAddGlobal(module, sig, val(one(ast)));
-		LLVMSetLinkage(global, LLVMExternalLinkage);
-	}
-
 	/* TODO: Check that existing global is a function with same # of args */
-
 	/* TODO: support multiple args */
+	/* TODO: Accept arbitrary rvalues, not just function name */
+	LLVMValueRef func;
+	LLVMValueRef arg;
+	char *name;
+
+	name = ast->one->val;
+	func = LLVMGetNamedGlobal(module, name);
+
+	if (func)
+		LLVMDeleteGlobal(func);
+
+	func = LLVMAddGlobal(module, TYPE_FUNC, name);
+	LLVMSetLinkage(func, LLVMExternalLinkage);
+
 	arg = codegen(two(ast));
 
-	return LLVMBuildCall(builder, global, &arg, 1, "tmp_call");
+	return LLVMBuildCall(builder, func, &arg, 1, "tmp_call");
 }
 
 LLVMValueRef gen_extrn(struct node *ast)
@@ -669,7 +667,6 @@ LLVMValueRef gen_extrn(struct node *ast)
 	*/
 
 	LLVMValueRef global;
-	ENTRY symtab_entry;
 	struct node *name_list;
 	char *name;
 
@@ -679,23 +676,10 @@ LLVMValueRef gen_extrn(struct node *ast)
 		name = val(one(name_list));
 		global = LLVMGetNamedGlobal(module, name);
 
-		if (global == NULL) {
-			/* TODO: Figure out what type should be used to allow
-			 * an type of external */
-			printf("ADDING GLOBAL FROM EXTRN (no global %s)\n", name);
+		if (global == NULL)
 			global = LLVMAddGlobal(module, TYPE_INT, name);
-		}
 
-		symtab_entry.key = name;
-		symtab_entry.data = global;
-
-
-		if (hsearch(symtab_entry, FIND) != NULL)
-			generror("redefinition of '%s'", symtab_entry.key);
-
-		if (hsearch(symtab_entry, ENTER) == NULL)
-			generror("Symbol table overflow");
-
+		symtab_enter(name, global);
 
 		name_list = two(name_list);
 	}
