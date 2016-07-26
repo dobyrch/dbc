@@ -11,3 +11,4 @@
 -All functions are global?
 -Auto required
 -No floats
+-argv is a global; argv[0] the # of args
