@@ -4,9 +4,12 @@ main() {
 	auto i, c, col, a;
 
 	i = col = 0;
+
 foo:
-	while(i<n)
-		v[i++] = 1;
+	v[i++] = 1;
+	if (i < n)
+		goto foo;
+
 
 	while(col<2*n) {
 		a = n+1 ;
