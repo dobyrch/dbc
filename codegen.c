@@ -14,10 +14,11 @@
 #include "codegen.h"
 
 #define SYMTAB_SIZE 1024
-#define MAX_LABELS   256
-#define TYPE_INT    LLVMInt64Type()
-#define TYPE_PTR    LLVMPointerType(TYPE_INT, 0)
-#define TYPE_LABEL  LLVMPointerType(LLVMInt8Type(), 0)
+#define MAX_LABELS 256
+#define TYPE_INT LLVMInt64Type()
+#define TYPE_PTR LLVMPointerType(TYPE_INT, 0)
+#define TYPE_LABEL LLVMPointerType(LLVMInt8Type(), 0)
+#define TYPE_ARRAY(n) LLVMArrayType(TYPE_INT, (n))
 
 
 static LLVMBuilderRef builder;
@@ -183,7 +184,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		 * chars and octal constants
 		 * TODO: Check for invalid (negative) array size
 		 */
-		minsize = atoi(val(two(ast)));
+		minsize = atol(val(two(ast)));
 
 	elems = calloc(sizeof(LLVMValueRef), size >= minsize ? size : minsize);
 	/* TODO: Check all allocs for errors */
@@ -402,24 +403,23 @@ LLVMValueRef gen_auto(struct node *ast)
 	* accept commandline argument or look at sizeof(void *)
 	*/
 
-	ENTRY symtab_entry;
+	LLVMValueRef var;
+	LLVMTypeRef type;
 	struct node *init_list, *init;
+	char *name;
 
 	init_list = one(ast);
 
 	while (init_list) {
-		init = one(init_list);
-		symtab_entry.key = val(one(init));
-		symtab_entry.data = LLVMBuildAlloca(builder, TYPE_INT, symtab_entry.key);
+		init = init_list->one;
+		name = init->one->val;
 
-		if (hsearch(symtab_entry, FIND) != NULL)
-			generror("redefinition of '%s'", symtab_entry.key);
+		/* TODO: replaces calls to atol with function that gets
+		 * value of any constant literal */
+		type = init->two ? TYPE_ARRAY(atol(init->two->val)) : TYPE_INT;
+		var = LLVMBuildAlloca(builder, type, name);
 
-		if (hsearch(symtab_entry, ENTER) == NULL)
-			generror("Symbol table full");
-
-		if (two(init))
-			LLVMBuildStore(builder, codegen(two(init)), symtab_entry.data);
+		symtab_enter(name, var);
 
 		init_list = two(init_list);
 	}
