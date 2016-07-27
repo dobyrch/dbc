@@ -31,7 +31,7 @@ H			[a-fA-F0-9]
 
 {L}({L}|{D})*		{ count(); yylval.val = strdup(yytext); return(NAME); }
 
-0{D}			{ count(); yylval.val = strdup(yytext); return(LITERAL); }
+0{D}+			{ count(); yylval.val = strdup(yytext); return(LITERAL); }
 {D}+			{ count(); yylval.val = strdup(yytext); return(LITERAL); }
 '(\*.|[^\*'])+'		{ count(); yylval.val = strdup(yytext); return(LITERAL); }
 

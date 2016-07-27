@@ -13,6 +13,7 @@
 #include "astnode.h"
 #include "codegen.h"
 
+#define MAX_STRLEN 1024
 #define SYMTAB_SIZE 1024
 #define MAX_LABELS 256
 #define TYPE_INT LLVMInt64Type()
@@ -609,19 +610,52 @@ LLVMValueRef gen_predec(struct node *ast)
 	return result;
 }
 
+LLVMValueRef intern(const char *str)
+{
+	LLVMValueRef buf[MAX_STRLEN];
+	int len, i;
+
+	len = strlen(str) - 1;
+
+	for (i = 0; i < len; i++)
+		buf[i] = LLVMConstInt(TYPE_INT, str[i], 0);
+
+	return LLVMConstArray(TYPE_ARRAY(len), buf, len);
+}
+
 LLVMValueRef gen_const(struct node *ast)
 {
+	LLVMValueRef global, string;
 	/* TODO: Handle strings, multichars, escape sequences, and octal ints */
-	if (val(ast)[0] == '"')
-		return NULL;
-	else if (strcmp("'*n'", val(ast)) == 0)
-		return LLVMConstInt(TYPE_INT, '\n', 0);
-	else if (val(ast)[0] == '\'')
-		return LLVMConstInt(TYPE_INT, val(ast)[1], 0);
-	else if (val(ast)[0] == '0')
-		return LLVMConstIntOfString(TYPE_INT, val(ast), 8);
-	else
-		return LLVMConstIntOfString(TYPE_INT, val(ast), 10);
+	switch (ast->val[0]) {
+	case '"':
+		global = LLVMGetNamedGlobal(module, ast->val);
+		if (global)
+			return global;
+
+		string = LLVMConstString(&ast->val[1], strlen(ast->val) - 2, 0);
+
+		global = LLVMAddGlobal(
+				module,
+				LLVMArrayType(LLVMInt8Type(), strlen(ast->val) - 2),
+				ast->val);
+
+		LLVMSetInitializer(global, string);
+		LLVMSetLinkage(global, LLVMPrivateLinkage);
+
+		return global;
+
+		//return intern(ast->val);
+
+	case '\'':
+		return LLVMConstInt(TYPE_INT, ast->val[1], 0);
+
+	case '0':
+		return LLVMConstIntOfString(TYPE_INT, ast->val, 8);
+
+	default:
+		return LLVMConstIntOfString(TYPE_INT, ast->val, 10);
+	}
 }
 
 

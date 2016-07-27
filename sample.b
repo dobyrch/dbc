@@ -1,5 +1,5 @@
 main() {
-	extrn n, putchar, v;
+	extrn n, b_putchar, v;
 	auto i, c, col, a;
 
 	i = col = 0;
@@ -20,10 +20,12 @@ bar:
 			c =/ a--;
 		}
 
-		putchar(c+'0');
+		b_putchar(c+'0');
 		if(!(++col%5))
-			putchar(col%50?' ':'*n');
+			b_putchar(col%50?' ':10);
 	}
+
+	puts("hello world");
 }
 
 v[2000];
