@@ -379,6 +379,15 @@ LLVMValueRef gen_add(struct node *ast)
 		"tmp_add");
 }
 
+LLVMValueRef gen_sub(struct node *ast)
+{
+	/* TODO: Prefix names with "." so they don't collide with variable names? */
+	return LLVMBuildSub(builder,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_sub");
+}
+
 LLVMValueRef gen_mul(struct node *ast)
 {
 	return LLVMBuildMul(builder,
@@ -453,6 +462,7 @@ LLVMValueRef gen_name(struct node *ast)
 		case LLVMIntegerTypeKind:
 			return LLVMBuildLoad(builder, ptr, val(ast));
 		case LLVMArrayTypeKind:
+		case LLVMFunctionTypeKind:
 			return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "tmp_addr");
 		default:
 			generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
@@ -670,19 +680,13 @@ LLVMValueRef gen_call(struct node *ast)
 {
 	/* TODO: Check that existing global is a function with same # of args */
 	/* TODO: support multiple args */
-	/* TODO: Accept arbitrary rvalues, not just function name */
 	LLVMValueRef func;
 	LLVMValueRef arg;
-	char *name;
 
-	name = ast->one->val;
-	func = LLVMGetNamedGlobal(module, name);
-
-	if (func)
-		LLVMDeleteGlobal(func);
-
-	func = LLVMAddGlobal(module, TYPE_FUNC, name);
-	LLVMSetLinkage(func, LLVMExternalLinkage);
+	func = LLVMBuildBitCast(builder,
+		LLVMBuildIntToPtr(builder, codegen(one(ast)), TYPE_PTR, "tmp_ptr"),
+		LLVMPointerType(TYPE_FUNC, 0),
+		"tmp_func");
 
 	arg = codegen(two(ast));
 
@@ -711,7 +715,7 @@ LLVMValueRef gen_extrn(struct node *ast)
 		global = LLVMGetNamedGlobal(module, name);
 
 		if (global == NULL)
-			global = LLVMAddGlobal(module, TYPE_INT, name);
+			global = LLVMAddGlobal(module, TYPE_FUNC, name);
 
 		symtab_enter(name, global);
 
@@ -798,6 +802,11 @@ void filter_gen_defs(struct node *ast, codegen_func gen)
 
 LLVMValueRef gen_defs(struct node *ast)
 {
+	/*TODO: Get rid of filter_gen_defs.  Instead, make function
+	 * like "predeclare_globals" that creates and sets type of
+	 * all globals; the gen_* functions should just fill in the
+	 * definitions/initializers and not have to worry about
+	 * whether or not the global already exists */
 	filter_gen_defs(ast, gen_simpledef);
 	filter_gen_defs(ast, gen_vecdef);
 	filter_gen_defs(ast, gen_funcdef);
@@ -856,7 +865,6 @@ LLVMValueRef gen_neg(struct node *ast) { generror("Not yet implemented: gen_neg"
 LLVMValueRef gen_or_assign(struct node *ast) { generror("Not yet implemented: gen_or_assign"); return NULL; }
 LLVMValueRef gen_right(struct node *ast) { generror("Not yet implemented: gen_right"); return NULL; }
 LLVMValueRef gen_right_assign(struct node *ast) { generror("Not yet implemented: gen_right_assign"); return NULL; }
-LLVMValueRef gen_sub(struct node *ast) { generror("Not yet implemented: gen_sub"); return NULL; }
 LLVMValueRef gen_sub_assign(struct node *ast) { generror("Not yet implemented: gen_sub_assign"); return NULL; }
 LLVMValueRef gen_switch(struct node *ast) { generror("Not yet implemented: gen_switch"); return NULL; }
 LLVMValueRef gen_xor(struct node *ast) { generror("Not yet implemented: gen_xor"); return NULL; }
