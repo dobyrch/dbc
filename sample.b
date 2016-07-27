@@ -1,5 +1,5 @@
 main() {
-	extrn n, b_putchar, v;
+	extrn n, putchar, v;
 	auto i, c, col, a;
 
 	i = col = 0;
@@ -20,9 +20,9 @@ bar:
 			c =/ a--;
 		}
 
-		b_putchar(c+'0');
+		putchar(c+'0');
 		if(!(++col%5))
-			b_putchar(col%50?' ':10);
+			putchar(col%50?' ':10);
 	}
 
 	puts("hello world");

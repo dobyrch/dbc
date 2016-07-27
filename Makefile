@@ -7,7 +7,5 @@ dbc: dbc.y dbc.l astnode.c astnode.h codegen.c  codegen.h
 
 test: dbc libb.c
 	./dbc < ./sample.b
-	clang -c dbc.bc
-	clang -c libb.c
-	clang libb.o dbc.o
+	clang dbc.bc
 	./a.out
