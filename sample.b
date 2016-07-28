@@ -1,5 +1,5 @@
 main() {
-	extrn n, putchar, v, puts;
+	extrn n, putchar, v, printf;
 	auto i, c, col, a, baz;
 
 	i = col = 0;
@@ -28,8 +28,8 @@ bar:
 			putchar(col%50?' ':10);
 	}
 
-	baz = puts + 1;
-	(baz - 1)("hello world");
+	baz = printf + 1;
+	(baz - 1)(2000 + 16, "world", "hello %s, the year is %lu");
 }
 
 v[2000];

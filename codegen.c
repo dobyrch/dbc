@@ -680,17 +680,34 @@ LLVMValueRef gen_call(struct node *ast)
 {
 	/* TODO: Check that existing global is a function with same # of args */
 	/* TODO: support multiple args */
-	LLVMValueRef func;
-	LLVMValueRef arg;
+	/* TODO: Standardize variable naming between gen_call and gen_*def */
+	LLVMValueRef func, *args;
+	struct node *arg_list;
+	int i = 0, arg_cnt = 0;
+
+	arg_list = ast->two;
+	while (arg_list) {
+		arg_cnt++;
+		arg_list = arg_list->two;
+	}
+
+	args = calloc(sizeof(LLVMValueRef), arg_cnt);
+
+	if (args == NULL)
+		generror("Out of memory");
+
+	arg_list = ast->two;
+	while (arg_list) {
+		args[i++] = codegen(arg_list->one);
+		arg_list = arg_list->two;
+	}
 
 	func = LLVMBuildBitCast(builder,
 		LLVMBuildIntToPtr(builder, codegen(one(ast)), TYPE_PTR, "tmp_ptr"),
 		LLVMPointerType(TYPE_FUNC, 0),
 		"tmp_func");
 
-	arg = codegen(two(ast));
-
-	return LLVMBuildCall(builder, func, &arg, 1, "tmp_call");
+	return LLVMBuildCall(builder, func, args, arg_cnt, "tmp_call");
 }
 
 LLVMValueRef gen_extrn(struct node *ast)

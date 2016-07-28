@@ -311,10 +311,12 @@ postfix_expression
 	| primary_expression
 	;
 
+/* TODO: Rename to just "argument_list"? */
 argument_expression_list
 	: argument_expression_list ',' assignment_expression
-		{ $$ = node2(gen_args, $1, $3); }
+		{ $$ = node2(gen_args, $3, $1); }
 	| assignment_expression
+		{ $$ = node1(gen_args, $1); }
 	;
 
 primary_expression
