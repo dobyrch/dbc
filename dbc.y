@@ -175,6 +175,7 @@ name_list
 		{ $$ = node1(gen_names, leafnode(gen_name, $1)); }
 	;
 
+/* TODO: Remove comma operator */
 expression
 	: expression ',' assignment_expression
 		{ $$ = node2(gen_comma, $3, $1); }
@@ -223,6 +224,7 @@ inclusive_or_expression
 	| exclusive_or_expression
 	;
 
+/*TODO: Remove exclusive or */
 exclusive_or_expression
 	: exclusive_or_expression '^' and_expression
 		{ $$ = node2(gen_xor, $1, $3); }
