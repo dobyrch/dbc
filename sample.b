@@ -29,7 +29,7 @@ bar:
 	}
 
 	baz = printf + 1;
-	(baz - 1)(2000 + 16, "world", "hello %s, the year is %lu");
+	(baz - 1)("hello %s, the year is %lu", "world", 2000 + 16);
 }
 
 v[2000];

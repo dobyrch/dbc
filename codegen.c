@@ -696,9 +696,10 @@ LLVMValueRef gen_call(struct node *ast)
 	if (args == NULL)
 		generror("Out of memory");
 
+	i = arg_cnt;
 	arg_list = ast->two;
 	while (arg_list) {
-		args[i++] = codegen(arg_list->one);
+		args[--i] = codegen(arg_list->one);
 		arg_list = arg_list->two;
 	}
 
