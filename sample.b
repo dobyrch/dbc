@@ -4,6 +4,15 @@ main() {
 
 	i = col = 0;
 
+	switch (col) {
+	case 0:
+		printf("col is 0%c", 10);
+		goto foo;
+	case 1:
+		printf("col is 1%c", 10);
+		goto foo;
+	}
+
 foo:
 	v[i++] = 1;
 	if (i < n)

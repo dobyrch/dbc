@@ -13,9 +13,13 @@
 #include "astnode.h"
 #include "codegen.h"
 
+/* TODO: Dynamic memory allocation */
 #define MAX_STRLEN 1024
 #define SYMTAB_SIZE 1024
 #define MAX_LABELS 256
+#define MAX_CASES 256
+#define MAX_SWITCHES 64
+
 #define TYPE_INT LLVMInt64Type()
 #define TYPE_PTR LLVMPointerType(TYPE_INT, 0)
 #define TYPE_FUNC LLVMFunctionType(TYPE_INT, NULL, 0, 1)
@@ -71,6 +75,7 @@ void compile(struct node *ast)
 		generror("Failed to allocate space for symbol table");
 
 	/* TODO: Remove superfluous returns from gen_ */
+	/* TODO: Verify module (LLVMVerifyModule) */
 	codegen(ast);
 	printf("\n====================================\n");
 	LLVMDumpModule(module);
@@ -108,7 +113,10 @@ void generror(const char *msg, ...)
 static LLVMValueRef func;
 static LLVMValueRef retval;
 static LLVMBasicBlockRef labels[MAX_LABELS];
-static int label_count;
+static LLVMBasicBlockRef cases[MAX_SWITCHES][MAX_CASES];
+static LLVMValueRef switches[MAX_SWITCHES];
+static int case_count[MAX_SWITCHES];
+static int label_count, switch_count, case_i;
 
 LLVMValueRef gen_compound(struct node *ast)
 {
@@ -745,6 +753,73 @@ LLVMValueRef gen_extrn(struct node *ast)
 	return NULL;
 }
 
+static void predefine_switches(struct node *ast)
+{
+	if (ast->one)
+		predefine_switches(ast->one);
+
+	if (ast->two)
+		predefine_switches(ast->two);
+
+	if (ast->three)
+		predefine_switches(ast->three);
+
+	if (ast->codegen == gen_case) {
+		/*
+		if (switch_count == 0)
+			generror("Warning: 'case' statement not in switch statement");
+		*/
+
+		cases[switch_count][case_count[switch_count]] = LLVMAppendBasicBlock(func, "");
+		case_count[switch_count]++;
+
+		if (case_count[switch_count] >= MAX_CASES)
+			generror("Maximum number of cases exceeded");
+
+	} else if (ast->codegen == gen_switch) {
+		switch_count++;
+
+		if (switch_count >= MAX_SWITCHES)
+			generror("Maximum number of switches exceeded");
+	}
+}
+
+LLVMValueRef gen_case(struct node *ast)
+{
+	LLVMBasicBlockRef case_block, prev_block;
+
+	prev_block = LLVMGetInsertBlock(builder);
+	case_block = cases[switch_count][case_i];
+	LLVMAddCase(switches[switch_count], codegen(ast->one), case_block);
+
+	LLVMMoveBasicBlockAfter(case_block, prev_block);
+	if (case_i > 0)
+		LLVMBuildBr(builder, case_block);
+	LLVMPositionBuilderAtEnd(builder, case_block);
+
+	case_i++;
+	codegen(ast->two);
+
+	return NULL;
+}
+
+LLVMValueRef gen_switch(struct node *ast)
+{
+	LLVMBasicBlockRef next_block;
+
+	next_block = LLVMAppendBasicBlock(func, "block");
+
+	switches[switch_count] = LLVMBuildSwitch(builder, codegen(ast->one), next_block, case_count[switch_count]);
+	case_i = 0;
+	codegen(ast->two);
+
+	switch_count++;
+	LLVMBuildBr(builder, next_block);
+	LLVMPositionBuilderAtEnd(builder, next_block);
+
+	return NULL;
+}
+
 static void predefine_labels(struct node *ast)
 {
 	LLVMBasicBlockRef label_block;
@@ -795,6 +870,10 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	label_count = 0;
 	predefine_labels(ast->three);
 
+	switch_count = 0;
+	predefine_switches(ast->three);
+	switch_count = 0;
+
 	codegen(ast->three);
 	LLVMBuildBr(builder, ret_block);
 
@@ -803,8 +882,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMBuildRet(builder, LLVMBuildLoad(builder, retval, "tmp_ret"));
 
 	/* TODO: Handle failed verification and print internal compiler error */
-	if (LLVMVerifyFunction(func, LLVMPrintMessageAction))
-		LLVMDeleteFunction(func);
+	LLVMVerifyFunction(func, LLVMPrintMessageAction);
 
 	return NULL;
 }
@@ -862,7 +940,6 @@ LLVMValueRef gen_eq(struct node *ast)
 LLVMValueRef gen_and(struct node *ast) { generror("Not yet implemented: gen_and"); return NULL; }
 LLVMValueRef gen_and_assign(struct node *ast) { generror("Not yet implemented: gen_and_assign"); return NULL; }
 LLVMValueRef gen_args(struct node *ast) { generror("Not yet implemented: gen_args"); return NULL; }
-LLVMValueRef gen_case(struct node *ast) { generror("Not yet implemented: gen_case"); return NULL; }
 LLVMValueRef gen_comma(struct node *ast) { generror("Not yet implemented: gen_comma"); return NULL; }
 LLVMValueRef gen_div(struct node *ast) { generror("Not yet implemented: gen_div"); return NULL; }
 LLVMValueRef gen_eq_assign(struct node *ast) { generror("Not yet implemented: gen_eq_assign"); return NULL; }
@@ -884,6 +961,5 @@ LLVMValueRef gen_or_assign(struct node *ast) { generror("Not yet implemented: ge
 LLVMValueRef gen_right(struct node *ast) { generror("Not yet implemented: gen_right"); return NULL; }
 LLVMValueRef gen_right_assign(struct node *ast) { generror("Not yet implemented: gen_right_assign"); return NULL; }
 LLVMValueRef gen_sub_assign(struct node *ast) { generror("Not yet implemented: gen_sub_assign"); return NULL; }
-LLVMValueRef gen_switch(struct node *ast) { generror("Not yet implemented: gen_switch"); return NULL; }
 LLVMValueRef gen_xor(struct node *ast) { generror("Not yet implemented: gen_xor"); return NULL; }
 LLVMValueRef gen_xor_assign(struct node *ast) { generror("Not yet implemented: gen_xor_assign"); return NULL; }
