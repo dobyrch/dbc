@@ -211,7 +211,7 @@ conditional_expression
 
 or_expression
 	: or_expression '|' and_expression
-		{ $$ = node2(gen_ior, $1, $3); }
+		{ $$ = node2(gen_or, $1, $3); }
 	| and_expression
 	;
 

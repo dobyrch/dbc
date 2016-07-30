@@ -549,6 +549,7 @@ LLVMValueRef gen_add_assign(struct node *ast)
 	left = codegen(one(ast));
 	right = codegen(two(ast));
 
+	/* TODO: Can left or right ever be null? */
 	if (!left || !right)
 		return NULL;
 
@@ -934,29 +935,202 @@ LLVMValueRef gen_eq(struct node *ast)
 		"tmp_eq");
 }
 
-LLVMValueRef gen_and(struct node *ast) { generror("Not yet implemented: gen_and"); return NULL; }
-LLVMValueRef gen_and_assign(struct node *ast) { generror("Not yet implemented: gen_and_assign"); return NULL; }
+LLVMValueRef gen_and(struct node *ast)
+{
+	return LLVMBuildAnd(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_and");
+}
+
+LLVMValueRef gen_and_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result = LLVMBuildAnd(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_and");
+
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+	return result;
+}
+
+LLVMValueRef gen_div(struct node *ast)
+{
+	return LLVMBuildSDiv(builder,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_div");
+}
+
+LLVMValueRef gen_eq_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result =  LLVMBuildICmp(builder,
+		LLVMIntEQ,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_eq");
+
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+	return result;
+}
+
+LLVMValueRef gen_ge(struct node *ast)
+{
+	return LLVMBuildICmp(builder,
+		LLVMIntSGE,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_ge");
+}
+
+LLVMValueRef gen_gt(struct node *ast)
+{
+	return LLVMBuildICmp(builder,
+		LLVMIntSGT,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_gt");
+}
+
+LLVMValueRef gen_or(struct node *ast)
+{
+	return LLVMBuildOr(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_or");
+}
+
+LLVMValueRef gen_le(struct node *ast)
+{
+	return LLVMBuildICmp(builder,
+		LLVMIntSLT,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_gt");
+}
+
+LLVMValueRef gen_left(struct node *ast)
+{
+	return LLVMBuildShl(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_shl");
+}
+
+LLVMValueRef gen_left_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result = LLVMBuildShl(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_shl");
+
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+	return result;
+}
+
+LLVMValueRef gen_mod_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result = LLVMBuildSRem(builder,
+		codegen(one(ast)),
+		codegen(two(ast)),
+		"tmp_mod");
+
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+	return result;
+}
+
+LLVMValueRef gen_mul_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result =  LLVMBuildMul(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_mul");
+
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+	return result;
+}
+
+LLVMValueRef gen_ne_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result =  LLVMBuildICmp(builder,
+		LLVMIntNE,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_ne");
+
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+	return result;
+}
+
+LLVMValueRef gen_neg(struct node *ast)
+{
+	return LLVMBuildNeg(builder,
+		codegen(ast->one),
+		"tmp_neg");
+}
+
+LLVMValueRef gen_or_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result =  LLVMBuildOr(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_or");
+
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+	return result;
+}
+
+LLVMValueRef gen_right(struct node *ast)
+{
+	return LLVMBuildLShr(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_shr");
+}
+
+LLVMValueRef gen_right_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result =  LLVMBuildLShr(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_shr");
+
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+	return result;
+}
+
+LLVMValueRef gen_sub_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result =  LLVMBuildSub(builder,
+		codegen(ast->one),
+		codegen(ast->two),
+		"tmp_sub");
+
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+	return result;
+}
+
+
 LLVMValueRef gen_args(struct node *ast) { generror("Not yet implemented: gen_args"); return NULL; }
-LLVMValueRef gen_comma(struct node *ast) { generror("Not yet implemented: gen_comma"); return NULL; }
-LLVMValueRef gen_div(struct node *ast) { generror("Not yet implemented: gen_div"); return NULL; }
-LLVMValueRef gen_eq_assign(struct node *ast) { generror("Not yet implemented: gen_eq_assign"); return NULL; }
-LLVMValueRef gen_ge(struct node *ast) { generror("Not yet implemented: gen_ge"); return NULL; }
-LLVMValueRef gen_gt(struct node *ast) { generror("Not yet implemented: gen_gt"); return NULL; }
 LLVMValueRef gen_init(struct node *ast) { generror("Not yet implemented: gen_init"); return NULL; }
 LLVMValueRef gen_inits(struct node *ast) { generror("Not yet implemented: gen_inits"); return NULL; }
-LLVMValueRef gen_ior(struct node *ast) { generror("Not yet implemented: gen_ior"); return NULL; }
 LLVMValueRef gen_ivals(struct node *ast) { generror("Not yet implemented: gen_ivals"); return NULL; }
-LLVMValueRef gen_le(struct node *ast) { generror("Not yet implemented: gen_le"); return NULL; }
-LLVMValueRef gen_left(struct node *ast) { generror("Not yet implemented: gen_left"); return NULL; }
-LLVMValueRef gen_left_assign(struct node *ast) { generror("Not yet implemented: gen_left_assign"); return NULL; }
-LLVMValueRef gen_mod_assign(struct node *ast) { generror("Not yet implemented: gen_mod_assign"); return NULL; }
-LLVMValueRef gen_mul_assign(struct node *ast) { generror("Not yet implemented: gen_mul_assign"); return NULL; }
 LLVMValueRef gen_names(struct node *ast) { generror("Not yet implemented: gen_names"); return NULL; }
-LLVMValueRef gen_ne_assign(struct node *ast) { generror("Not yet implemented: gen_ne_assign"); return NULL; }
-LLVMValueRef gen_neg(struct node *ast) { generror("Not yet implemented: gen_neg"); return NULL; }
-LLVMValueRef gen_or_assign(struct node *ast) { generror("Not yet implemented: gen_or_assign"); return NULL; }
-LLVMValueRef gen_right(struct node *ast) { generror("Not yet implemented: gen_right"); return NULL; }
-LLVMValueRef gen_right_assign(struct node *ast) { generror("Not yet implemented: gen_right_assign"); return NULL; }
-LLVMValueRef gen_sub_assign(struct node *ast) { generror("Not yet implemented: gen_sub_assign"); return NULL; }
-LLVMValueRef gen_xor(struct node *ast) { generror("Not yet implemented: gen_xor"); return NULL; }
-LLVMValueRef gen_xor_assign(struct node *ast) { generror("Not yet implemented: gen_xor_assign"); return NULL; }
