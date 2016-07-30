@@ -112,6 +112,7 @@ void generror(const char *msg, ...)
 /* TODO: Store necessary globales in struct called "state" */
 static LLVMValueRef func;
 static LLVMValueRef retval;
+static LLVMBasicBlockRef ret_block;
 static LLVMBasicBlockRef labels[MAX_LABELS];
 static LLVMBasicBlockRef cases[MAX_SWITCHES][MAX_CASES];
 static LLVMValueRef switches[MAX_SWITCHES];
@@ -229,12 +230,11 @@ LLVMValueRef gen_expression(struct node *ast)
 
 LLVMValueRef gen_return(struct node *ast)
 {
-	LLVMBasicBlockRef next_block, ret_block;
+	LLVMBasicBlockRef next_block;
 
 	if (one(ast))
 		LLVMBuildStore(builder, codegen(one(ast)), retval);
 
-	ret_block = LLVMGetLastBasicBlock(func);
 	LLVMBuildBr(builder, ret_block);
 
 	next_block = LLVMInsertBasicBlock(ret_block, "");
@@ -266,12 +266,6 @@ LLVMValueRef gen_goto(struct node *ast)
 	LLVMValueRef branch;
 	LLVMBasicBlockRef next_block;
 	int i;
-	/* TODO: check that NAME is LabelTypeKind in lvalue */
-	/* or should labels be in different namespace? */
-	/*
-	if (mylabel == NULL)
-		mylabel = LLVMAppendBasicBlock(func, "");
-	*/
 
 	branch = LLVMBuildIndirectBr(builder,
 		LLVMBuildIntToPtr(
@@ -285,7 +279,7 @@ LLVMValueRef gen_goto(struct node *ast)
 		LLVMAddDestination(branch, labels[i]);
 
 
-	next_block = LLVMAppendBasicBlock(func, "block");
+	next_block = LLVMAppendBasicBlock(func, "after_goto");
 	LLVMPositionBuilderAtEnd(builder, next_block);
 
 	return NULL;
@@ -807,15 +801,16 @@ LLVMValueRef gen_switch(struct node *ast)
 {
 	LLVMBasicBlockRef next_block;
 
-	next_block = LLVMAppendBasicBlock(func, "block");
+	next_block = LLVMAppendBasicBlock(func, "switch_end");
 
 	switches[switch_count] = LLVMBuildSwitch(builder, codegen(ast->one), next_block, case_count[switch_count]);
 	case_i = 0;
 	codegen(ast->two);
 
-	switch_count++;
+	LLVMPositionBuilderAtEnd(builder, cases[switch_count][case_count[switch_count]-1]);
 	LLVMBuildBr(builder, next_block);
 	LLVMPositionBuilderAtEnd(builder, next_block);
+	switch_count++;
 
 	return NULL;
 }
@@ -852,7 +847,7 @@ static void predefine_labels(struct node *ast)
 LLVMValueRef gen_funcdef(struct node *ast)
 {
 	LLVMTypeRef sig;
-	LLVMBasicBlockRef body_block, ret_block;
+	LLVMBasicBlockRef body_block;
 
 	/* TODO: Check if function already defined
 	 * ? Can functions be looked up like globals ? */
@@ -880,6 +875,8 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	/* TODO: Untangle out-of-order blocks */
 	LLVMPositionBuilderAtEnd(builder, ret_block);
 	LLVMBuildRet(builder, LLVMBuildLoad(builder, retval, "tmp_ret"));
+
+	LLVMMoveBasicBlockAfter(ret_block, LLVMGetLastBasicBlock(func));
 
 	/* TODO: Handle failed verification and print internal compiler error */
 	LLVMVerifyFunction(func, LLVMPrintMessageAction);
