@@ -11,7 +11,7 @@
 %token MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN
 %token ADD_ASSIGN SUB_ASSIGN
 %token LEFT_ASSIGN RIGHT_ASSIGN
-%token AND_ASSIGN XOR_ASSIGN OR_ASSIGN
+%token AND_ASSIGN OR_ASSIGN
 %token EQ_ASSIGN NE_ASSIGN
 %token CASE IF ELSE SWITCH WHILE GOTO RETURN
 %token AUTO EXTRN
@@ -22,11 +22,11 @@
 %type <ast> statement_list statement
 %type <ast> init_list init
 %type <ast> name_list
-%type <ast> expression assignment_expression conditional_expression
-%type <ast> inclusive_or_expression exclusive_or_expression and_expression
+%type <ast> expression conditional_expression
+%type <ast> or_expression and_expression
 %type <ast> equality_expression relational_expression
 %type <ast> shift_expression additive_expression multiplicative_expression
-%type <ast> unary_expression postfix_expression argument_expression_list
+%type <ast> unary_expression postfix_expression argument_list
 %type <ast> primary_expression constant
 
 %define parse.error verbose
@@ -175,59 +175,43 @@ name_list
 		{ $$ = node1(gen_names, leafnode(gen_name, $1)); }
 	;
 
-/* TODO: Remove comma operator */
 expression
-	: expression ',' assignment_expression
-		{ $$ = node2(gen_comma, $3, $1); }
-	| assignment_expression
-	;
-
-assignment_expression
-	: unary_expression '=' assignment_expression
+	: unary_expression '=' expression
 		{ $$ = node2(gen_assign, $1, $3); }
-	| unary_expression MUL_ASSIGN assignment_expression
+	| unary_expression MUL_ASSIGN expression
 		{ $$ = node2(gen_mul_assign, $1, $3); }
-	| unary_expression DIV_ASSIGN assignment_expression
+	| unary_expression DIV_ASSIGN expression
 		{ $$ = node2(gen_div_assign, $1, $3); }
-	| unary_expression MOD_ASSIGN assignment_expression
+	| unary_expression MOD_ASSIGN expression
 		{ $$ = node2(gen_mod_assign, $1, $3); }
-	| unary_expression ADD_ASSIGN assignment_expression
+	| unary_expression ADD_ASSIGN expression
 		{ $$ = node2(gen_add_assign, $1, $3); }
-	| unary_expression SUB_ASSIGN assignment_expression
+	| unary_expression SUB_ASSIGN expression
 		{ $$ = node2(gen_sub_assign, $1, $3); }
-	| unary_expression LEFT_ASSIGN assignment_expression
+	| unary_expression LEFT_ASSIGN expression
 		{ $$ = node2(gen_left_assign, $1, $3); }
-	| unary_expression RIGHT_ASSIGN assignment_expression
+	| unary_expression RIGHT_ASSIGN expression
 		{ $$ = node2(gen_right_assign, $1, $3); }
-	| unary_expression AND_ASSIGN assignment_expression
+	| unary_expression AND_ASSIGN expression
 		{ $$ = node2(gen_and_assign, $1, $3); }
-	| unary_expression XOR_ASSIGN assignment_expression
-		{ $$ = node2(gen_xor_assign, $1, $3); }
-	| unary_expression OR_ASSIGN assignment_expression
+	| unary_expression OR_ASSIGN expression
 		{ $$ = node2(gen_or_assign, $1, $3); }
-	| unary_expression EQ_ASSIGN assignment_expression
+	| unary_expression EQ_ASSIGN expression
 		{ $$ = node2(gen_eq_assign, $1, $3); }
-	| unary_expression NE_ASSIGN assignment_expression
+	| unary_expression NE_ASSIGN expression
 		{ $$ = node2(gen_ne_assign, $1, $3); }
 	| conditional_expression
 	;
 
 conditional_expression
-	: inclusive_or_expression '?' expression ':' conditional_expression
+	: or_expression '?' expression ':' conditional_expression
 		{ $$ = node3(gen_cond, $1, $3, $5); }
-	| inclusive_or_expression
+	| or_expression
 	;
 
-inclusive_or_expression
-	: inclusive_or_expression '|' exclusive_or_expression
+or_expression
+	: or_expression '|' and_expression
 		{ $$ = node2(gen_ior, $1, $3); }
-	| exclusive_or_expression
-	;
-
-/*TODO: Remove exclusive or */
-exclusive_or_expression
-	: exclusive_or_expression '^' and_expression
-		{ $$ = node2(gen_xor, $1, $3); }
 	| and_expression
 	;
 
@@ -304,7 +288,7 @@ postfix_expression
 		{ $$ = node2(gen_index, $1, $3); }
 	| postfix_expression '(' ')'
 		{ $$ = node1(gen_call, $1); }
-	| postfix_expression '(' argument_expression_list ')'
+	| postfix_expression '(' argument_list ')'
 		{ $$ = node2(gen_call, $1, $3); }
 	| postfix_expression INC_OP
 		{ $$ = node1(gen_postinc, $1); }
@@ -313,11 +297,10 @@ postfix_expression
 	| primary_expression
 	;
 
-/* TODO: Rename to just "argument_list"? */
-argument_expression_list
-	: argument_expression_list ',' assignment_expression
+argument_list
+	: argument_list ',' expression
 		{ $$ = node2(gen_args, $3, $1); }
-	| assignment_expression
+	| expression
 		{ $$ = node1(gen_args, $1); }
 	;
 

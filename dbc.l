@@ -45,7 +45,6 @@ H			[a-fA-F0-9]
 "=/"			{ count(); return(DIV_ASSIGN); }
 "=%"			{ count(); return(MOD_ASSIGN); }
 "=&"			{ count(); return(AND_ASSIGN); }
-"=^"			{ count(); return(XOR_ASSIGN); }
 "=|"			{ count(); return(OR_ASSIGN); }
 "==="			{ count(); return(EQ_ASSIGN); }
 "=!="			{ count(); return(NE_ASSIGN); }
@@ -68,7 +67,6 @@ H			[a-fA-F0-9]
 "["			{ count(); return('['); }
 "]"			{ count(); return(']'); }
 "&"			{ count(); return('&'); }
-"^"			{ count(); return('^'); }
 "!"			{ count(); return('!'); }
 "-"			{ count(); return('-'); }
 "+"			{ count(); return('+'); }
