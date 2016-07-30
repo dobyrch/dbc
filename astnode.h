@@ -7,10 +7,6 @@ struct node {
 };
 
 LLVMValueRef codegen(struct node *);
-char *val(struct node *ast);
-struct node *one(struct node *ast);
-struct node *two(struct node *ast);
-struct node *three(struct node *ast);
 
 struct node *leafnode(codegen_func, char *value);
 struct node *node0(codegen_func);

@@ -11,31 +11,6 @@ LLVMValueRef codegen(struct node *ast)
 	return ast->codegen(ast);
 }
 
-
-char *val(struct node *ast)
-{
-	return ast->val;
-}
-
-
-struct node *one(struct node *ast)
-{
-	return ast->one;
-}
-
-
-struct node *two(struct node *ast)
-{
-	return ast->two;
-}
-
-
-struct node *three(struct node *ast)
-{
-	return ast->three;
-}
-
-
 struct node *leafnode(codegen_func codegen, char *value)
 {
 	/* TODO: Error handling */
