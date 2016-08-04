@@ -1,4 +1,6 @@
+#include <limits.h>
 #include <search.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,7 +16,8 @@
 #include "codegen.h"
 
 /* TODO: Dynamic memory allocation */
-#define MAX_STRLEN 1024
+#define MAX_STRSIZE 1024
+#define MAX_CHARSIZE 4
 #define SYMTAB_SIZE 1024
 #define MAX_LABELS 256
 #define MAX_CASES 256
@@ -25,7 +28,6 @@
 #define TYPE_FUNC LLVMFunctionType(TYPE_INT, NULL, 0, 1)
 #define TYPE_LABEL LLVMPointerType(LLVMInt8Type(), 0)
 #define TYPE_ARRAY(n) LLVMArrayType(TYPE_INT, (n))
-
 
 static LLVMBuilderRef builder;
 static LLVMModuleRef module;
@@ -623,49 +625,113 @@ LLVMValueRef gen_predec(struct node *ast)
 	return result;
 }
 
-LLVMValueRef intern(const char *str)
+static char escape(char c)
 {
-	LLVMValueRef buf[MAX_STRLEN];
-	int len, i;
+	switch (c) {
+	case '0':
+		return '\0';
+	case 'e':
+		return EOF;
+	case '(':
+		return '{';
+	case ')':
+		return '}';
+	case 't':
+		return '\t';
+	case 'n':
+		return '\n';
+	case '*':
+	case '\'':
+	case '"':
+		return c;
+	default:
+		generror("warning: unknown escape sequence '*%c'", c);
+		return c;
+	}
+}
 
-	len = strlen(str) - 1;
+static long long pack_char(const char **str)
+{
 
-	for (i = 0; i < len; i++)
-		buf[i] = LLVMConstInt(TYPE_INT, str[i], 0);
+	long long intval = 0;
+	int i, size = 0;
+	char c, buf[MAX_CHARSIZE];
+	const char *p;
 
-	return LLVMConstArray(TYPE_ARRAY(len), buf, len);
+	p = *str + 1;
+
+	while (p[1] != '\0' && size < MAX_CHARSIZE) {
+		c = p[0];
+
+		if (c == '*') {
+			c = escape(p[1]);
+			p++;
+		}
+
+		buf[size++] = c;
+		p++;
+	}
+
+	if (p[1] == '\0')
+		*str = NULL;
+	else
+		*str = p;
+
+	for (i = 0; i < size; i++)
+		intval |= buf[i] << CHAR_BIT*(size - i - 1);
+
+	return intval;
+}
+
+static LLVMValueRef make_char(const char *str)
+{
+	LLVMValueRef charval;
+
+	charval = LLVMConstInt(TYPE_INT, pack_char(&str), 0);
+
+	if (str)
+		generror("warning: character constant too long");
+
+	return charval;
+}
+
+static LLVMValueRef make_str(const char *str)
+{
+	LLVMValueRef global, strval, chars[MAX_STRSIZE + 1];
+	int size = 0;
+
+	global = LLVMGetNamedGlobal(module, str);
+
+	if (global)
+		return global;
+
+	global = LLVMAddGlobal(module, TYPE_ARRAY(size), str);
+
+	while (str && size < MAX_STRSIZE)
+		chars[size++] = LLVMConstInt(TYPE_INT, pack_char(&str), 0);
+
+	if (str)
+		generror("warning: string constant too long");
+
+	/* Terminate string with an EOF char left-aligned in a word */
+	chars[size++] = LLVMConstInt(TYPE_INT, EOF << CHAR_BIT*(MAX_CHARSIZE - 1), 0);
+
+	strval = LLVMConstArray(TYPE_ARRAY(size), chars, size);
+	LLVMSetInitializer(global, strval);
+	LLVMSetLinkage(global, LLVMPrivateLinkage);
+
+	return global;
 }
 
 LLVMValueRef gen_const(struct node *ast)
 {
-	LLVMValueRef global, string;
-	/* TODO: Handle strings, multichars, escape sequences, and octal ints */
 	switch (ast->val[0]) {
-	case '"':
-		global = LLVMGetNamedGlobal(module, ast->val);
-		if (global)
-			return global;
-
-		string = LLVMConstString(&ast->val[1], strlen(ast->val) - 2, 0);
-
-		global = LLVMAddGlobal(
-				module,
-				LLVMArrayType(LLVMInt8Type(), strlen(ast->val) - 2),
-				ast->val);
-
-		LLVMSetInitializer(global, string);
-		LLVMSetLinkage(global, LLVMPrivateLinkage);
-
-		return global;
-
-		//return intern(ast->val);
-
 	case '\'':
-		return LLVMConstInt(TYPE_INT, ast->val[1], 0);
-
+		return make_char(ast->val);
+	case '"':
+		return make_str(ast->val);
 	case '0':
 		return LLVMConstIntOfString(TYPE_INT, ast->val, 8);
-
 	default:
 		return LLVMConstIntOfString(TYPE_INT, ast->val, 10);
 	}

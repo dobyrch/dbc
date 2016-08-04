@@ -35,7 +35,7 @@ H			[a-fA-F0-9]
 {D}+			{ count(); yylval.val = strdup(yytext); return(LITERAL); }
 '(\*.|[^\*'])+'		{ count(); yylval.val = strdup(yytext); return(LITERAL); }
 
-\"(\*.|[^\*"])*\"	{ count(); yylval.val = strdup(yytext); return(STRING_LITERAL); }
+\"(\*.|[^\*"])*\"	{ count(); yylval.val = strdup(yytext); return(LITERAL); }
 
 "=>>"			{ count(); return(RIGHT_ASSIGN); }
 "=<<"			{ count(); return(LEFT_ASSIGN); }
@@ -79,7 +79,7 @@ H			[a-fA-F0-9]
 "?"			{ count(); return('?'); }
 
 [ \t\v\n\f]		{ count(); }
-.			{ /* ignore bad characters */ }
+.			{ /* TODO: Fail on junk */ }
 
 %%
 

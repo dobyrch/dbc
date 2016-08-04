@@ -1,44 +1,31 @@
+/* The following program will calculate the constant e-2 to about
+   4000 decimal digits, and print it 50 characters to the line in
+   groups of 5 characters.  The method is simple output conversion
+   of the expansion
+     1/2! + 1/3! + ... = .111....
+   where the bases of the digits are 2, 3, 4, . . . */
+
 main() {
-	extrn n, putchar, v, printf;
-	auto i, c, col, a, baz;
+	extrn putchar, n, v;
+	auto i, c, col, a;
 
 	i = col = 0;
-
-	switch (col) {
-	case 0:
-		printf("col is 0%c", 10);
-		goto foo;
-	case 1:
-		printf("col is 1%c", 10);
-		goto foo;
-	}
-
-foo:
-	v[i++] = 1;
-	if (i < n)
-		goto foo;
-
-	goto bar;
-
-	col = 999999;
-
-bar:
+	while(i<n)
+		v[i++] = 1;
 	while(col<2*n) {
 		a = n+1 ;
 		c = i = 0;
-		while(i<n) {
-			c =+ v[i]*10;
-			v[i++] = c%a;
+		while (i<n) {
+			c =+ v[i] *10;
+			v[i++]  = c%a;
 			c =/ a--;
 		}
 
 		putchar(c+'0');
 		if(!(++col%5))
-			putchar(col%50?' ':10);
+			putchar(col%50?' ': '*n');
 	}
-
-	baz = printf + 1;
-	(baz - 1)("hello %s, the year is %lu", "world", 2000 + 16);
+	putchar('*n*n');
 }
 
 v[2000];

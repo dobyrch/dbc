@@ -3,7 +3,7 @@
 	struct node *ast;
 }
 
-%token <val> NAME LITERAL STRING_LITERAL
+%token <val> NAME LITERAL
 %token INC_OP DEC_OP
 %token LEFT_OP RIGHT_OP
 %token LE_OP GE_OP
@@ -314,8 +314,6 @@ primary_expression
 
 constant
 	: LITERAL
-		{ $$ = leafnode(gen_const, $1); }
-	| STRING_LITERAL
 		{ $$ = leafnode(gen_const, $1); }
 	;
 
