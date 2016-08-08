@@ -10,7 +10,7 @@ Doug's B Compiler
 - The compiler diagnostics aren't quite as terse as those described in section 14.0, although I would like to implement a "legacy mode" that uses the original error codes.
 
 What works and what doesn't
-===========================
+---------------------------
 
 This project is still awfully rough around the edges, but it should be functional enough to play around with the B language.  The example program from 9.2, which calculates 4000 digits of _e_, compiles and runs flawlessly (well, it does for me). Run `make test` to try it out.
 
@@ -23,7 +23,7 @@ String literals were only added recently and suffer from some endianess issues, 
 The library functions in section 8.0 have not been implemented, although clang will happily link your B program against libc instead.  Some functions, like `putchar` and `printf`, are still more or less functional if you know what you're doing.
 
 Differences Between B and C
-===========================
+---------------------------
 
 - Reversed assignment operators: B uses `x =+ 2`, not `x += 2`
 - B also has assignment operators for comparisons: `x =< 2` stores the result of `x < 2` in x; `x === 2` (that's right, triple `=`) stores the result of `x == 2` in x
@@ -42,7 +42,7 @@ Differences Between B and C
 
 
 Helpful references
-==================
+------------------
 
 - [Users' Reference to B](https://www.bell-labs.com/usr/dmr/www/kbman.html) - An HTML version of the B Manual for PDP-11, transcribed and edited by none other than Dennis Ritchie
 - [The Programming Language B](https://www.bell-labs.com/usr/dmr/www/bintro.html) - Additional B references written by Steve Johnson and Brian Kernighan; they describe a later version of B for the Honeywell 6070 (also noteworthy: Kernighan's tutorial contains what may be the first "hello world")
