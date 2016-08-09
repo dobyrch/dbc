@@ -3,12 +3,6 @@ extern int lex_column;
 
 void compile(struct node *ast);
 void free_tree(struct node *ast);
-void generror(const char *msg, ...);
-void filter_gen_defs(struct node *ast, codegen_func gen);
-LLVMValueRef lvalue(struct node *ast);
-LLVMValueRef lvalue_name(struct node *ast);
-LLVMValueRef lvalue_indir(struct node *ast);
-LLVMValueRef lvalue_index(struct node *ast);
 
 /*
  * It'd be awfully repetitive declare every code generation function

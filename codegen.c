@@ -33,6 +33,24 @@ static LLVMBuilderRef builder;
 static LLVMModuleRef module;
 
 
+/* TODO: Separate functions for internal compiler error, code error, code warning, etc. */
+/* TODO: Colorize output */
+/* TODO: Look at clang/gcc for examples of error messages */
+static void generror(const char *msg, ...)
+{
+	va_list args;
+
+	printf("ERROR: ");
+
+	va_start(args, msg);
+	vprintf(msg, args);
+	va_end(args);
+
+	putchar('\n');
+
+	exit(EXIT_FAILURE);
+}
+
 /* TODO: Take all helper functions out of header and make static */
 static void symtab_enter(char *key, void *data)
 {
@@ -87,24 +105,6 @@ void free_tree(struct node *ast)
 	/* TODO:  Free while compiling instead? */
 }
 
-/* TODO: Separate functions for internal compiler error, code error, code warning, etc. */
-/* TODO: Colorize output */
-/* TODO: Look at clang/gcc for examples of error messages */
-void generror(const char *msg, ...)
-{
-	va_list args;
-
-	printf("ERROR: ");
-
-	va_start(args, msg);
-	vprintf(msg, args);
-	va_end(args);
-
-	putchar('\n');
-
-	exit(EXIT_FAILURE);
-}
-
 /* TODO: Store necessary globales in struct called "state" */
 static LLVMValueRef retval;
 static LLVMBasicBlockRef ret_block;
@@ -113,6 +113,51 @@ static LLVMBasicBlockRef cases[MAX_SWITCHES][MAX_CASES];
 static LLVMValueRef switches[MAX_SWITCHES];
 static int case_count[MAX_SWITCHES];
 static int label_count, switch_count, case_i;
+
+static LLVMValueRef lvalue_name(struct node *ast)
+{
+	LLVMValueRef lvalue;
+
+	lvalue = symtab_find(ast->val);
+
+	/* TODO: Allow undeclared functions for calls */
+	if (lvalue == NULL)
+		generror("Use of undeclared identifier '%s'", ast->val);
+
+	return lvalue;
+}
+
+static LLVMValueRef lvalue_indir(struct node *ast)
+{
+	return LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, "tmp_indir");
+}
+
+static LLVMValueRef lvalue_index(struct node *ast)
+{
+	LLVMValueRef ptr, index, gep;
+
+	/*
+	 * TODO: ensure x[y] == y[x] holds
+	 */
+	ptr = LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, "tmp_ptr");
+	index = codegen(ast->two);
+	gep = LLVMBuildGEP(builder, ptr, &index, 1, "tmp_subscript");
+
+	return gep;
+}
+
+static LLVMValueRef lvalue(struct node *ast)
+{
+	if (ast->codegen == gen_name)
+		return lvalue_name(ast);
+	else if (ast->codegen == gen_indir)
+		return lvalue_indir(ast);
+	else if (ast->codegen == gen_index)
+		return lvalue_index(ast);
+	else
+		/* TODO: handle NULL in gen_addr/gen_assign and print "expected lvalue" */
+		return NULL;
+}
 
 LLVMValueRef gen_compound(struct node *ast)
 {
@@ -436,51 +481,6 @@ LLVMValueRef gen_name(struct node *ast)
 			generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
 			return NULL;
 	}
-}
-
-LLVMValueRef lvalue(struct node *ast)
-{
-	if (ast->codegen == gen_name)
-		return lvalue_name(ast);
-	else if (ast->codegen == gen_indir)
-		return lvalue_indir(ast);
-	else if (ast->codegen == gen_index)
-		return lvalue_index(ast);
-	else
-		/* TODO: handle NULL in gen_addr/gen_assign and print "expected lvalue" */
-		return NULL;
-}
-
-LLVMValueRef lvalue_name(struct node *ast)
-{
-	LLVMValueRef lvalue;
-
-	lvalue = symtab_find(ast->val);
-
-	/* TODO: Allow undeclared functions for calls */
-	if (lvalue == NULL)
-		generror("Use of undeclared identifier '%s'", ast->val);
-
-	return lvalue;
-}
-
-LLVMValueRef lvalue_indir(struct node *ast)
-{
-	return LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, "tmp_indir");
-}
-
-LLVMValueRef lvalue_index(struct node *ast)
-{
-	LLVMValueRef ptr, index, gep;
-
-	/*
-	 * TODO: ensure x[y] == y[x] holds
-	 */
-	ptr = LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, "tmp_ptr");
-	index = codegen(ast->two);
-	gep = LLVMBuildGEP(builder, ptr, &index, 1, "tmp_subscript");
-
-	return gep;
 }
 
 LLVMValueRef gen_assign(struct node *ast)
