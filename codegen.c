@@ -130,96 +130,73 @@ LLVMValueRef gen_index(struct node *ast)
 	return LLVMBuildLoad(builder, lvalue(ast), "tmp_load");
 }
 
+static int count_chain(struct node *ast)
+{
+	if (ast == NULL)
+		return 0;
+
+	return 1 + count_chain(ast->two);
+}
+
+LLVMValueRef gen_ivals(struct node *ast)
+{
+	LLVMValueRef *ival_list;
+	int size, i;
+
+	size = count_chain(ast);
+	ival_list = calloc(sizeof(LLVMValueRef), size);
+
+	if (ival_list == NULL)
+		generror("out of memory");
+
+	for (i = 0; i < size; i++, ast = ast->two)
+		ival_list[i] = codegen(ast->one);
+
+	return LLVMConstArray(TYPE_ARRAY(size), ival_list, size);
+}
+
 LLVMValueRef gen_simpledef(struct node *ast)
 {
-	/*
-	 * TODO: Make a note that a "vector" in B terminology equates to
-	 * an LLVM array, not an LLVM vector
-	 */
-	LLVMValueRef global, array, *elems;
-	LLVMTypeRef type;
-	struct node *ival_list;
-	uint64_t i = 0, size = 0;
-
-	ival_list = ast->two;
-	while (ival_list) {
-		size++;
-		ival_list = ival_list->two;
-	}
-
-	elems = calloc(sizeof(LLVMValueRef), size);
-
-	if (elems == NULL)
-		generror("Out of memory");
-
-	ival_list = ast->two;
-	while (ival_list) {
-		/* TODO: handle NAMES (convert global pointer to int) */
-		elems[i++] = codegen(ival_list->one);
-		ival_list = ival_list->two;
-	}
-
-	type = LLVMArrayType(TYPE_INT, size);
-	array = LLVMConstArray(type, elems, size);
+	LLVMValueRef global;
 
 	global = LLVMGetNamedGlobal(module, ast->one->val);
-	LLVMSetInitializer(global, array);
+	LLVMSetInitializer(global, codegen(ast->two));
 
 	return NULL;
 }
 
 LLVMValueRef gen_vecdef(struct node *ast)
 {
-	/*
-	 * TODO: Make a note that a "vector" in B terminology equates to
-	 * an LLVM array, not an LLVM vector
-	 */
-	LLVMValueRef global, array, *elems;
-	LLVMTypeRef type;
-	struct node *ival_list;
-	uint64_t i = 0, size = 0, minsize = 0;
+	LLVMValueRef global, init, *ival_list;
+	struct node *n;
+	int size, initsize, i;
 
-	ival_list = ast->three;
-	while (ival_list) {
-		size++;
-		ival_list = ival_list->two;
-	}
+	initsize = count_chain(ast->three);
+	size = ast->two ? atol(ast->two->val) : 0;
 
-	if (ast->two)
-		/*
-		 * TODO: check that type is not string;
-		 * use convenience function for handling
-		 * chars and octal constants
-		 * TODO: Check for invalid (negative) array size
-		 */
-		minsize = atol(ast->two->val);
+	if (initsize > size)
+		size = initsize;
 
-	elems = calloc(sizeof(LLVMValueRef), size >= minsize ? size : minsize);
 	/* TODO: Check all allocs for errors */
-	if (elems == NULL)
-		generror("Out of memory");
+	ival_list = calloc(sizeof(LLVMValueRef), size);
+	if (ival_list == NULL)
+		generror("out of memory");
 
-	ival_list = ast->three;
-	while (ival_list) {
+	for (i = 0, n = ast->three; i < initsize; i++, n = n->two)
 		/* TODO: handle NAMES (convert global pointer to int) */
-		elems[i++] = codegen(ival_list->one);
-		ival_list = ival_list->two;
-	}
+		ival_list[i] = codegen(n->one);
 
-	while (i < minsize)
-		elems[i++] = LLVMConstInt(TYPE_INT, 0, 0);
-
-	/* TODO: Store actual size for reuse */
-	type = LLVMArrayType(TYPE_INT, size >= minsize ? size : minsize);
-	array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
+	for (i = initsize; i < size; i++)
+		ival_list[i] = LLVMConstInt(TYPE_INT, 0, 0);
 
 	global = LLVMGetNamedGlobal(module, ast->one->val);
-	LLVMSetInitializer(global, array);
+	init = LLVMConstArray(TYPE_ARRAY(size), ival_list, size);
+	LLVMSetInitializer(global, init);
 
 	return NULL;
 }
 
-LLVMValueRef gen_expression(struct node *ast)
+LLVMValueRef gen_null(struct node *ast)
 {
 	return NULL;
 }
@@ -955,24 +932,58 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	return NULL;
 }
 
-static void predeclare_defs(struct node *ast)
+static void predeclare_simpledef(struct node *ast)
 {
 	LLVMValueRef global;
-	struct node *def;
 
-	global = NULL;
-	def = ast->one;
+	global = LLVMAddGlobal(module, TYPE_INT, ast->one->val);
+	LLVMSetLinkage(global, LLVMExternalLinkage);
+}
 
-	if (def->codegen == gen_funcdef)
-		global = LLVMAddFunction(module, def->one->val, LLVMFunctionType(TYPE_INT, NULL, 0, 0));
-	else if (def->codegen == gen_simpledef)
-		global = LLVMAddGlobal(module, TYPE_INT, def->one->val);
-	else if (def->codegen == gen_vecdef)
-		global = LLVMAddGlobal(module, TYPE_ARRAY(0), def->one->val);
+static void predeclare_vecdef(struct node *ast)
+{
+	LLVMValueRef global;
+	int size, initsize;
+
+	initsize = count_chain(ast->three);
+	size = ast->two ? atol(ast->two->val) : 0;
+	/*
+	 * TODO: check that type is not string;
+	 * use convenience function for handling
+	 * chars and octal constants
+	 * TODO: Check for invalid (negative) array size
+	 */
+
+	if (initsize > size)
+		size = initsize;
+
+	global = LLVMAddGlobal(module, TYPE_ARRAY(size), ast->one->val);
+	LLVMSetLinkage(global, LLVMExternalLinkage);
+}
+
+static void predeclare_funcdef(struct node *ast)
+{
+	LLVMValueRef func;
+	LLVMTypeRef sig;
+
+	sig = LLVMFunctionType(TYPE_INT, NULL, 0, 0);
+	func = LLVMAddFunction(module, ast->one->val, sig);
+	LLVMSetLinkage(func, LLVMExternalLinkage);
+}
+
+static void predeclare_defs(struct node *ast)
+{
+	if (ast->one->codegen == gen_funcdef)
+		predeclare_funcdef(ast->one);
+
+	else if (ast->one->codegen == gen_simpledef)
+		predeclare_simpledef(ast->one);
+
+	else if (ast->one->codegen == gen_vecdef)
+		predeclare_vecdef(ast->one);
+
 	else
 		generror("Unexpected definition type");
-
-	LLVMSetLinkage(global, LLVMExternalLinkage);
 
 	if (ast->two)
 		predeclare_defs(ast->two);
@@ -1219,5 +1230,4 @@ LLVMValueRef gen_sub_assign(struct node *ast)
 LLVMValueRef gen_args(struct node *ast) { generror("Not yet implemented: gen_args"); return NULL; }
 LLVMValueRef gen_init(struct node *ast) { generror("Not yet implemented: gen_init"); return NULL; }
 LLVMValueRef gen_inits(struct node *ast) { generror("Not yet implemented: gen_inits"); return NULL; }
-LLVMValueRef gen_ivals(struct node *ast) { generror("Not yet implemented: gen_ivals"); return NULL; }
 LLVMValueRef gen_names(struct node *ast) { generror("Not yet implemented: gen_names"); return NULL; }

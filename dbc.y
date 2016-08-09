@@ -144,7 +144,7 @@ statement
 
 	| expression ';'
 	| ';'
-		{ $$ = node0(gen_expression); }
+		{ $$ = node0(gen_null); }
 	;
 
 /* TODO: rename to something like "name_const_list" to avoid confusion with ival_list */
