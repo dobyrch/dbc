@@ -737,15 +737,7 @@ LLVMValueRef gen_call(struct node *ast)
 
 LLVMValueRef gen_extrn(struct node *ast)
 {
-	/*
-	* also set up vector initialization.
-	* TODO: Warn when using unitialized var
-	* TODO: Determine type to use at runtime (or maybe always use Int64..
-	* see "http://llvm.org/docs/GetElementPtr.html#how-is-gep-different-from-ptrtoint-arithmetic-and-inttoptr" -- LLVM assumes pointers are <= 64 bits
-	* accept commandline argument or look at sizeof(void *)
-	* TODO: Put global in symbol table
-	*/
-
+	/* TODO: Warn when using unitialized var */
 	LLVMValueRef global;
 	struct node *name_list;
 	char *name;
