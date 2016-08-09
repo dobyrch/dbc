@@ -16,7 +16,7 @@ This project is still awfully rough around the edges, but it should be functiona
 
 All operators and statements are implemented, although they haven't all been thoroughly tested.  I suspect some edge cases with oddly placed labels may generate invalid LLVM IR.
 
-Only one function may be defined currently (and if you expect that function to do anything, you should probably call it `main` so the linker can find it).
+~~Only one function may be defined currently (and if you expect that function to do anything, you should probably call it `main` so the linker can find it).~~
 
 String literals were only added recently and suffer from some endianess issues, so don't expect characters to be in the right order when you print them.
 
