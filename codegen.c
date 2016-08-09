@@ -72,10 +72,6 @@ void compile(struct node *ast)
 	if ((builder = LLVMCreateBuilder()) == NULL)
 		generror("Failed to create LLVM instruction builder");
 
-	/* TODO: create/destroy symbol table for each function definition */
-	if (hcreate(SYMTAB_SIZE) == 0)
-		generror("Failed to allocate space for symbol table");
-
 	/* TODO: Remove superfluous returns from gen_ */
 	/* TODO: Verify module (LLVMVerifyModule) */
 	codegen(ast);
@@ -166,9 +162,8 @@ LLVMValueRef gen_simpledef(struct node *ast)
 	type = LLVMArrayType(TYPE_INT, size);
 	array = LLVMConstArray(type, elems, size);
 
-	global = LLVMAddGlobal(module, TYPE_INT, ast->one->val);
+	global = LLVMGetNamedGlobal(module, ast->one->val);
 	LLVMSetInitializer(global, array);
-	LLVMSetLinkage(global, LLVMExternalLinkage);
 
 	return NULL;
 }
@@ -218,9 +213,8 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	type = LLVMArrayType(TYPE_INT, size >= minsize ? size : minsize);
 	array = LLVMConstArray(type, elems, size >= minsize ? size : minsize);
 
-	global = LLVMAddGlobal(module, type, ast->one->val);
+	global = LLVMGetNamedGlobal(module, ast->one->val);
 	LLVMSetInitializer(global, array);
-	LLVMSetLinkage(global, LLVMExternalLinkage);
 
 	return NULL;
 }
@@ -493,6 +487,7 @@ LLVMValueRef lvalue_name(struct node *ast)
 
 	lvalue = symtab_find(ast->val);
 
+	/* TODO: Allow undeclared functions for calls */
 	if (lvalue == NULL)
 		generror("Use of undeclared identifier '%s'", ast->val);
 
@@ -799,7 +794,11 @@ LLVMValueRef gen_extrn(struct node *ast)
 
 	while (name_list) {
 		name = name_list->one->val;
-		global = LLVMGetNamedGlobal(module, name);
+
+		global = LLVMGetNamedFunction(module, name);
+
+		if (global == NULL)
+			global = LLVMGetNamedGlobal(module, name);
 
 		if (global == NULL)
 			global = LLVMAddGlobal(module, TYPE_FUNC, name);
@@ -814,16 +813,16 @@ LLVMValueRef gen_extrn(struct node *ast)
 	return NULL;
 }
 
-static void predefine_switches(struct node *ast)
+static void predeclare_switches(struct node *ast)
 {
 	if (ast->one)
-		predefine_switches(ast->one);
+		predeclare_switches(ast->one);
 
 	if (ast->two)
-		predefine_switches(ast->two);
+		predeclare_switches(ast->two);
 
 	if (ast->three)
-		predefine_switches(ast->three);
+		predeclare_switches(ast->three);
 
 	if (ast->codegen == gen_case) {
 		/*
@@ -882,19 +881,19 @@ LLVMValueRef gen_switch(struct node *ast)
 	return NULL;
 }
 
-static void predefine_labels(struct node *ast)
+static void predeclare_labels(struct node *ast)
 {
 	LLVMBasicBlockRef label_block;
 	char *name;
 
 	if (ast->one)
-		predefine_labels(ast->one);
+		predeclare_labels(ast->one);
 
 	if (ast->two)
-		predefine_labels(ast->two);
+		predeclare_labels(ast->two);
 
 	if (ast->three)
-		predefine_labels(ast->three);
+		predeclare_labels(ast->three);
 
 	if (ast->codegen == gen_label) {
 		name = ast->one->val;
@@ -916,10 +915,13 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMTypeRef sig;
 	LLVMBasicBlockRef body_block;
 
+	if (hcreate(SYMTAB_SIZE) == 0)
+		generror("Failed to allocate space for symbol table");
+
 	/* TODO: Check if function already defined
 	 * ? Can functions be looked up like globals ? */
 	sig = LLVMFunctionType(TYPE_INT, NULL, 0, 0);
-	func = LLVMAddFunction(module, ast->one->val, sig);
+	func = LLVMGetNamedFunction(module, ast->one->val);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	body_block = LLVMAppendBasicBlock(func, "");
@@ -930,10 +932,10 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMBuildStore(builder, LLVMConstInt(TYPE_INT, 0, 0), retval);
 
 	label_count = 0;
-	predefine_labels(ast->three);
+	predeclare_labels(ast->three);
 
 	switch_count = 0;
-	predefine_switches(ast->three);
+	predeclare_switches(ast->three);
 	switch_count = 0;
 
 	codegen(ast->three);
@@ -948,28 +950,47 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	/* TODO: Handle failed verification and print internal compiler error */
 	LLVMVerifyFunction(func, LLVMPrintMessageAction);
 
+	hdestroy();
+
 	return NULL;
 }
 
-void filter_gen_defs(struct node *ast, codegen_func gen)
+static void predeclare_defs(struct node *ast)
 {
-	if (ast->one->codegen == gen)
-		codegen(ast->one);
+	LLVMValueRef global;
+	struct node *def;
+
+	global = NULL;
+	def = ast->one;
+
+	if (def->codegen == gen_funcdef)
+		global = LLVMAddFunction(module, def->one->val, LLVMFunctionType(TYPE_INT, NULL, 0, 0));
+	else if (def->codegen == gen_simpledef)
+		global = LLVMAddGlobal(module, TYPE_INT, def->one->val);
+	else if (def->codegen == gen_vecdef)
+		global = LLVMAddGlobal(module, TYPE_ARRAY(0), def->one->val);
+	else
+		generror("Unexpected definition type");
+
+	LLVMSetLinkage(global, LLVMExternalLinkage);
 
 	if (ast->two)
-		filter_gen_defs(ast->two, gen);
+		predeclare_defs(ast->two);
 }
 
 LLVMValueRef gen_defs(struct node *ast)
 {
-	/*TODO: Get rid of filter_gen_defs.  Instead, make function
-	 * like "predeclare_globals" that creates and sets type of
-	 * all globals; the gen_* functions should just fill in the
-	 * definitions/initializers and not have to worry about
-	 * whether or not the global already exists */
-	filter_gen_defs(ast, gen_simpledef);
-	filter_gen_defs(ast, gen_vecdef);
-	filter_gen_defs(ast, gen_funcdef);
+	static int first_time = 1;
+
+	if (first_time) {
+		predeclare_defs(ast);
+		first_time = 0;
+	}
+
+	codegen(ast->one);
+
+	if (ast->two)
+		codegen(ast->two);
 
 	return NULL;
 }
