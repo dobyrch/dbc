@@ -299,9 +299,9 @@ postfix_expression
 
 argument_list
 	: argument_list ',' expression
-		{ $$ = node2(gen_args, $3, $1); }
+		{ $$ = node2(NULL, $3, $1); }
 	| expression
-		{ $$ = node1(gen_args, $1); }
+		{ $$ = node1(NULL, $1); }
 	;
 
 primary_expression

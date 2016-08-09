@@ -188,7 +188,7 @@ LLVMValueRef gen_ivals(struct node *ast)
 	size = count_chain(ast);
 	ival_list = calloc(sizeof(LLVMValueRef), size);
 
-	if (ival_list == NULL)
+	if (size > 0 && ival_list == NULL)
 		generror("out of memory");
 
 	for (i = 0; i < size; i++, ast = ast->two)
@@ -219,9 +219,9 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	if (initsize > size)
 		size = initsize;
 
-	/* TODO: Check all allocs for errors */
 	ival_list = calloc(sizeof(LLVMValueRef), size);
-	if (ival_list == NULL)
+
+	if (size > 0 && ival_list == NULL)
 		generror("out of memory");
 
 	for (i = 0, n = ast->three; i < initsize; i++, n = n->two)
@@ -713,36 +713,26 @@ LLVMValueRef gen_statements(struct node *ast)
 LLVMValueRef gen_call(struct node *ast)
 {
 	/* TODO: Check that existing global is a function with same # of args */
-	/* TODO: support multiple args */
 	/* TODO: Standardize variable naming between gen_call and gen_*def */
-	LLVMValueRef func, *args;
-	struct node *arg_list;
-	int i = 0, arg_count = 0;
-
-	arg_list = ast->two;
-	while (arg_list) {
-		arg_count++;
-		arg_list = arg_list->two;
-	}
-
-	args = calloc(sizeof(LLVMValueRef), arg_count);
-
-	if (args == NULL)
-		generror("Out of memory");
-
-	i = arg_count;
-	arg_list = ast->two;
-	while (arg_list) {
-		args[--i] = codegen(arg_list->one);
-		arg_list = arg_list->two;
-	}
+	LLVMValueRef func, *arg_list = NULL;
+	struct node *n;
+	int arg_count, i;
 
 	func = LLVMBuildBitCast(builder,
 		LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, "tmp_ptr"),
 		LLVMPointerType(TYPE_FUNC, 0),
 		"tmp_func");
 
-	return LLVMBuildCall(builder, func, args, arg_count, "tmp_call");
+	arg_count = count_chain(ast->two);
+	arg_list = calloc(sizeof(LLVMValueRef), arg_count);
+
+	if (arg_count > 0 && arg_list == NULL)
+		generror("out of memory");
+
+	for (i = arg_count - 1, n = ast->two; i >= 0; i--, n = n->two)
+		arg_list[i] = codegen(n->one);
+
+	return LLVMBuildCall(builder, func, arg_list, arg_count, "tmp_call");
 }
 
 LLVMValueRef gen_extrn(struct node *ast)
@@ -989,8 +979,11 @@ static void predeclare_funcdef(struct node *ast)
 	LLVMTypeRef func_type, *param_types;
 	int param_count, i;
 
-	param_count = ast->two ? count_chain(ast->two) : 0;
+	param_count = count_chain(ast->two);
 	param_types = calloc(sizeof(LLVMTypeRef), param_count);
+
+	if (param_count > 0 && param_types == NULL)
+		generror("out of memory");
 
 	for (i = 0; i < param_count; i++)
 		param_types[i] = TYPE_INT;
@@ -1258,6 +1251,5 @@ LLVMValueRef gen_sub_assign(struct node *ast)
 }
 
 
-LLVMValueRef gen_args(struct node *ast) { generror("Not yet implemented: gen_args"); return NULL; }
 LLVMValueRef gen_init(struct node *ast) { generror("Not yet implemented: gen_init"); return NULL; }
 LLVMValueRef gen_inits(struct node *ast) { generror("Not yet implemented: gen_inits"); return NULL; }
