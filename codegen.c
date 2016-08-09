@@ -62,7 +62,6 @@ static void *symtab_find(char *key)
 	return symtab_entry ? symtab_entry->data : NULL;
 }
 
-/* TODO: rename struct node to ast_node, rename arg ast to node */
 void compile(struct node *ast)
 {
 	/* TODO: Free module, define "dbc" as constant */
@@ -72,7 +71,6 @@ void compile(struct node *ast)
 	if ((builder = LLVMCreateBuilder()) == NULL)
 		generror("Failed to create LLVM instruction builder");
 
-	/* TODO: Remove superfluous returns from gen_ */
 	/* TODO: Verify module (LLVMVerifyModule) */
 	codegen(ast);
 	printf("\n====================================\n");
@@ -272,7 +270,7 @@ LLVMValueRef gen_indir(struct node *ast)
 
 LLVMValueRef gen_while(struct node *ast)
 {
-	LLVMValueRef condition, zero, func, body_value;
+	LLVMValueRef condition, zero, func;
 	LLVMBasicBlockRef do_block, end;
 
 	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
@@ -284,19 +282,19 @@ LLVMValueRef gen_while(struct node *ast)
 	LLVMBuildCondBr(builder, condition, do_block, end);
 	LLVMPositionBuilderAtEnd(builder, do_block);
 	/* TODO: I don't think we need to collect values from then/else blocks */
-	body_value = codegen(ast->two);
+	codegen(ast->two);
 
 	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(ast->one), zero, "tmp_cond");
 	LLVMBuildCondBr(builder, condition, do_block, end);
 
 	LLVMPositionBuilderAtEnd(builder, end);
 
-	return body_value;
+	return NULL;
 }
 
 LLVMValueRef gen_if(struct node *ast)
 {
-	LLVMValueRef zero, condition, func, ref;
+	LLVMValueRef zero, condition, func;
 	LLVMBasicBlockRef then_block, else_block, end;
 
 	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
@@ -311,15 +309,16 @@ LLVMValueRef gen_if(struct node *ast)
 
 	LLVMPositionBuilderAtEnd(builder, then_block);
 	codegen(ast->two);
-	ref = LLVMBuildBr(builder, end);
+	LLVMBuildBr(builder, end);
 
 	LLVMPositionBuilderAtEnd(builder, else_block);
 	if (ast->three)
 		codegen(ast->three);
-	ref = LLVMBuildBr(builder, end);
+	LLVMBuildBr(builder, end);
 
 	LLVMPositionBuilderAtEnd(builder, end);
-	return ref;
+
+	return NULL;
 }
 
 LLVMValueRef gen_lt(struct node *ast)
@@ -381,14 +380,7 @@ LLVMValueRef gen_mod(struct node *ast)
 
 LLVMValueRef gen_auto(struct node *ast)
 {
-	/*
-	* also set up vector initialization.
-	* TODO: Warn when using unitialized var
-	* TODO: Determine type to use at runtime (or maybe always use Int64..
-	* see "http://llvm.org/docs/GetElementPtr.html#how-is-gep-different-from-ptrtoint-arithmetic-and-inttoptr" -- LLVM assumes pointers are <= 64 bits
-	* accept commandline argument or look at sizeof(void *)
-	*/
-
+	/* TODO: Warn when using unitialized var */
 	LLVMValueRef var;
 	LLVMTypeRef type;
 	struct node *init_list, *init;
