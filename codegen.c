@@ -724,20 +724,20 @@ LLVMValueRef gen_call(struct node *ast)
 	/* TODO: Standardize variable naming between gen_call and gen_*def */
 	LLVMValueRef func, *args;
 	struct node *arg_list;
-	int i = 0, arg_cnt = 0;
+	int i = 0, arg_count = 0;
 
 	arg_list = ast->two;
 	while (arg_list) {
-		arg_cnt++;
+		arg_count++;
 		arg_list = arg_list->two;
 	}
 
-	args = calloc(sizeof(LLVMValueRef), arg_cnt);
+	args = calloc(sizeof(LLVMValueRef), arg_count);
 
 	if (args == NULL)
 		generror("Out of memory");
 
-	i = arg_cnt;
+	i = arg_count;
 	arg_list = ast->two;
 	while (arg_list) {
 		args[--i] = codegen(arg_list->one);
@@ -749,7 +749,7 @@ LLVMValueRef gen_call(struct node *ast)
 		LLVMPointerType(TYPE_FUNC, 0),
 		"tmp_func");
 
-	return LLVMBuildCall(builder, func, args, arg_cnt, "tmp_call");
+	return LLVMBuildCall(builder, func, args, arg_count, "tmp_call");
 }
 
 LLVMValueRef gen_extrn(struct node *ast)
@@ -887,19 +887,34 @@ static void predeclare_labels(struct node *ast)
 	}
 }
 
+LLVMValueRef gen_names(struct node *ast)
+{
+	LLVMValueRef pam, var;
+	char *name;
+
+	/* Pam param, pam pam param... */
+	for (pam = LLVMGetFirstParam(func); pam; pam = LLVMGetNextParam(pam))
+	{
+		name = ast->one->val;
+		var = LLVMBuildAlloca(builder, TYPE_INT, name);
+		symtab_enter(name, var);
+
+		LLVMBuildStore(builder, pam, var);
+
+		ast = ast->two;
+	}
+
+	return NULL;
+}
+
 LLVMValueRef gen_funcdef(struct node *ast)
 {
-	LLVMTypeRef sig;
 	LLVMBasicBlockRef body_block;
 
 	if (hcreate(SYMTAB_SIZE) == 0)
 		generror("Failed to allocate space for symbol table");
 
-	/* TODO: Check if function already defined
-	 * ? Can functions be looked up like globals ? */
-	sig = LLVMFunctionType(TYPE_INT, NULL, 0, 0);
 	func = LLVMGetNamedFunction(module, ast->one->val);
-	LLVMSetLinkage(func, LLVMExternalLinkage);
 
 	body_block = LLVMAppendBasicBlock(func, "");
 	ret_block = LLVMAppendBasicBlock(func, "ret_block");
@@ -915,9 +930,12 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	predeclare_switches(ast->three);
 	switch_count = 0;
 
-	codegen(ast->three);
-	LLVMBuildBr(builder, ret_block);
+	if (ast->two)
+		codegen(ast->two);
 
+	codegen(ast->three);
+
+	LLVMBuildBr(builder, ret_block);
 	/* TODO: Untangle out-of-order blocks */
 	LLVMPositionBuilderAtEnd(builder, ret_block);
 	LLVMBuildRet(builder, LLVMBuildLoad(builder, retval, "tmp_ret"));
@@ -964,15 +982,24 @@ static void predeclare_vecdef(struct node *ast)
 static void predeclare_funcdef(struct node *ast)
 {
 	LLVMValueRef func;
-	LLVMTypeRef sig;
+	LLVMTypeRef func_type, *param_types;
+	int param_count, i;
 
-	sig = LLVMFunctionType(TYPE_INT, NULL, 0, 0);
-	func = LLVMAddFunction(module, ast->one->val, sig);
+	param_count = ast->two ? count_chain(ast->two) : 0;
+	param_types = calloc(sizeof(LLVMTypeRef), param_count);
+
+	for (i = 0; i < param_count; i++)
+		param_types[i] = TYPE_INT;
+
+	func_type = LLVMFunctionType(TYPE_INT, param_types, param_count, 0);
+
+	func = LLVMAddFunction(module, ast->one->val, func_type);
 	LLVMSetLinkage(func, LLVMExternalLinkage);
 }
 
 static void predeclare_defs(struct node *ast)
 {
+	/* TODO: Check for duplicated names */
 	if (ast->one->codegen == gen_funcdef)
 		predeclare_funcdef(ast->one);
 
@@ -1230,4 +1257,3 @@ LLVMValueRef gen_sub_assign(struct node *ast)
 LLVMValueRef gen_args(struct node *ast) { generror("Not yet implemented: gen_args"); return NULL; }
 LLVMValueRef gen_init(struct node *ast) { generror("Not yet implemented: gen_init"); return NULL; }
 LLVMValueRef gen_inits(struct node *ast) { generror("Not yet implemented: gen_inits"); return NULL; }
-LLVMValueRef gen_names(struct node *ast) { generror("Not yet implemented: gen_names"); return NULL; }
