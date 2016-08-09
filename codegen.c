@@ -108,7 +108,6 @@ void generror(const char *msg, ...)
 }
 
 /* TODO: Store necessary globales in struct called "state" */
-static LLVMValueRef func;
 static LLVMValueRef retval;
 static LLVMBasicBlockRef ret_block;
 static LLVMBasicBlockRef labels[MAX_LABELS];
@@ -236,7 +235,7 @@ LLVMValueRef gen_label(struct node *ast)
 
 LLVMValueRef gen_goto(struct node *ast)
 {
-	LLVMValueRef branch;
+	LLVMValueRef branch, func;
 	LLVMBasicBlockRef next_block;
 	int i;
 
@@ -252,6 +251,7 @@ LLVMValueRef gen_goto(struct node *ast)
 		LLVMAddDestination(branch, labels[i]);
 
 
+	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 	next_block = LLVMAppendBasicBlock(func, "after_goto");
 	LLVMPositionBuilderAtEnd(builder, next_block);
 
@@ -417,11 +417,12 @@ LLVMValueRef gen_auto(struct node *ast)
 
 LLVMValueRef gen_name(struct node *ast)
 {
-	LLVMValueRef ptr;
+	LLVMValueRef func, ptr;
 	LLVMTypeRef type;
 
 	ptr = lvalue(ast);
 
+	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 	/* TODO: Is there a nicer way of doing this without special casing labels? */
 	/* TODO: Convert function pointers to int */
 	if (LLVMGetTypeKind(LLVMTypeOf(ptr)) == LLVMLabelTypeKind)
@@ -792,12 +793,15 @@ LLVMValueRef gen_extrn(struct node *ast)
 
 static void predeclare_switches(struct node *ast)
 {
+	LLVMValueRef func;
+
 	if (ast->one)
 		predeclare_switches(ast->one);
 
 	if (ast->two)
 		predeclare_switches(ast->two);
 
+	/* TODO: Will ast->three ever exist in this context? */
 	if (ast->three)
 		predeclare_switches(ast->three);
 
@@ -807,6 +811,7 @@ static void predeclare_switches(struct node *ast)
 			generror("Warning: 'case' statement not in switch statement");
 		*/
 
+		func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 		cases[switch_count][case_count[switch_count]] = LLVMAppendBasicBlock(func, "");
 		case_count[switch_count]++;
 
@@ -842,8 +847,10 @@ LLVMValueRef gen_case(struct node *ast)
 
 LLVMValueRef gen_switch(struct node *ast)
 {
+	LLVMValueRef func;
 	LLVMBasicBlockRef next_block;
 
+	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 	next_block = LLVMAppendBasicBlock(func, "switch_end");
 
 	switches[switch_count] = LLVMBuildSwitch(builder, codegen(ast->one), next_block, case_count[switch_count]);
@@ -861,6 +868,7 @@ LLVMValueRef gen_switch(struct node *ast)
 static void predeclare_labels(struct node *ast)
 {
 	LLVMBasicBlockRef label_block;
+	LLVMValueRef func;
 	char *name;
 
 	if (ast->one)
@@ -876,6 +884,7 @@ static void predeclare_labels(struct node *ast)
 		name = ast->one->val;
 
 		/* TODO: Prefix label names to avoid clashes with do/then? */
+		func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 		label_block = LLVMAppendBasicBlock(func, name);
 		//symtab_enter(name, LLVMBlockAddress(func, label_block));
 		symtab_enter(name, label_block);
@@ -889,8 +898,10 @@ static void predeclare_labels(struct node *ast)
 
 LLVMValueRef gen_names(struct node *ast)
 {
-	LLVMValueRef pam, var;
+	LLVMValueRef func, pam, var;
 	char *name;
+
+	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 
 	/* Pam param, pam pam param... */
 	for (pam = LLVMGetFirstParam(func); pam; pam = LLVMGetNextParam(pam))
@@ -909,6 +920,7 @@ LLVMValueRef gen_names(struct node *ast)
 
 LLVMValueRef gen_funcdef(struct node *ast)
 {
+	LLVMValueRef func;
 	LLVMBasicBlockRef body_block;
 
 	if (hcreate(SYMTAB_SIZE) == 0)
