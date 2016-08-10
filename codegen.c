@@ -30,6 +30,8 @@
 #define TYPE_LABEL LLVMPointerType(LLVMInt8Type(), 0)
 #define TYPE_ARRAY(n) LLVMArrayType(TYPE_INT, (n))
 
+#define ZERO LLVMConstInt(TYPE_INT, 0, 0)
+
 static LLVMBuilderRef builder;
 static LLVMModuleRef module;
 
@@ -242,7 +244,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		ival_list[i] = codegen(n->one);
 
 	for (i = initsize; i < size; i++)
-		ival_list[i] = LLVMConstInt(TYPE_INT, 0, 0);
+		ival_list[i] = ZERO;
 
 	global = LLVMGetNamedGlobal(module, ast->one->val);
 	init = LLVMConstArray(TYPE_ARRAY(size), ival_list, size);
@@ -296,8 +298,7 @@ LLVMValueRef gen_goto(struct node *ast)
 	int i;
 
 	branch = LLVMBuildIndirectBr(builder,
-		LLVMBuildIntToPtr(
-			builder,
+		LLVMBuildIntToPtr(builder,
 			codegen(ast->one),
 			TYPE_LABEL,
 			"tmp_label"),
@@ -328,21 +329,19 @@ LLVMValueRef gen_indir(struct node *ast)
 
 LLVMValueRef gen_while(struct node *ast)
 {
-	LLVMValueRef condition, zero, func;
+	LLVMValueRef condition, func;
 	LLVMBasicBlockRef do_block, end;
 
-	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
-	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(ast->one), zero, "tmp_cond");
+	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(ast->one), ZERO, "tmp_cond");
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 	do_block = LLVMAppendBasicBlock(func, "do");
 	end = LLVMAppendBasicBlock(func, "end");
 
 	LLVMBuildCondBr(builder, condition, do_block, end);
 	LLVMPositionBuilderAtEnd(builder, do_block);
-	/* TODO: I don't think we need to collect values from then/else blocks */
 	codegen(ast->two);
 
-	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(ast->one), zero, "tmp_cond");
+	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(ast->one), ZERO, "tmp_cond");
 	LLVMBuildCondBr(builder, condition, do_block, end);
 
 	LLVMPositionBuilderAtEnd(builder, end);
@@ -352,12 +351,11 @@ LLVMValueRef gen_while(struct node *ast)
 
 LLVMValueRef gen_if(struct node *ast)
 {
-	LLVMValueRef zero, condition, func;
+	LLVMValueRef condition, func;
 	LLVMBasicBlockRef then_block, else_block, end;
 
-	zero = LLVMConstInt(LLVMInt1Type(), 0, 0);
 	condition = codegen(ast->one);
-	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, zero, "tmp_cond");
+	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, ZERO, "tmp_cond");
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 
 	then_block = LLVMAppendBasicBlock(func, "then");
@@ -381,23 +379,29 @@ LLVMValueRef gen_if(struct node *ast)
 
 LLVMValueRef gen_lt(struct node *ast)
 {
-	return LLVMBuildICmp(builder,
-		LLVMIntSLT,
-		codegen(ast->one),
-		codegen(ast->two),
-		"tmp_lt");
+	LLVMValueRef truth;
+
+	truth = LLVMBuildICmp(builder,
+			LLVMIntSLT,
+			codegen(ast->one),
+			codegen(ast->two),
+			"tmp_lt");
+
+	return LLVMBuildZExt(builder, truth, TYPE_INT, "tmp_zext");
 }
 
 LLVMValueRef gen_cond(struct node *ast)
 {
-	/* TODO: Rename to avoid conflict with IF condition */
-	/* TODO: Figure out best way to convert to and from Int1 */
-	return LLVMBuildSelect(builder,
-		LLVMBuildICmp(builder,
+	LLVMValueRef truth;
+
+	truth = LLVMBuildICmp(builder,
 			LLVMIntNE,
 			codegen(ast->one),
-			LLVMConstInt(TYPE_INT, 0, 0),
-			"tmp_not"),
+			ZERO,
+			"tmp_not");
+
+	return LLVMBuildSelect(builder,
+		truth,
 		codegen(ast->two),
 		codegen(ast->three),
 		"tmp_cond");
@@ -476,8 +480,7 @@ LLVMValueRef gen_name(struct node *ast)
 	/* TODO: Is there a nicer way of doing this without special casing labels? */
 	/* TODO: Convert function pointers to int */
 	if (LLVMGetTypeKind(LLVMTypeOf(ptr)) == LLVMLabelTypeKind)
-		return LLVMBuildPtrToInt(
-			builder,
+		return LLVMBuildPtrToInt(builder,
 			LLVMBlockAddress(func, (LLVMBasicBlockRef)ptr),
 			TYPE_INT,
 			"tmp_addr");
@@ -920,7 +923,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMPositionBuilderAtEnd(builder, body_block);
 
 	retval = LLVMBuildAlloca(builder, TYPE_INT, "tmp_ret");
-	LLVMBuildStore(builder, LLVMConstInt(TYPE_INT, 0, 0), retval);
+	LLVMBuildStore(builder, ZERO, retval);
 
 	label_count = 0;
 	predeclare_labels(ast->three);
@@ -1037,29 +1040,41 @@ LLVMValueRef gen_defs(struct node *ast)
 
 LLVMValueRef gen_not(struct node *ast)
 {
-	return LLVMBuildICmp(builder,
-		LLVMIntEQ,
-		codegen(ast->one),
-		LLVMConstInt(TYPE_INT, 0, 0),
-		"tmp_not");
+	LLVMValueRef truth;
+
+	truth = LLVMBuildICmp(builder,
+			LLVMIntEQ,
+			codegen(ast->one),
+			ZERO,
+			"tmp_not");
+
+	return LLVMBuildZExt(builder, truth, TYPE_INT, "tmp_zext");
 }
 
 LLVMValueRef gen_ne(struct node *ast)
 {
-	return LLVMBuildICmp(builder,
-		LLVMIntNE,
-		codegen(ast->one),
-		codegen(ast->two),
-		"tmp_ne");
+	LLVMValueRef truth;
+
+	truth = LLVMBuildICmp(builder,
+			LLVMIntNE,
+			codegen(ast->one),
+			codegen(ast->two),
+			"tmp_ne");
+
+	return LLVMBuildZExt(builder, truth, TYPE_INT, "tmp_zext");
 }
 
 LLVMValueRef gen_eq(struct node *ast)
 {
-	return LLVMBuildICmp(builder,
-		LLVMIntEQ,
-		codegen(ast->one),
-		codegen(ast->two),
-		"tmp_eq");
+	LLVMValueRef truth;
+
+	truth = LLVMBuildICmp(builder,
+			LLVMIntEQ,
+			codegen(ast->one),
+			codegen(ast->two),
+			"tmp_eq");
+
+	return LLVMBuildZExt(builder, truth, TYPE_INT, "tmp_zext");
 }
 
 LLVMValueRef gen_and(struct node *ast)
@@ -1095,32 +1110,36 @@ LLVMValueRef gen_eq_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result =  LLVMBuildICmp(builder,
-		LLVMIntEQ,
-		codegen(ast->one),
-		codegen(ast->two),
-		"tmp_eq");
-
+	result = gen_eq(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
+
 	return result;
 }
 
 LLVMValueRef gen_ge(struct node *ast)
 {
-	return LLVMBuildICmp(builder,
-		LLVMIntSGE,
-		codegen(ast->one),
-		codegen(ast->two),
-		"tmp_ge");
+	LLVMValueRef truth;
+
+	truth = LLVMBuildICmp(builder,
+			LLVMIntSGE,
+			codegen(ast->one),
+			codegen(ast->two),
+			"tmp_ge");
+
+	return LLVMBuildZExt(builder, truth, TYPE_INT, "tmp_zext");
 }
 
 LLVMValueRef gen_gt(struct node *ast)
 {
-	return LLVMBuildICmp(builder,
-		LLVMIntSGT,
-		codegen(ast->one),
-		codegen(ast->two),
-		"tmp_gt");
+	LLVMValueRef truth;
+
+	truth = LLVMBuildICmp(builder,
+			LLVMIntSGT,
+			codegen(ast->one),
+			codegen(ast->two),
+			"tmp_gt");
+
+	return LLVMBuildZExt(builder, truth, TYPE_INT, "tmp_zext");
 }
 
 LLVMValueRef gen_or(struct node *ast)
@@ -1133,11 +1152,15 @@ LLVMValueRef gen_or(struct node *ast)
 
 LLVMValueRef gen_le(struct node *ast)
 {
-	return LLVMBuildICmp(builder,
-		LLVMIntSLT,
-		codegen(ast->one),
-		codegen(ast->two),
-		"tmp_gt");
+	LLVMValueRef truth;
+
+	truth = LLVMBuildICmp(builder,
+			LLVMIntSLT,
+			codegen(ast->one),
+			codegen(ast->two),
+			"tmp_gt");
+
+	return LLVMBuildZExt(builder, truth, TYPE_INT, "tmp_zext");
 }
 
 LLVMValueRef gen_left(struct node *ast)
@@ -1191,13 +1214,9 @@ LLVMValueRef gen_ne_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result =  LLVMBuildICmp(builder,
-		LLVMIntNE,
-		codegen(ast->one),
-		codegen(ast->two),
-		"tmp_ne");
-
+	result = gen_ne(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
+
 	return result;
 }
 
