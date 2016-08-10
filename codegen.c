@@ -1173,16 +1173,15 @@ LLVMValueRef gen_name(struct node *ast)
 	LLVMValueRef func, ptr;
 	LLVMTypeRef type;
 
-	ptr = lvalue(ast);
-
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
-	/* TODO: Is there a nicer way of doing this without special casing labels? */
-	/* TODO: Convert function pointers to int */
-	if (LLVMGetTypeKind(LLVMTypeOf(ptr)) == LLVMLabelTypeKind)
+	ptr = lvalue(ast);
+	type = LLVMTypeOf(ptr);
+
+	if (LLVMGetTypeKind(type) == LLVMLabelTypeKind)
 		return LLVMBuildPtrToInt(builder,
-			LLVMBlockAddress(func, (LLVMBasicBlockRef)ptr),
-			TYPE_INT,
-			"");
+				LLVMBlockAddress(func, (LLVMBasicBlockRef)ptr),
+				TYPE_INT,
+				"");
 
 	type = LLVMGetElementType(LLVMTypeOf(ptr));
 
