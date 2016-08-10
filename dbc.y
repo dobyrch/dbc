@@ -49,7 +49,7 @@ program
 	: definition_list
 		{ compile($1); free_tree($1); }
 	| %empty
-		{ yyerror("Empty program\n"); }
+		{ compile(NULL); }
 	;
 
 definition_list
