@@ -693,8 +693,7 @@ static LLVMValueRef make_str(const char *str)
 	if (str)
 		generror("warning: string constant too long");
 
-	/* Terminate string with an EOF char left-aligned in a word */
-	chars[size++] = LLVMConstInt(TYPE_INT, EOF << CHAR_BIT*(MAX_CHARSIZE - 1), 0);
+	chars[size++] = LLVMConstInt(TYPE_INT, (unsigned char)EOF, 0);
 
 	strval = LLVMConstArray(TYPE_ARRAY(size), chars, size);
 	LLVMSetInitializer(global, strval);
