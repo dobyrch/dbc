@@ -28,7 +28,7 @@
 #define TYPE_LABEL LLVMPointerType(LLVMInt8Type(), 0)
 #define TYPE_ARRAY(n) LLVMArrayType(TYPE_INT, (n))
 
-#define ZERO LLVMConstInt(TYPE_INT, 0, 0)
+#define CONST(n) LLVMConstInt(TYPE_INT, (n), 0)
 
 static LLVMBuilderRef builder;
 static LLVMModuleRef module;
@@ -252,7 +252,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		ival_list[i] = codegen(n->one);
 
 	for (i = initsize; i < size; i++)
-		ival_list[i] = ZERO;
+		ival_list[i] = CONST(0);
 
 	global = LLVMGetNamedGlobal(module, ast->one->val);
 	init = LLVMConstArray(TYPE_ARRAY(size), ival_list, size);
@@ -342,7 +342,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	LLVMPositionBuilderAtEnd(builder, body_block);
 
 	retval = LLVMBuildAlloca(builder, TYPE_INT, "");
-	LLVMBuildStore(builder, ZERO, retval);
+	LLVMBuildStore(builder, CONST(0), retval);
 
 	label_count = 0;
 	predeclare_labels(ast->three);
@@ -505,7 +505,7 @@ LLVMValueRef gen_if(struct node *ast)
 	LLVMBasicBlockRef then_block, else_block, end;
 
 	condition = codegen(ast->one);
-	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, ZERO, "");
+	condition = LLVMBuildICmp(builder, LLVMIntNE, condition, CONST(0), "");
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 
 	then_block = LLVMAppendBasicBlock(func, "");
@@ -532,7 +532,7 @@ LLVMValueRef gen_while(struct node *ast)
 	LLVMValueRef condition, func;
 	LLVMBasicBlockRef do_block, end;
 
-	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(ast->one), ZERO, "");
+	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(ast->one), CONST(0), "");
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 	do_block = LLVMAppendBasicBlock(func, "");
 	end = LLVMAppendBasicBlock(func, "");
@@ -541,7 +541,7 @@ LLVMValueRef gen_while(struct node *ast)
 	LLVMPositionBuilderAtEnd(builder, do_block);
 	codegen(ast->two);
 
-	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(ast->one), ZERO, "");
+	condition = LLVMBuildICmp(builder, LLVMIntNE, codegen(ast->one), CONST(0), "");
 	LLVMBuildCondBr(builder, condition, do_block, end);
 
 	LLVMPositionBuilderAtEnd(builder, end);
@@ -886,7 +886,7 @@ LLVMValueRef gen_cond(struct node *ast)
 	truth = LLVMBuildICmp(builder,
 			LLVMIntNE,
 			codegen(ast->one),
-			ZERO,
+			CONST(0),
 			"");
 
 	return LLVMBuildSelect(builder,
@@ -1072,7 +1072,7 @@ LLVMValueRef gen_not(struct node *ast)
 	truth = LLVMBuildICmp(builder,
 			LLVMIntEQ,
 			codegen(ast->one),
-			ZERO,
+			CONST(0),
 			"");
 
 	return LLVMBuildZExt(builder, truth, TYPE_INT, "");
@@ -1082,10 +1082,9 @@ LLVMValueRef gen_preinc(struct node *ast)
 {
 	LLVMValueRef result;
 
-	/* TODO: Add macro for creating constants */
 	result = LLVMBuildAdd(builder,
 		codegen(ast->one),
-		LLVMConstInt(TYPE_INT, 1, 0),
+		CONST(1),
 		"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
@@ -1099,10 +1098,9 @@ LLVMValueRef gen_postinc(struct node *ast)
 
 	orig = codegen(ast->one);
 
-	/* TODO: Add macro for creating constants */
 	result = LLVMBuildAdd(builder,
 		orig,
-		LLVMConstInt(TYPE_INT, 1, 0),
+		CONST(1),
 		"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
@@ -1114,10 +1112,9 @@ LLVMValueRef gen_predec(struct node *ast)
 {
 	LLVMValueRef result;
 
-	/* TODO: Add macro for creating constants */
 	result = LLVMBuildSub(builder,
 		codegen(ast->one),
-		LLVMConstInt(TYPE_INT, 1, 0),
+		CONST(1),
 		"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
@@ -1131,10 +1128,9 @@ LLVMValueRef gen_postdec(struct node *ast)
 
 	orig = codegen(ast->one);
 
-	/* TODO: Add macro for creating constants */
 	result = LLVMBuildSub(builder,
 		orig,
-		LLVMConstInt(TYPE_INT, 1, 0),
+		CONST(1),
 		"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
