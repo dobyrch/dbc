@@ -18,7 +18,7 @@ All operators and statements are implemented, although they haven't all been tho
 
 ~~Only one function may be defined currently (and if you expect that function to do anything, you should probably call it `main` so the linker can find it).~~
 
-String literals were only added recently and suffer from some endianess issues, so don't expect characters to be in the right order when you print them.
+~~String literals were only added recently and suffer from some endianess issues, so don't expect characters to be in the right order when you print them.~~
 
 The library functions in section 8.0 have not been implemented, although clang will happily link your LLVM bitcode against libc instead.  Some functions, like `putchar` and `printf`, are still more or less functional if you know what you're doing.
 
