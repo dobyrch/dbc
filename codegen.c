@@ -10,6 +10,7 @@
 #include <llvm-c/Target.h>
 #include <llvm-c/Analysis.h>
 #include <llvm-c/BitWriter.h>
+#include <llvm-c/Transforms/Scalar.h>
 
 #include "dbc.tab.h"
 #include "astnode.h"
@@ -82,6 +83,8 @@ static void *symtab_find(char *key)
 
 void compile(struct node *ast)
 {
+	LLVMPassManagerRef pass_manager;
+
 	/* TODO: Free module, define "dbc" as constant */
 	if ((module = LLVMModuleCreateWithName("dbc")) == NULL)
 		generror("Failed to create LLVM module");
@@ -93,7 +96,17 @@ void compile(struct node *ast)
 	codegen(ast);
 	printf("\n====================================\n");
 	LLVMDumpModule(module);
+	printf("------------------------------------\n");
+	LLVMVerifyModule(module, LLVMPrintMessageAction, NULL);
 	printf("====================================\n");
+
+	pass_manager = LLVMCreatePassManager();
+	LLVMAddBasicAliasAnalysisPass(pass_manager);
+	LLVMAddInstructionCombiningPass(pass_manager);
+	LLVMAddReassociatePass(pass_manager);
+	LLVMAddGVNPass(pass_manager);
+	LLVMAddCFGSimplificationPass(pass_manager);
+	LLVMRunPassManager(pass_manager, module);
 
 	if (LLVMWriteBitcodeToFile(module, "dbc.bc") != 0) {
 		generror("Failed to write bitcode");
