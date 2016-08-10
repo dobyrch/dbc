@@ -439,30 +439,37 @@ LLVMValueRef gen_mod(struct node *ast)
 		"");
 }
 
-LLVMValueRef gen_auto(struct node *ast)
+LLVMValueRef gen_init(struct node *ast)
 {
-	/* TODO: Warn when using unitialized var */
-	LLVMValueRef var;
 	LLVMTypeRef type;
-	struct node *init_list, *init;
+	LLVMValueRef var;
 	char *name;
 
-	init_list = ast->one;
+	name = ast->one->val;
+	/* TODO: Warn when using unitialized var */
+	/* TODO: replaces calls to atol with function that gets
+	 * value of any constant literal */
+	type = ast->two ? TYPE_ARRAY(atol(ast->two->val)) : TYPE_INT;
+	var = LLVMBuildAlloca(builder, type, name);
 
-	while (init_list) {
-		init = init_list->one;
-		name = init->one->val;
+	symtab_enter(name, var);
 
-		/* TODO: replaces calls to atol with function that gets
-		 * value of any constant literal */
-		type = init->two ? TYPE_ARRAY(atol(init->two->val)) : TYPE_INT;
-		var = LLVMBuildAlloca(builder, type, name);
+	return NULL;
+}
 
-		symtab_enter(name, var);
+LLVMValueRef gen_inits(struct node *ast)
+{
+	codegen(ast->one);
 
-		init_list = init_list->two;
-	}
+	if (ast->two)
+		codegen(ast->two);
 
+	return NULL;
+}
+
+LLVMValueRef gen_auto(struct node *ast)
+{
+	codegen(ast->one);
 	codegen(ast->two);
 
 	return NULL;
@@ -1311,7 +1318,3 @@ LLVMValueRef gen_sub_assign(struct node *ast)
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 	return result;
 }
-
-
-LLVMValueRef gen_init(struct node *ast) { generror("Not yet implemented: gen_init"); return NULL; }
-LLVMValueRef gen_inits(struct node *ast) { generror("Not yet implemented: gen_inits"); return NULL; }

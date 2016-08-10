@@ -162,7 +162,7 @@ init
 	: NAME
 		/*
 		 * TODO: Remove unused gen_* funcs:
-		 * neither gen_init nor gen_name are called in this context
+		 * gen_name is not called in this context
 		 * perhaps call "gen_fail" which prints an error
 		 */
 		{ $$ = node1(gen_init, leafnode(gen_name, $1)); }
