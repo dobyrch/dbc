@@ -576,11 +576,11 @@ LLVMValueRef gen_goto(struct node *ast)
 	int i;
 
 	branch = LLVMBuildIndirectBr(builder,
-		LLVMBuildIntToPtr(builder,
-			codegen(ast->one),
-			TYPE_LABEL,
-			""),
-		label_count);
+			LLVMBuildIntToPtr(builder,
+				codegen(ast->one),
+				TYPE_LABEL,
+				""),
+			label_count);
 
 	for (i = 0; i < label_count; i++)
 		LLVMAddDestination(branch, labels[i]);
@@ -700,9 +700,9 @@ LLVMValueRef gen_mul_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = LLVMBuildMul(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 	return result;
@@ -729,9 +729,9 @@ LLVMValueRef gen_mod_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = LLVMBuildSRem(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 	return result;
@@ -759,9 +759,9 @@ LLVMValueRef gen_sub_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = LLVMBuildSub(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 	return result;
@@ -772,9 +772,9 @@ LLVMValueRef gen_left_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = LLVMBuildShl(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 	return result;
@@ -785,9 +785,9 @@ LLVMValueRef gen_right_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = LLVMBuildLShr(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 	return result;
@@ -798,9 +798,9 @@ LLVMValueRef gen_and_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = LLVMBuildAnd(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 	return result;
@@ -811,9 +811,9 @@ LLVMValueRef gen_or_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = LLVMBuildOr(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 	return result;
@@ -890,26 +890,26 @@ LLVMValueRef gen_cond(struct node *ast)
 			"");
 
 	return LLVMBuildSelect(builder,
-		truth,
-		codegen(ast->two),
-		codegen(ast->three),
-		"");
+			truth,
+			codegen(ast->two),
+			codegen(ast->three),
+			"");
 }
 
 LLVMValueRef gen_or(struct node *ast)
 {
 	return LLVMBuildOr(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 }
 
 LLVMValueRef gen_and(struct node *ast)
 {
 	return LLVMBuildAnd(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 }
 
 LLVMValueRef gen_eq(struct node *ast)
@@ -993,57 +993,57 @@ LLVMValueRef gen_ge(struct node *ast)
 LLVMValueRef gen_left(struct node *ast)
 {
 	return LLVMBuildShl(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 }
 
 LLVMValueRef gen_right(struct node *ast)
 {
 	return LLVMBuildLShr(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 }
 
 LLVMValueRef gen_add(struct node *ast)
 {
 	return LLVMBuildAdd(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 }
 
 LLVMValueRef gen_sub(struct node *ast)
 {
 	return LLVMBuildSub(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 }
 
 LLVMValueRef gen_mul(struct node *ast)
 {
 	return LLVMBuildMul(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 }
 
 LLVMValueRef gen_div(struct node *ast)
 {
 	return LLVMBuildSDiv(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 }
 
 LLVMValueRef gen_mod(struct node *ast)
 {
 	return LLVMBuildSRem(builder,
-		codegen(ast->one),
-		codegen(ast->two),
-		"");
+			codegen(ast->one),
+			codegen(ast->two),
+			"");
 }
 
 LLVMValueRef gen_indir(struct node *ast)
@@ -1061,8 +1061,8 @@ LLVMValueRef gen_addr(struct node *ast)
 LLVMValueRef gen_neg(struct node *ast)
 {
 	return LLVMBuildNeg(builder,
-		codegen(ast->one),
-		"");
+			codegen(ast->one),
+			"");
 }
 
 LLVMValueRef gen_not(struct node *ast)
@@ -1083,9 +1083,9 @@ LLVMValueRef gen_preinc(struct node *ast)
 	LLVMValueRef result;
 
 	result = LLVMBuildAdd(builder,
-		codegen(ast->one),
-		CONST(1),
-		"");
+			codegen(ast->one),
+			CONST(1),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 
@@ -1099,9 +1099,9 @@ LLVMValueRef gen_postinc(struct node *ast)
 	orig = codegen(ast->one);
 
 	result = LLVMBuildAdd(builder,
-		orig,
-		CONST(1),
-		"");
+			orig,
+			CONST(1),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 
@@ -1113,9 +1113,9 @@ LLVMValueRef gen_predec(struct node *ast)
 	LLVMValueRef result;
 
 	result = LLVMBuildSub(builder,
-		codegen(ast->one),
-		CONST(1),
-		"");
+			codegen(ast->one),
+			CONST(1),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 
@@ -1129,9 +1129,9 @@ LLVMValueRef gen_postdec(struct node *ast)
 	orig = codegen(ast->one);
 
 	result = LLVMBuildSub(builder,
-		orig,
-		CONST(1),
-		"");
+			orig,
+			CONST(1),
+			"");
 
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 
@@ -1152,9 +1152,9 @@ LLVMValueRef gen_call(struct node *ast)
 	int arg_count, i;
 
 	func = LLVMBuildBitCast(builder,
-		LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, ""),
-		LLVMPointerType(TYPE_FUNC, 0),
-		"");
+			LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, ""),
+			LLVMPointerType(TYPE_FUNC, 0),
+			"");
 
 	arg_count = count_chain(ast->two);
 	arg_list = calloc(sizeof(LLVMValueRef), arg_count);
