@@ -681,8 +681,9 @@ static LLVMValueRef lvalue(struct node *ast)
 	else if (ast->codegen == gen_index)
 		return lvalue_index(ast);
 	else
-		/* TODO: handle NULL in gen_addr/gen_assign and print "expected lvalue" */
-		return NULL;
+		generror("expected lvalue");
+
+	return NULL;
 }
 
 LLVMValueRef gen_assign(struct node *ast)

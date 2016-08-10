@@ -8,7 +8,7 @@ int64_t b_putchar(int64_t c)
 
 int64_t b_puts(int64_t str)
 {
-	char *s = str;
+	char *s = (char *)str;
 
 	while (*s != EOF) {
 		if (*s != '\0')
