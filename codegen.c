@@ -117,7 +117,7 @@ void compile(struct node *ast)
 
 void free_tree(struct node *ast)
 {
-	/* TODO:  Free while compiling instead? */
+	/* TODO: Free while compiling instead? */
 }
 
 /* TODO: Store necessary globales in struct called "state" */
@@ -1200,7 +1200,7 @@ LLVMValueRef gen_mul_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result =  LLVMBuildMul(builder,
+	result = LLVMBuildMul(builder,
 		codegen(ast->one),
 		codegen(ast->two),
 		"");
@@ -1219,6 +1219,46 @@ LLVMValueRef gen_ne_assign(struct node *ast)
 	return result;
 }
 
+LLVMValueRef gen_lt_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result = gen_lt(ast);
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+
+	return result;
+}
+
+LLVMValueRef gen_le_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result = gen_le(ast);
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+
+	return result;
+}
+
+LLVMValueRef gen_gt_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result = gen_gt(ast);
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+
+	return result;
+}
+
+LLVMValueRef gen_ge_assign(struct node *ast)
+{
+	LLVMValueRef result;
+
+	result = gen_ge(ast);
+	LLVMBuildStore(builder, result, lvalue(ast->one));
+
+	return result;
+}
+
 LLVMValueRef gen_neg(struct node *ast)
 {
 	return LLVMBuildNeg(builder,
@@ -1230,7 +1270,7 @@ LLVMValueRef gen_or_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result =  LLVMBuildOr(builder,
+	result = LLVMBuildOr(builder,
 		codegen(ast->one),
 		codegen(ast->two),
 		"");
@@ -1251,7 +1291,7 @@ LLVMValueRef gen_right_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result =  LLVMBuildLShr(builder,
+	result = LLVMBuildLShr(builder,
 		codegen(ast->one),
 		codegen(ast->two),
 		"");
@@ -1264,7 +1304,7 @@ LLVMValueRef gen_sub_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result =  LLVMBuildSub(builder,
+	result = LLVMBuildSub(builder,
 		codegen(ast->one),
 		codegen(ast->two),
 		"");

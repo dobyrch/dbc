@@ -13,6 +13,8 @@
 %token LEFT_ASSIGN RIGHT_ASSIGN
 %token AND_ASSIGN OR_ASSIGN
 %token EQ_ASSIGN NE_ASSIGN
+%token LT_ASSIGN LE_ASSIGN
+%token GT_ASSIGN GE_ASSIGN
 %token CASE IF ELSE SWITCH WHILE GOTO RETURN
 %token AUTO EXTRN
 
@@ -67,7 +69,7 @@ definition
 simple_definition
 	: NAME ';'
 		{ $$ = node1(gen_simpledef, leafnode(gen_name, $1)); }
-	| NAME  ival_list ';'
+	| NAME ival_list ';'
 		{ $$ = node2(gen_simpledef, leafnode(gen_name, $1), $2); }
 	;
 
@@ -200,6 +202,14 @@ expression
 		{ $$ = node2(gen_eq_assign, $1, $3); }
 	| unary_expression NE_ASSIGN expression
 		{ $$ = node2(gen_ne_assign, $1, $3); }
+	| unary_expression LT_ASSIGN expression
+		{ $$ = node2(gen_lt_assign, $1, $3); }
+	| unary_expression LE_ASSIGN expression
+		{ $$ = node2(gen_le_assign, $1, $3); }
+	| unary_expression GT_ASSIGN expression
+		{ $$ = node2(gen_gt_assign, $1, $3); }
+	| unary_expression GE_ASSIGN expression
+		{ $$ = node2(gen_ge_assign, $1, $3); }
 	| conditional_expression
 	;
 
@@ -232,10 +242,10 @@ equality_expression
 relational_expression
 	: relational_expression '<' shift_expression
 		{ $$ = node2(gen_lt, $1, $3); }
-	| relational_expression '>' shift_expression
-		{ $$ = node2(gen_gt, $1, $3); }
 	| relational_expression LE_OP shift_expression
 		{ $$ = node2(gen_le, $1, $3); }
+	| relational_expression '>' shift_expression
+		{ $$ = node2(gen_gt, $1, $3); }
 	| relational_expression GE_OP shift_expression
 		{ $$ = node2(gen_ge, $1, $3); }
 	| shift_expression
@@ -305,11 +315,11 @@ argument_list
 	;
 
 primary_expression
-	: NAME
+	: '(' expression ')'
+		{ $$ = $2; }
+	| NAME
 		{ $$ = leafnode(gen_name, $1); }
 	| constant
-	| '(' expression ')'
-		{ $$ = $2; }
 	;
 
 constant

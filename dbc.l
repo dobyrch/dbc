@@ -48,6 +48,10 @@ H			[a-fA-F0-9]
 "=|"			{ count(); return(OR_ASSIGN); }
 "==="			{ count(); return(EQ_ASSIGN); }
 "=!="			{ count(); return(NE_ASSIGN); }
+"=<="			{ count(); return(LE_ASSIGN); }
+"=<"			{ count(); return(LT_ASSIGN); }
+"=>="			{ count(); return(GE_ASSIGN); }
+"=>"			{ count(); return(GT_ASSIGN); }
 ">>"			{ count(); return(RIGHT_OP); }
 "<<"			{ count(); return(LEFT_OP); }
 "++"			{ count(); return(INC_OP); }

@@ -1,4 +1,4 @@
-dbc: dbc.y dbc.l astnode.c astnode.h codegen.c  codegen.h
+dbc: dbc.y dbc.l astnode.c astnode.h codegen.c codegen.h
 	bison -v -x -d -t dbc.y
 	flex dbc.l
 	clang `llvm-config --cflags` -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -O0 -g -c astnode.c codegen.c dbc.tab.c lex.yy.c
