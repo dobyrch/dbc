@@ -689,6 +689,7 @@ LLVMValueRef gen_assign(struct node *ast)
 {
 
 	LLVMValueRef result;
+
 	result = codegen(ast->two);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 
@@ -699,26 +700,17 @@ LLVMValueRef gen_mul_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result = LLVMBuildMul(builder,
-			codegen(ast->one),
-			codegen(ast->two),
-			"");
-
+	result = gen_mul(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
+
 	return result;
 }
 
 LLVMValueRef gen_div_assign(struct node *ast)
 {
-	LLVMValueRef result, left, right;
+	LLVMValueRef result;
 
-	left = codegen(ast->one);
-	right = codegen(ast->two);
-
-	if (!left || !right)
-		return NULL;
-
-	result = LLVMBuildSDiv(builder, left, right, "");
+	result = gen_div(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 
 	return result;
@@ -728,27 +720,17 @@ LLVMValueRef gen_mod_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result = LLVMBuildSRem(builder,
-			codegen(ast->one),
-			codegen(ast->two),
-			"");
-
+	result = gen_mod(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
+
 	return result;
 }
 
 LLVMValueRef gen_add_assign(struct node *ast)
 {
-	LLVMValueRef result, left, right;
+	LLVMValueRef result;
 
-	left = codegen(ast->one);
-	right = codegen(ast->two);
-
-	/* TODO: Can left or right ever be null? */
-	if (!left || !right)
-		return NULL;
-
-	result = LLVMBuildAdd(builder, left, right, "");
+	result = gen_add(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 
 	return result;
@@ -758,12 +740,9 @@ LLVMValueRef gen_sub_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result = LLVMBuildSub(builder,
-			codegen(ast->one),
-			codegen(ast->two),
-			"");
-
+	result = gen_sub(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
+
 	return result;
 }
 
@@ -771,12 +750,9 @@ LLVMValueRef gen_left_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result = LLVMBuildShl(builder,
-			codegen(ast->one),
-			codegen(ast->two),
-			"");
-
+	result = gen_left(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
+
 	return result;
 }
 
@@ -784,12 +760,9 @@ LLVMValueRef gen_right_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result = LLVMBuildLShr(builder,
-			codegen(ast->one),
-			codegen(ast->two),
-			"");
-
+	result = gen_right(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
+
 	return result;
 }
 
@@ -797,12 +770,9 @@ LLVMValueRef gen_and_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result = LLVMBuildAnd(builder,
-			codegen(ast->one),
-			codegen(ast->two),
-			"");
-
+	result = gen_and(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
+
 	return result;
 }
 
@@ -810,12 +780,9 @@ LLVMValueRef gen_or_assign(struct node *ast)
 {
 	LLVMValueRef result;
 
-	result = LLVMBuildOr(builder,
-			codegen(ast->one),
-			codegen(ast->two),
-			"");
-
+	result = gen_or(ast);
 	LLVMBuildStore(builder, result, lvalue(ast->one));
+
 	return result;
 }
 
