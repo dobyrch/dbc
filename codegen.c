@@ -692,6 +692,8 @@ LLVMValueRef gen_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = codegen(ast->two);
+	/* TODO: Forbid assignment to labels */
+	/* TODO: Allow assignment to arrays (cast result to type of lvalue)*/
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 
 	return result;
