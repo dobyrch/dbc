@@ -51,5 +51,6 @@ Helpful references
 - [LLVM Language Reference](http://llvm.org/docs/LangRef.html)
 - [LLVM-C API](http://www.llvm.org/docs/doxygen/html/group__LLVMC.html) - These just look like auto-generated docs, so it may be more convenient to read the headers in `/usr/include/llvm-c`
 
+- [ANSI C Yacc grammar](http://www.quut.com/c/ANSI-C-grammar-y.html)
 - [GNU Bison Manual](https://www.gnu.org/software/bison//manual/)
 - [Flex Manual](http://flex.sourceforge.net/manual/)
