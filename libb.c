@@ -6,7 +6,16 @@ int64_t b_putchar(int64_t c)
 	return putchar(c);
 }
 
-int64_t b_puts(int64_t s)
+int64_t b_puts(int64_t str)
 {
-	return puts((char *)s);
+	char *s = str;
+
+	while (*s != EOF) {
+		if (*s != '\0')
+			putchar(*s);
+
+		s++;
+	}
+
+	return 0;
 }

@@ -1197,7 +1197,7 @@ static long long pack_char(const char **str)
 	char c, buf[MAX_CHARSIZE];
 	const char *p;
 
-	p = *str + 1;
+	p = *str;
 
 	while (p[1] != '\0' && size < MAX_CHARSIZE) {
 		c = p[0];
@@ -1217,7 +1217,7 @@ static long long pack_char(const char **str)
 		*str = p;
 
 	for (i = 0; i < size; i++)
-		intval |= buf[i] << CHAR_BIT*(size - i - 1);
+		intval |= buf[i] << CHAR_BIT*i;
 
 	return intval;
 }
@@ -1226,7 +1226,9 @@ static LLVMValueRef make_char(const char *str)
 {
 	LLVMValueRef charval;
 
-	charval = LLVMConstInt(TYPE_INT, pack_char(&str), 0);
+	/* Skip leading ' */
+	str += 1;
+	charval = CONST(pack_char(&str));
 
 	if (str)
 		generror("warning: character constant too long");
@@ -1246,13 +1248,15 @@ static LLVMValueRef make_str(const char *str)
 
 	global = LLVMAddGlobal(module, TYPE_ARRAY(size), str);
 
+	/* Skip leading " */
+	str += 1;
 	while (str && size < MAX_STRSIZE)
-		chars[size++] = LLVMConstInt(TYPE_INT, pack_char(&str), 0);
+		chars[size++] = CONST(pack_char(&str));
 
 	if (str)
 		generror("warning: string constant too long");
 
-	chars[size++] = LLVMConstInt(TYPE_INT, (unsigned char)EOF, 0);
+	chars[size++] = CONST((unsigned char)EOF);
 
 	strval = LLVMConstArray(TYPE_ARRAY(size), chars, size);
 	LLVMSetInitializer(global, strval);
