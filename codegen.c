@@ -180,7 +180,7 @@ static void predeclare_vecdef(struct node *ast)
 	if (initsize > size)
 		size = initsize;
 
-	global = LLVMAddGlobal(module, TYPE_ARRAY(size), ast->one->val);
+	global = LLVMAddGlobal(module, TYPE_INT, ast->one->val);
 	LLVMSetLinkage(global, LLVMExternalLinkage);
 }
 
@@ -225,14 +225,18 @@ LLVMValueRef gen_simpledef(struct node *ast)
 	LLVMValueRef global;
 
 	global = LLVMGetNamedGlobal(module, ast->one->val);
-	LLVMSetInitializer(global, codegen(ast->two));
+
+	if (ast->two)
+		LLVMSetInitializer(global, codegen(ast->two));
+	else
+		LLVMSetInitializer(global, CONST(0));
 
 	return NULL;
 }
 
 LLVMValueRef gen_vecdef(struct node *ast)
 {
-	LLVMValueRef global, init, *ival_list;
+	LLVMValueRef global, array, init, *ival_list;
 	struct node *n;
 	int size, initsize, i;
 
@@ -255,8 +259,17 @@ LLVMValueRef gen_vecdef(struct node *ast)
 		ival_list[i] = CONST(0);
 
 	global = LLVMGetNamedGlobal(module, ast->one->val);
-	init = LLVMConstArray(TYPE_ARRAY(size), ival_list, size);
-	LLVMSetInitializer(global, init);
+	array = LLVMAddGlobal(module, TYPE_ARRAY(size), ".gvec");
+	/* Can external code update the backing array if it's private? */
+	LLVMSetLinkage(array, LLVMPrivateLinkage);
+
+	if (initsize)
+		init = LLVMConstArray(TYPE_ARRAY(size), ival_list, size);
+	else
+		init = LLVMConstNull(TYPE_ARRAY(size));
+
+	LLVMSetInitializer(array, init);
+	LLVMSetInitializer(global, LLVMBuildPtrToInt(builder, array, TYPE_INT, ""));
 
 	return NULL;
 }
