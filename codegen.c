@@ -637,16 +637,22 @@ LLVMValueRef gen_inits(struct node *ast)
 
 LLVMValueRef gen_init(struct node *ast)
 {
-	LLVMTypeRef type;
-	LLVMValueRef var;
+	LLVMValueRef var, array;
 	char *name;
+	int size;
 
 	name = ast->one->val;
 	/* TODO: Warn when using unitialized var */
 	/* TODO: replaces calls to atol with function that gets
 	 * value of any constant literal */
-	type = ast->two ? TYPE_ARRAY(atol(ast->two->val)) : TYPE_INT;
-	var = LLVMBuildAlloca(builder, type, name);
+	var = LLVMBuildAlloca(builder, TYPE_INT, name);
+
+	if (ast->two) {
+		size = atol(ast->two->val);
+		array = LLVMBuildAlloca(builder, TYPE_ARRAY(size), "");
+		array = LLVMBuildPtrToInt(builder, array, TYPE_INT, "");
+		LLVMBuildStore(builder, array, var);
+	}
 
 	symtab_enter(name, var);
 
@@ -706,7 +712,6 @@ LLVMValueRef gen_assign(struct node *ast)
 
 	result = codegen(ast->two);
 	/* TODO: Forbid assignment to labels */
-	/* TODO: Allow assignment to arrays (cast result to type of lvalue)*/
 	LLVMBuildStore(builder, result, lvalue(ast->one));
 
 	return result;
