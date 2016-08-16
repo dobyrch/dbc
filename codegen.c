@@ -1214,11 +1214,11 @@ static char escape(char c)
 	}
 }
 
-static long long pack_char(const char **str)
+static long pack_char(const char **str)
 {
 	union {
 		char buf[MAX_CHARSIZE];
-		long long intval;
+		long intval;
 	} pack = {{0}};
 
 	const char *p;
