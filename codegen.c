@@ -356,6 +356,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 
 	global = LLVMGetNamedGlobal(module, ast->one->val);
 	LLVMSetInitializer(global, LLVMBuildPtrToInt(builder, func, TYPE_INT, ""));
+	symtab_enter(ast->one->val, global);
 
 	body_block = LLVMAppendBasicBlock(func, "");
 	ret_block = LLVMAppendBasicBlock(func, "");
