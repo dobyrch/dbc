@@ -1,5 +1,22 @@
 #include <asm/unistd.h>
 
+#define WORDSIZE 8
+#define STDOUT 1
+
+extern int main();
+
+static long b_char(long str, long i);
+static long b_putchar(long c);
+
+/*
+ * In B, the type of a variable declared as `extrn` is not known at
+ * compile time; the compiler assumes every variable is an integer.
+ * In order for the linker to find externally defined functions,
+ * their addresses must be stored in an object type.
+ */
+void *char_ = &b_char;
+void *putchar = &b_putchar;
+
 static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5, long a6)
 {
 	register long rax asm("rax") = sc;
@@ -24,17 +41,24 @@ static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5
 	return rax;
 }
 
+static long b_char(long str, long i)
+{
+	const char *p;
+
+	p = (char *)str;
+
+	return p[i];
+}
+
 static long b_putchar(long c)
 {
-	/* TODO: put MAX_CHARSIZE (renamed to WORDSIZE) in shared header */
-	char buf[8];
+	char buf[WORDSIZE];
 	const char *p;
 	int i, n = 0;
 
 	p = (char *)&c;
 
-	/* TODO: ...and remove this magic number */
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < WORDSIZE; i++) {
 		if (*p == '\0')
 			continue;
 
@@ -49,16 +73,11 @@ static long b_putchar(long c)
 	 * probably be defined as unsigned char to save from typing out
 	 * the cast here and in codegen.c
 	 */
-	if (syscall_x86_64(__NR_write, 1, (long)buf, n, 0, 0, 0) != n)
+	if (syscall_x86_64(__NR_write, STDOUT, (long)buf, n, 0, 0, 0) != n)
 		return (unsigned char) -1;
 
 	return c;
 }
-
-
-void *putchar = &b_putchar;
-
-extern int main();
 
 void _start()
 {
