@@ -1265,6 +1265,7 @@ static LLVMValueRef make_char(const char *str)
 static LLVMValueRef make_str(const char *str)
 {
 	LLVMValueRef global, strval, chars[MAX_STRSIZE + 1];
+	const char *p;
 	int size = 0;
 
 	global = LLVMGetNamedGlobal(module, str);
@@ -1272,23 +1273,23 @@ static LLVMValueRef make_str(const char *str)
 	if (global)
 		return global;
 
-	global = LLVMAddGlobal(module, TYPE_ARRAY(size), str);
-
 	/* Skip leading " */
-	str += 1;
-	while (str && size < MAX_STRSIZE)
-		chars[size++] = CONST(pack_char(&str));
+	p = str + 1;
+	while (p && size < MAX_STRSIZE)
+		chars[size++] = CONST(pack_char(&p));
 
-	if (str)
+	if (p)
 		generror("warning: string constant too long");
 
 	chars[size++] = CONST((unsigned char)EOF);
 
-	strval = LLVMConstArray(TYPE_ARRAY(size), chars, size);
-	LLVMSetInitializer(global, strval);
+	global = LLVMAddGlobal(module, TYPE_ARRAY(size), str);
 	LLVMSetLinkage(global, LLVMPrivateLinkage);
 
-	return global;
+	strval = LLVMConstArray(TYPE_ARRAY(size), chars, size);
+	LLVMSetInitializer(global, strval);
+
+	return LLVMBuildPtrToInt(builder, global, TYPE_INT, "");
 }
 
 LLVMValueRef gen_const(struct node *ast)
