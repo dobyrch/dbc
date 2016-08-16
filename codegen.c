@@ -16,7 +16,7 @@
 
 /* TODO: Dynamic memory allocation */
 #define MAX_STRSIZE 1024
-#define MAX_CHARSIZE 4
+#define MAX_CHARSIZE 8
 #define SYMTAB_SIZE 1024
 #define MAX_LABELS 256
 #define MAX_CASES 256
@@ -106,6 +106,8 @@ void compile(struct node *ast)
 
 	if ((builder = LLVMCreateBuilder()) == NULL)
 		generror("Failed to create LLVM instruction builder");
+
+	LLVMSetTarget(module, "x86_64-unknown-linux-gnu");
 
 	if (ast)
 		codegen(ast);
@@ -455,7 +457,7 @@ LLVMValueRef gen_extrn(struct node *ast)
 			global = LLVMGetNamedGlobal(module, name);
 
 		if (global == NULL)
-			global = LLVMAddGlobal(module, TYPE_FUNC, name);
+			global = LLVMAddGlobal(module, TYPE_INT, name);
 
 		symtab_enter(name, global);
 
@@ -1212,15 +1214,18 @@ static char escape(char c)
 
 static long long pack_char(const char **str)
 {
+	union {
+		char buf[MAX_CHARSIZE];
+		long long intval;
+	} pack = {{0}};
 
-	long long intval = 0;
-	int i, size = 0;
-	char c, buf[MAX_CHARSIZE];
 	const char *p;
+	int n = 0;
+	char c;
 
 	p = *str;
 
-	while (p[1] != '\0' && size < MAX_CHARSIZE) {
+	while (p[1] != '\0' && n < MAX_CHARSIZE) {
 		c = p[0];
 
 		if (c == '*') {
@@ -1228,7 +1233,8 @@ static long long pack_char(const char **str)
 			p++;
 		}
 
-		buf[size++] = c;
+		pack.buf[n] = c;
+		n++;
 		p++;
 	}
 
@@ -1237,10 +1243,7 @@ static long long pack_char(const char **str)
 	else
 		*str = p;
 
-	for (i = 0; i < size; i++)
-		intval |= buf[i] << CHAR_BIT*i;
-
-	return intval;
+	return pack.intval;
 }
 
 static LLVMValueRef make_char(const char *str)
