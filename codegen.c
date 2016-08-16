@@ -400,7 +400,9 @@ LLVMValueRef gen_ivals(struct node *ast)
 	for (i = 0; i < size; i++, ast = ast->two)
 		ival_list[i] = codegen(ast->one);
 
-	return LLVMConstArray(TYPE_ARRAY(size), ival_list, size);
+	/* TODO: Figure out how to initialize int with vector without error */
+	/*return LLVMConstArray(TYPE_ARRAY(size), ival_list, size);*/
+	return size ? ival_list[0] : CONST(0);
 }
 
 LLVMValueRef gen_names(struct node *ast)
