@@ -31,7 +31,7 @@ static long b_putchar(long c)
 	const char *p;
 	int i, n = 0;
 
-	p = &c;
+	p = (char *)&c;
 
 	/* TODO: ...and remove this magic number */
 	for (i = 0; i < 8; i++) {
@@ -49,7 +49,7 @@ static long b_putchar(long c)
 	 * probably be defined as unsigned char to save from typing out
 	 * the cast here and in codegen.c
 	 */
-	if (syscall_x86_64(__NR_write, 1, buf, n, 0, 0, 0) != n)
+	if (syscall_x86_64(__NR_write, 1, (long)buf, n, 0, 0, 0) != n)
 		return (unsigned char) -1;
 
 	return c;
