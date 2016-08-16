@@ -88,6 +88,18 @@ static void *symtab_find(char *key)
 	return symtab_entry ? symtab_entry->data : NULL;
 }
 
+static void *find_or_add_global(const char *name)
+{
+	LLVMValueRef global;
+
+	global = LLVMGetNamedGlobal(module, name);
+
+	if (global == NULL)
+		global = LLVMAddGlobal(module, TYPE_INT, name);
+
+	return global;
+}
+
 static int count_chain(struct node *ast)
 {
 	if (ast == NULL)
@@ -136,73 +148,8 @@ void free_tree(struct node *ast)
 	/* TODO: Free while compiling instead? */
 }
 
-static void predeclare_funcdef(struct node *ast)
-{
-	/* TODO: Merge all predeclarations */
-	/* Are predeclarations still necessary? */
-	LLVMValueRef global;
-
-	global = LLVMAddGlobal(module, TYPE_INT, ast->one->val);
-	LLVMSetLinkage(global, LLVMExternalLinkage);
-}
-
-static void predeclare_simpledef(struct node *ast)
-{
-	LLVMValueRef global;
-
-	global = LLVMAddGlobal(module, TYPE_INT, ast->one->val);
-	LLVMSetLinkage(global, LLVMExternalLinkage);
-}
-
-static void predeclare_vecdef(struct node *ast)
-{
-	LLVMValueRef global;
-	int size, initsize;
-
-	initsize = count_chain(ast->three);
-	size = ast->two ? atol(ast->two->val) : 0;
-	/*
-	 * TODO: check that type is not string;
-	 * use convenience function for handling
-	 * chars and octal constants
-	 * TODO: Check for invalid (negative) array size
-	 */
-
-	if (initsize > size)
-		size = initsize;
-
-	global = LLVMAddGlobal(module, TYPE_INT, ast->one->val);
-	LLVMSetLinkage(global, LLVMExternalLinkage);
-}
-
-static void predeclare_defs(struct node *ast)
-{
-	/* TODO: Check for duplicated names */
-	if (ast->one->codegen == gen_funcdef)
-		predeclare_funcdef(ast->one);
-
-	else if (ast->one->codegen == gen_simpledef)
-		predeclare_simpledef(ast->one);
-
-	else if (ast->one->codegen == gen_vecdef)
-		predeclare_vecdef(ast->one);
-
-	else
-		generror("Unexpected definition type");
-
-	if (ast->two)
-		predeclare_defs(ast->two);
-}
-
 LLVMValueRef gen_defs(struct node *ast)
 {
-	static int first_time = 1;
-
-	if (first_time) {
-		predeclare_defs(ast);
-		first_time = 0;
-	}
-
 	codegen(ast->one);
 
 	if (ast->two)
@@ -215,7 +162,7 @@ LLVMValueRef gen_simpledef(struct node *ast)
 {
 	LLVMValueRef global;
 
-	global = LLVMGetNamedGlobal(module, ast->one->val);
+	global = find_or_add_global(ast->one->val);
 
 	if (ast->two)
 		LLVMSetInitializer(global, codegen(ast->two));
@@ -231,6 +178,11 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	struct node *n;
 	int size, initsize, i;
 
+	/*
+	 * TODO: Use convenience function for handling
+	 * chars and octal constants
+	 * TODO: Check for invalid (negative) array size
+	 */
 	initsize = count_chain(ast->three);
 	size = ast->two ? atol(ast->two->val) : 0;
 
@@ -249,7 +201,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	for (i = initsize; i < size; i++)
 		ival_list[i] = CONST(0);
 
-	global = LLVMGetNamedGlobal(module, ast->one->val);
+	global = find_or_add_global(ast->one->val);
 	array = LLVMAddGlobal(module, TYPE_ARRAY(size), ".gvec");
 	/* Can external code update the backing array if it's private? */
 	LLVMSetLinkage(array, LLVMPrivateLinkage);
@@ -354,7 +306,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	func = LLVMAddFunction(module, ".gfunc", func_type);
 	LLVMSetLinkage(func, LLVMPrivateLinkage);
 
-	global = LLVMGetNamedGlobal(module, ast->one->val);
+	global = find_or_add_global(ast->one->val);
 	LLVMSetInitializer(global, LLVMBuildPtrToInt(builder, func, TYPE_INT, ""));
 	symtab_enter(ast->one->val, global);
 
@@ -458,12 +410,7 @@ LLVMValueRef gen_extrn(struct node *ast)
 
 	while (name_list) {
 		name = name_list->one->val;
-
-		global = LLVMGetNamedGlobal(module, name);
-
-		if (global == NULL)
-			global = LLVMAddGlobal(module, TYPE_INT, name);
-
+		global = find_or_add_global(name);
 		symtab_enter(name, global);
 
 		name_list = name_list->two;
