@@ -28,7 +28,7 @@ Differences Between B and C
 - Reversed assignment operators: B uses `x =+ 2`, not `x += 2`
 - B also has assignment operators for comparisons: `x =< 2` stores the result of `x < 2` in x; `x === 2` (that's right, triple `=`) stores the result of `x == 2` in x
 - The escape character is `*`, not `\`: `'*n'` is a newline character
-- Function definitions don't require braces for a single statement: `main() printf("hello world");` is a valid B program
+- Function definitions don't require braces for a single statement: `main() extrn printf; printf("hello world");` is a valid B program (a declaration follow by a statement is, in fact, a single statement)
 - No types: all values are the same width
 - As a consequence of the previous point, character literals may contain more than one character, so `putchar('ab')` is perfectly fine; interestingly, so-called "multichars" are also valid C, since character literals in C are actually integers (although `putchar` on my system only prints the last character)
 - Variables *must* be declared with either `auto` or `extrn`, unlike in C where the storage class specifier is usually implicit (since B doesn't have types, those keywords are necessary to indicate a declaration)
