@@ -22,6 +22,7 @@
 %type <ast> simple_definition vector_definition function_definition
 %type <ast> ival_list ival
 %type <ast> statement_list statement
+%type <ast> expression_statement other_statement
 %type <ast> init_list init
 %type <ast> name_list
 %type <ast> expression conditional_expression
@@ -112,6 +113,15 @@ statement_list
 	;
 
 statement
+	: expression_statement
+	| other_statement
+	;
+
+expression_statement
+	: expression ';'
+	;
+
+other_statement
 	: AUTO init_list ';' statement
 		{ $$ = node2(gen_auto, $2, $4); }
 	| EXTRN name_list ';' statement
@@ -134,8 +144,8 @@ statement
 
 	| WHILE '(' expression ')' statement
 		{ $$ = node2(gen_while, $3, $5); }
-	| SWITCH '(' expression ')' statement
-		{ $$ = node2(gen_switch, $3, $5); }
+	| SWITCH expression other_statement
+		{ $$ = node2(gen_switch, $2, $3); }
 	| GOTO NAME ';'
 		{ $$ = node1(gen_goto, leafnode(gen_name, $2)); }
 
@@ -144,7 +154,6 @@ statement
 	| RETURN '(' expression ')' ';'
 		{ $$ = node1(gen_return, $3); }
 
-	| expression ';'
 	| ';'
 		{ $$ = node0(gen_null); }
 	;
