@@ -138,23 +138,12 @@ void free_tree(struct node *ast)
 
 static void predeclare_funcdef(struct node *ast)
 {
-	LLVMValueRef func;
-	LLVMTypeRef func_type, *param_types;
-	int param_count, i;
+	/* TODO: Merge all predeclarations */
+	/* Are predeclarations still necessary? */
+	LLVMValueRef global;
 
-	param_count = count_chain(ast->two);
-	param_types = calloc(sizeof(LLVMTypeRef), param_count);
-
-	if (param_count > 0 && param_types == NULL)
-		generror("out of memory");
-
-	for (i = 0; i < param_count; i++)
-		param_types[i] = TYPE_INT;
-
-	func_type = LLVMFunctionType(TYPE_INT, param_types, param_count, 0);
-
-	func = LLVMAddFunction(module, ast->one->val, func_type);
-	LLVMSetLinkage(func, LLVMExternalLinkage);
+	global = LLVMAddGlobal(module, TYPE_INT, ast->one->val);
+	LLVMSetLinkage(global, LLVMExternalLinkage);
 }
 
 static void predeclare_simpledef(struct node *ast)
@@ -344,13 +333,29 @@ static void predeclare_switches(struct node *ast)
 
 LLVMValueRef gen_funcdef(struct node *ast)
 {
-	LLVMValueRef func;
+	LLVMValueRef global, func;
+	LLVMTypeRef func_type, *param_types;
 	LLVMBasicBlockRef body_block;
+	int param_count, i;
 
 	if (hcreate(SYMTAB_SIZE) == 0)
 		generror("Failed to allocate space for symbol table");
 
-	func = LLVMGetNamedFunction(module, ast->one->val);
+	param_count = count_chain(ast->two);
+	param_types = calloc(sizeof(LLVMTypeRef), param_count);
+
+	if (param_count > 0 && param_types == NULL)
+		generror("out of memory");
+
+	for (i = 0; i < param_count; i++)
+		param_types[i] = TYPE_INT;
+
+	func_type = LLVMFunctionType(TYPE_INT, param_types, param_count, 0);
+	func = LLVMAddFunction(module, ".gfunc", func_type);
+	LLVMSetLinkage(func, LLVMPrivateLinkage);
+
+	global = LLVMGetNamedGlobal(module, ast->one->val);
+	LLVMSetInitializer(global, LLVMBuildPtrToInt(builder, func, TYPE_INT, ""));
 
 	body_block = LLVMAppendBasicBlock(func, "");
 	ret_block = LLVMAppendBasicBlock(func, "");
@@ -1180,9 +1185,6 @@ LLVMValueRef gen_name(struct node *ast)
 	switch (LLVMGetTypeKind(type)) {
 		case LLVMIntegerTypeKind:
 			return LLVMBuildLoad(builder, ptr, ast->val);
-		case LLVMArrayTypeKind:
-		case LLVMFunctionTypeKind:
-			return LLVMBuildPtrToInt(builder, ptr, TYPE_INT, "");
 		default:
 			generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
 			return NULL;

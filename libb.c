@@ -3,7 +3,6 @@
 #define WORDSIZE 8
 #define STDOUT 1
 
-extern int main();
 
 static long b_char(long str, long i);
 static long b_putchar(long c);
@@ -14,6 +13,7 @@ static long b_putchar(long c);
  * In order for the linker to find externally defined functions,
  * their addresses must be stored in an object type.
  */
+extern void *main;
 void *char_ = &b_char;
 void *putchar = &b_putchar;
 
@@ -81,7 +81,7 @@ static long b_putchar(long c)
 
 void _start()
 {
-	int status = main();
+	long status = ((long (*)(void))main)();
 
 	syscall_x86_64(__NR_exit, status, 0, 0, 0, 0, 0);
 }
