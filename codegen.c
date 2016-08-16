@@ -459,10 +459,7 @@ LLVMValueRef gen_extrn(struct node *ast)
 	while (name_list) {
 		name = name_list->one->val;
 
-		global = LLVMGetNamedFunction(module, name);
-
-		if (global == NULL)
-			global = LLVMGetNamedGlobal(module, name);
+		global = LLVMGetNamedGlobal(module, name);
 
 		if (global == NULL)
 			global = LLVMAddGlobal(module, TYPE_INT, name);
