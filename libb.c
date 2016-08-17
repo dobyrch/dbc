@@ -28,7 +28,7 @@ static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5
 	register long r9  asm("r9")  = a6;
 
 	asm volatile (
-		"syscall\n\t" :
+		"syscall" :
 		"+r" (rax) :
 		"r" (rdi),
 		"r" (rsi),
