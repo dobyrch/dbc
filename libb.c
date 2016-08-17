@@ -43,9 +43,9 @@ static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5
 
 static long b_char(long str, long i)
 {
-	const char *p;
+	const unsigned char *p;
 
-	p = (char *)str;
+	p = (unsigned char *)str;
 
 	return p[i];
 }
