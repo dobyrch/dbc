@@ -20,7 +20,6 @@
 #define SYMTAB_SIZE 1024
 #define MAX_LABELS 256
 #define MAX_CASES 256
-#define MAX_SWITCHES 64
 
 #define TYPE_INT LLVMInt64Type()
 #define TYPE_PTR LLVMPointerType(TYPE_INT, 0)
@@ -36,11 +35,10 @@ static LLVMModuleRef module;
 /* TODO: Store necessary globales in struct called "state" */
 static LLVMValueRef retval;
 static LLVMBasicBlockRef ret_block;
+static LLVMValueRef case_vals[MAX_CASES];
+static LLVMBasicBlockRef case_blocks[MAX_CASES];
 static LLVMBasicBlockRef labels[MAX_LABELS];
-static LLVMBasicBlockRef cases[MAX_SWITCHES][MAX_CASES];
-static LLVMValueRef switches[MAX_SWITCHES];
-static int case_count[MAX_SWITCHES];
-static int label_count, switch_count, case_i;
+static int label_count, case_count;
 
 /* TODO: Separate functions for internal compiler error, code error, code warning, etc. */
 /* TODO: Colorize output */
@@ -248,41 +246,6 @@ static void predeclare_labels(struct node *ast)
 	}
 }
 
-static void predeclare_switches(struct node *ast)
-{
-	LLVMValueRef func;
-
-	if (ast->one)
-		predeclare_switches(ast->one);
-
-	if (ast->two)
-		predeclare_switches(ast->two);
-
-	/* TODO: Will ast->three ever exist in this context? */
-	if (ast->three)
-		predeclare_switches(ast->three);
-
-	if (ast->codegen == gen_case) {
-		/*
-		if (switch_count == 0)
-			generror("Warning: 'case' statement not in switch statement");
-		*/
-
-		func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
-		cases[switch_count][case_count[switch_count]] = LLVMAppendBasicBlock(func, "");
-		case_count[switch_count]++;
-
-		if (case_count[switch_count] >= MAX_CASES)
-			generror("Maximum number of cases exceeded");
-
-	} else if (ast->codegen == gen_switch) {
-		switch_count++;
-
-		if (switch_count >= MAX_SWITCHES)
-			generror("Maximum number of switches exceeded");
-	}
-}
-
 LLVMValueRef gen_funcdef(struct node *ast)
 {
 	LLVMValueRef global, func;
@@ -319,10 +282,6 @@ LLVMValueRef gen_funcdef(struct node *ast)
 
 	label_count = 0;
 	predeclare_labels(ast->three);
-
-	switch_count = 0;
-	predeclare_switches(ast->three);
-	switch_count = 0;
 
 	if (ast->two)
 		codegen(ast->two);
@@ -441,18 +400,25 @@ LLVMValueRef gen_label(struct node *ast)
 
 LLVMValueRef gen_case(struct node *ast)
 {
-	LLVMBasicBlockRef case_block, prev_block;
+	LLVMValueRef func;
+	LLVMBasicBlockRef this_block, next_block;
 
-	prev_block = LLVMGetInsertBlock(builder);
-	case_block = cases[switch_count][case_i];
-	LLVMAddCase(switches[switch_count], codegen(ast->one), case_block);
+	this_block = LLVMGetInsertBlock(builder);
+	func = LLVMGetBasicBlockParent(this_block);
+	next_block = LLVMAppendBasicBlock(func, "");
+	LLVMMoveBasicBlockAfter(next_block, this_block);
 
-	LLVMMoveBasicBlockAfter(case_block, prev_block);
-	if (case_i > 0)
-		LLVMBuildBr(builder, case_block);
-	LLVMPositionBuilderAtEnd(builder, case_block);
+	case_blocks[case_count] = next_block;
+	case_vals[case_count] = codegen(ast->one);
 
-	case_i++;
+	LLVMBuildBr(builder, next_block);
+	LLVMPositionBuilderAtEnd(builder, next_block);
+
+	case_count++;
+
+	if (case_count >= MAX_CASES)
+		generror("Case table overflow");
+
 	codegen(ast->two);
 
 	return NULL;
@@ -518,20 +484,31 @@ LLVMValueRef gen_while(struct node *ast)
 
 LLVMValueRef gen_switch(struct node *ast)
 {
-	LLVMValueRef func;
-	LLVMBasicBlockRef next_block;
+	LLVMValueRef func, switch_;
+	LLVMBasicBlockRef this_block, switch_first_block, switch_last_block, end_block;
+	int i;
 
-	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
-	next_block = LLVMAppendBasicBlock(func, "");
+	this_block = LLVMGetInsertBlock(builder);
+	func = LLVMGetBasicBlockParent(this_block);
+	switch_first_block = LLVMAppendBasicBlock(func, "");
+	LLVMPositionBuilderAtEnd(builder, switch_first_block);
 
-	switches[switch_count] = LLVMBuildSwitch(builder, codegen(ast->one), next_block, case_count[switch_count]);
-	case_i = 0;
+	case_count = 0;
 	codegen(ast->two);
 
-	LLVMPositionBuilderAtEnd(builder, cases[switch_count][case_count[switch_count]-1]);
-	LLVMBuildBr(builder, next_block);
-	LLVMPositionBuilderAtEnd(builder, next_block);
-	switch_count++;
+	switch_last_block = LLVMGetLastBasicBlock(func);
+	end_block = LLVMAppendBasicBlock(func, "");
+
+	LLVMPositionBuilderAtEnd(builder, switch_last_block);
+	LLVMBuildBr(builder, end_block);
+
+	LLVMPositionBuilderAtEnd(builder, this_block);
+	switch_ = LLVMBuildSwitch(builder, codegen(ast->one), end_block, case_count);
+
+	for (i = 0; i < case_count; i++)
+		LLVMAddCase(switch_, case_vals[i], case_blocks[i]);
+
+	LLVMPositionBuilderAtEnd(builder, end_block);
 
 	return NULL;
 }
