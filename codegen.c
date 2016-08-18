@@ -545,7 +545,10 @@ LLVMValueRef gen_goto(struct node *ast)
 	int i;
 
 	branch = LLVMBuildIndirectBr(builder,
-			rvalue_to_lvalue(codegen(ast->one)),
+			LLVMBuildIntToPtr(builder,
+				codegen(ast->one),
+				TYPE_LABEL,
+				""),
 			label_count);
 
 	for (i = 0; i < label_count; i++)
@@ -1116,7 +1119,10 @@ LLVMValueRef gen_name(struct node *ast)
 	type = LLVMTypeOf(ptr);
 
 	if (LLVMGetTypeKind(type) == LLVMLabelTypeKind)
-		return lvalue_to_rvalue(LLVMBlockAddress(func, (LLVMBasicBlockRef)ptr));
+		return LLVMBuildPtrToInt(builder,
+				LLVMBlockAddress(func, (LLVMBasicBlockRef)ptr),
+				TYPE_INT,
+				"");
 
 	type = LLVMGetElementType(LLVMTypeOf(ptr));
 
