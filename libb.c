@@ -1,4 +1,5 @@
 #include <asm/unistd.h>
+#include "constants.h"
 
 #define WORDSIZE 8
 #define STDOUT 1
@@ -65,14 +66,8 @@ static long b_putchar(long c)
 		p++;
 	}
 
-	/*
-	 * TODO: Add header that defines EOF, STDOUT, and other constants
-	 * (since stdlib headers can't be included here); EOF should
-	 * probably be defined as unsigned char to save from typing out
-	 * the cast here and in codegen.c
-	 */
 	if (syscall_x86_64(__NR_write, STDOUT, (long)buf, n, 0, 0, 0) != n)
-		return (unsigned char) -1;
+		return -1;
 
 	return c;
 }
@@ -101,7 +96,7 @@ void _start()
 		while (*p != '\0')
 			p++;
 
-		*p = (unsigned char) -1;
+		*p = EOT;
 	}
 
 	status = main();

@@ -13,6 +13,7 @@
 #include "dbc.tab.h"
 #include "astnode.h"
 #include "codegen.h"
+#include "constants.h"
 
 #define WORDPOW 3
 #define WORDSIZE (1 << WORDPOW)
@@ -1148,8 +1149,7 @@ static char escape(char c)
 	case '0':
 		return '\0';
 	case 'e':
-		/* USE EOT, not EOF */
-		return EOF;
+		return EOT;
 	case '(':
 		return '{';
 	case ')':
@@ -1235,7 +1235,7 @@ static LLVMValueRef make_str(const char *str)
 	if (p)
 		generror("warning: string constant too long");
 
-	chars[size++] = CONST((unsigned char)EOF);
+	chars[size++] = CONST(EOT);
 
 	global = LLVMAddGlobal(module, TYPE_ARRAY(size), str);
 	LLVMSetLinkage(global, LLVMPrivateLinkage);
