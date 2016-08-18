@@ -59,6 +59,14 @@ static void generror(const char *msg, ...)
 	exit(EXIT_FAILURE);
 }
 
+static int count_chain(struct node *ast)
+{
+	if (ast == NULL)
+		return 0;
+
+	return 1 + count_chain(ast->two);
+}
+
 static void symtab_enter(char *key, void *data)
 {
 
@@ -99,12 +107,12 @@ static void *find_or_add_global(const char *name)
 	return global;
 }
 
-static int count_chain(struct node *ast)
+static void check_store(LLVMValueRef rvalue, LLVMValueRef lvalue)
 {
-	if (ast == NULL)
-		return 0;
+	if (LLVMIsAGlobalValue(lvalue))
+		rvalue = LLVMBuildShl(builder, rvalue, CONST(WORDPOW), "");
 
-	return 1 + count_chain(ast->two);
+	LLVMBuildStore(builder, rvalue, lvalue);
 }
 
 static LLVMValueRef rvalue_to_lvalue(LLVMValueRef rvalue)
@@ -656,7 +664,7 @@ LLVMValueRef gen_assign(struct node *ast)
 
 	result = codegen(ast->two);
 	/* TODO: Forbid assignment to labels */
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -666,7 +674,7 @@ LLVMValueRef gen_mul_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_mul(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -676,7 +684,7 @@ LLVMValueRef gen_div_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_div(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -686,7 +694,7 @@ LLVMValueRef gen_mod_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_mod(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -696,7 +704,7 @@ LLVMValueRef gen_add_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_add(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -706,7 +714,7 @@ LLVMValueRef gen_sub_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_sub(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -716,7 +724,7 @@ LLVMValueRef gen_left_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_left(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -726,7 +734,7 @@ LLVMValueRef gen_right_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_right(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -736,7 +744,7 @@ LLVMValueRef gen_and_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_and(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -746,7 +754,7 @@ LLVMValueRef gen_or_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_or(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -756,7 +764,7 @@ LLVMValueRef gen_eq_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_eq(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -766,7 +774,7 @@ LLVMValueRef gen_ne_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_ne(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -776,7 +784,7 @@ LLVMValueRef gen_lt_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_lt(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -786,7 +794,7 @@ LLVMValueRef gen_le_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_le(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -796,7 +804,7 @@ LLVMValueRef gen_gt_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_gt(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -806,7 +814,7 @@ LLVMValueRef gen_ge_assign(struct node *ast)
 	LLVMValueRef result;
 
 	result = gen_ge(ast);
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -1017,7 +1025,7 @@ LLVMValueRef gen_preinc(struct node *ast)
 			CONST(1),
 			"");
 
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -1033,7 +1041,7 @@ LLVMValueRef gen_postinc(struct node *ast)
 			CONST(1),
 			"");
 
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return orig;
 }
@@ -1047,7 +1055,7 @@ LLVMValueRef gen_predec(struct node *ast)
 			CONST(1),
 			"");
 
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return result;
 }
@@ -1063,7 +1071,7 @@ LLVMValueRef gen_postdec(struct node *ast)
 			CONST(1),
 			"");
 
-	LLVMBuildStore(builder, result, lvalue(ast->one));
+	check_store(result, lvalue(ast->one));
 
 	return orig;
 }
