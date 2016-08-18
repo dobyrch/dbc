@@ -146,8 +146,8 @@ other_statement
 		{ $$ = node2(gen_while, $3, $5); }
 	| SWITCH expression other_statement
 		{ $$ = node2(gen_switch, $2, $3); }
-	| GOTO NAME ';'
-		{ $$ = node1(gen_goto, leafnode(gen_name, $2)); }
+	| GOTO expression ';'
+		{ $$ = node1(gen_goto, $2); }
 
 	| RETURN ';'
 		{ $$ = node0(gen_return); }
