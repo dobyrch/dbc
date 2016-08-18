@@ -177,14 +177,12 @@ LLVMValueRef gen_defs(struct node *ast)
 
 LLVMValueRef gen_simpledef(struct node *ast)
 {
-	LLVMValueRef global;
+	LLVMValueRef global, init;
 
 	global = find_or_add_global(ast->one->val);
+	init = LLVMConstShl(codegen(ast->two), CONST(WORDPOW));
 
-	if (ast->two)
-		LLVMSetInitializer(global, LLVMConstShl(codegen(ast->two), CONST(3)));
-	else
-		LLVMSetInitializer(global, CONST(0));
+	LLVMSetInitializer(global, init);
 
 	return NULL;
 }
@@ -600,11 +598,7 @@ LLVMValueRef gen_init(struct node *ast)
 	if (ast->two) {
 		size = atol(ast->two->val);
 		array = LLVMBuildAlloca(builder, TYPE_ARRAY(size), "");
-		array = LLVMBuildLShr(builder,
-				LLVMBuildPtrToInt(builder, array, TYPE_INT, ""),
-				CONST(3),
-				"");
-		LLVMBuildStore(builder, array, var);
+		LLVMBuildStore(builder, lvalue_to_rvalue(array), var);
 	}
 
 	symtab_enter(name, var);
@@ -1109,7 +1103,7 @@ LLVMValueRef gen_call(struct node *ast)
 
 LLVMValueRef gen_name(struct node *ast)
 {
-	LLVMValueRef func, ptr;
+	LLVMValueRef func, ptr, val;
 	LLVMTypeRef type;
 
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
@@ -1125,17 +1119,17 @@ LLVMValueRef gen_name(struct node *ast)
 	type = LLVMGetElementType(LLVMTypeOf(ptr));
 
 	switch (LLVMGetTypeKind(type)) {
-		case LLVMIntegerTypeKind:
-			if (LLVMIsAGlobalValue(ptr))
-				return LLVMBuildLShr(builder,
-					LLVMBuildLoad(builder, ptr, ast->val),
-					CONST(3),
-					"");
-			else
-				return LLVMBuildLoad(builder, ptr, ast->val);
-		default:
-			generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
-			return NULL;
+	case LLVMIntegerTypeKind:
+		val = LLVMBuildLoad(builder, ptr, ast->val);
+
+		if (LLVMIsAGlobalValue(ptr))
+			val = LLVMBuildLShr(builder, val, CONST(WORDPOW), "");
+
+		return val;
+
+	default:
+		generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
+		return NULL;
 	}
 }
 
