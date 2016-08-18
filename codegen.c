@@ -14,9 +14,10 @@
 #include "astnode.h"
 #include "codegen.h"
 
-/* TODO: Dynamic memory allocation */
+#define WORDPOW 3
+#define WORDSIZE (1 << WORDPOW)
+
 #define MAX_STRSIZE 1024
-#define MAX_CHARSIZE 8
 #define SYMTAB_SIZE 1024
 #define MAX_LABELS 256
 #define MAX_CASES 256
@@ -104,6 +105,24 @@ static int count_chain(struct node *ast)
 		return 0;
 
 	return 1 + count_chain(ast->two);
+}
+
+static LLVMValueRef rvalue_to_lvalue(LLVMValueRef rvalue)
+{
+      rvalue = LLVMBuildShl(builder, rvalue, CONST(WORDPOW), "");
+
+      return LLVMBuildIntToPtr(builder, rvalue, TYPE_PTR, "");
+}
+
+static LLVMValueRef lvalue_to_rvalue(LLVMValueRef lvalue)
+{
+      /*
+       * TODO: Make sure all addresses are word-aligned
+       *       (autos, vectors, strings, etc.)
+       */
+      lvalue =  LLVMBuildPtrToInt(builder, lvalue, TYPE_INT, "");
+
+      return LLVMBuildLShr(builder, lvalue, CONST(WORDPOW), "");
 }
 
 void compile(struct node *ast)
@@ -608,9 +627,7 @@ static LLVMValueRef lvalue_name(struct node *ast)
 
 static LLVMValueRef lvalue_indir(struct node *ast)
 {
-	return LLVMBuildIntToPtr(builder,
-			LLVMBuildShl(builder, codegen(ast->one), CONST(3), ""),
-			TYPE_PTR, "");
+	return rvalue_to_lvalue(codegen(ast->one));
 }
 
 static LLVMValueRef lvalue_index(struct node *ast)
@@ -620,7 +637,7 @@ static LLVMValueRef lvalue_index(struct node *ast)
 	/*
 	 * TODO: ensure x[y] == y[x] holds
 	 */
-	ptr = LLVMBuildIntToPtr(builder, LLVMBuildShl(builder, codegen(ast->one), CONST(3), ""), TYPE_PTR, "");
+	ptr = rvalue_to_lvalue(codegen(ast->one));
 	index = codegen(ast->two);
 	gep = LLVMBuildGEP(builder, ptr, &index, 1, "");
 
@@ -977,9 +994,7 @@ LLVMValueRef gen_indir(struct node *ast)
 
 LLVMValueRef gen_addr(struct node *ast)
 {
-	/* TODO: Function pointers? */
-	/* TODO: Check that lvalue is actually an lvalue */
-	return LLVMBuildPtrToInt(builder, lvalue(ast->one), TYPE_INT, "");
+	return lvalue_to_rvalue(lvalue(ast->one));
 }
 
 LLVMValueRef gen_neg(struct node *ast)
@@ -1076,9 +1091,7 @@ LLVMValueRef gen_call(struct node *ast)
 	int arg_count, i;
 
 	func = LLVMBuildBitCast(builder,
-			LLVMBuildIntToPtr(builder,
-			LLVMBuildShl(builder, codegen(ast->one), CONST(3), ""),
-			TYPE_PTR, ""),
+			rvalue_to_lvalue(codegen(ast->one)),
 			LLVMPointerType(TYPE_FUNC, 0),
 			"");
 
@@ -1155,7 +1168,7 @@ static char escape(char c)
 static long pack_char(const char **str)
 {
 	union {
-		char buf[MAX_CHARSIZE];
+		char buf[WORDSIZE];
 		long intval;
 	} pack = {{0}};
 
@@ -1165,7 +1178,7 @@ static long pack_char(const char **str)
 
 	p = *str;
 
-	while (p[1] != '\0' && n < MAX_CHARSIZE) {
+	while (p[1] != '\0' && n < WORDSIZE) {
 		c = p[0];
 
 		if (c == '*') {
