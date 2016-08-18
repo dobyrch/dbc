@@ -3,7 +3,6 @@
 #define WORDSIZE 8
 #define STDOUT 1
 
-
 static long b_char(long str, long i);
 static long b_putchar(long c);
 
@@ -13,9 +12,8 @@ static long b_putchar(long c);
  * In order for the linker to find externally defined functions,
  * their addresses must be stored in an object type.
  */
-extern void *main;
-void *char_ = &b_char;
-void *putchar = &b_putchar;
+long (*char_)() = &b_char;
+long (*putchar)() = &b_putchar;
 
 static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5, long a6)
 {
@@ -79,9 +77,33 @@ static long b_putchar(long c)
 	return c;
 }
 
+extern long (*main)();
+long *argv;
+
 void _start()
 {
-	long status = ((long (*)(void))main)();
+	long argc, status;
+	char *p;
+	int i;
 
+	asm volatile (
+		"mov  8(%%rbp), %0\n\t"
+		"lea 16(%%rbp), %1\n\t" :
+		"=r" (argc),
+		"=r" (argv)
+	);
+
+	argv[0] = argc - 1;
+
+	for (i = 1; i <= argv[0]; i++) {
+		p = (char *)argv[i];
+
+		while (*p != '\0')
+			p++;
+
+		*p = (unsigned char) -1;
+	}
+
+	status = main();
 	syscall_x86_64(__NR_exit, status, 0, 0, 0, 0, 0);
 }
