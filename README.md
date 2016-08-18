@@ -25,16 +25,16 @@ The library functions in section 8.0 have not been implemented, although clang w
 Differences Between B and C
 ---------------------------
 
-- Reversed assignment operators: B uses `x =+ 2`, not `x += 2`
+- Reversed assignment operators: B uses `x =+ 2`, not `x += 2` (although the former style _was_ legal in older C programs, according to K&R)
 - B also has assignment operators for comparisons: `x =< 2` stores the result of `x < 2` in x; `x === 2` (that's right, triple `=`) stores the result of `x == 2` in x
 - The escape character is `*`, not `\`: `'*n'` is a newline character
-- Function definitions don't require braces for a single statement: `main() extrn printf; printf("hello world");` is a valid B program (a declaration follow by a statement is, in fact, a single statement)
 - No types: all values are the same width
 - As a consequence of the previous point, character literals may contain more than one character, so `putchar('ab')` is perfectly fine; interestingly, so-called "multichars" are also valid C, since character literals in C are actually integers (although `putchar` on my system only prints the last character)
 - Variables *must* be declared with either `auto` or `extrn`, unlike in C where the storage class specifier is usually implicit (since B doesn't have types, those keywords are necessary to indicate a declaration)
 - No floating point numbers
 - No structs or unions
 - The PDP-11 implementation of B lacks the keywords `for`, `do`, `break`, `continue`, and `default`, as well as the `~` and `^` operators, although they do make an appearance in the Honeywell 6070 version
+- Function definitions don't require braces for a single statement: `main() return(0);` is a valid B program
 - A `return` statement requires parentheses: `return(x)`
 - ...but `switch` does not: `switch x { /* do stuff */ }`
 - `argv` is a global variable, not an argument to `main()`; `argv[0]` contains the number of command line arguments, not the program name
