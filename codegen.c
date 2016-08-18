@@ -291,6 +291,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 		param_types[i] = TYPE_INT;
 
 	func_type = LLVMFunctionType(TYPE_INT, param_types, param_count, 0);
+	/* TODO: give more descriptive name, like ".gfunc_NAME */
 	func = LLVMAddFunction(module, ".gfunc", func_type);
 	LLVMSetLinkage(func, LLVMPrivateLinkage);
 
