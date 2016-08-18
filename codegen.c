@@ -163,7 +163,7 @@ LLVMValueRef gen_simpledef(struct node *ast)
 	global = find_or_add_global(ast->one->val);
 
 	if (ast->two)
-		LLVMSetInitializer(global, codegen(ast->two));
+		LLVMSetInitializer(global, LLVMConstShl(codegen(ast->two), CONST(3)));
 	else
 		LLVMSetInitializer(global, CONST(0));
 
@@ -581,7 +581,10 @@ LLVMValueRef gen_init(struct node *ast)
 	if (ast->two) {
 		size = atol(ast->two->val);
 		array = LLVMBuildAlloca(builder, TYPE_ARRAY(size), "");
-		array = LLVMBuildPtrToInt(builder, array, TYPE_INT, "");
+		array = LLVMBuildLShr(builder,
+				LLVMBuildPtrToInt(builder, array, TYPE_INT, ""),
+				CONST(3),
+				"");
 		LLVMBuildStore(builder, array, var);
 	}
 
@@ -605,7 +608,9 @@ static LLVMValueRef lvalue_name(struct node *ast)
 
 static LLVMValueRef lvalue_indir(struct node *ast)
 {
-	return LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, "");
+	return LLVMBuildIntToPtr(builder,
+			LLVMBuildShl(builder, codegen(ast->one), CONST(3), ""),
+			TYPE_PTR, "");
 }
 
 static LLVMValueRef lvalue_index(struct node *ast)
@@ -615,7 +620,7 @@ static LLVMValueRef lvalue_index(struct node *ast)
 	/*
 	 * TODO: ensure x[y] == y[x] holds
 	 */
-	ptr = LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, "");
+	ptr = LLVMBuildIntToPtr(builder, LLVMBuildShl(builder, codegen(ast->one), CONST(3), ""), TYPE_PTR, "");
 	index = codegen(ast->two);
 	gep = LLVMBuildGEP(builder, ptr, &index, 1, "");
 
@@ -1071,7 +1076,9 @@ LLVMValueRef gen_call(struct node *ast)
 	int arg_count, i;
 
 	func = LLVMBuildBitCast(builder,
-			LLVMBuildIntToPtr(builder, codegen(ast->one), TYPE_PTR, ""),
+			LLVMBuildIntToPtr(builder,
+			LLVMBuildShl(builder, codegen(ast->one), CONST(3), ""),
+			TYPE_PTR, ""),
 			LLVMPointerType(TYPE_FUNC, 0),
 			"");
 
@@ -1106,7 +1113,13 @@ LLVMValueRef gen_name(struct node *ast)
 
 	switch (LLVMGetTypeKind(type)) {
 		case LLVMIntegerTypeKind:
-			return LLVMBuildLoad(builder, ptr, ast->val);
+			if (LLVMIsAGlobalValue(ptr))
+				return LLVMBuildLShr(builder,
+					LLVMBuildLoad(builder, ptr, ast->val),
+					CONST(3),
+					"");
+			else
+				return LLVMBuildLoad(builder, ptr, ast->val);
 		default:
 			generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
 			return NULL;
@@ -1119,6 +1132,7 @@ static char escape(char c)
 	case '0':
 		return '\0';
 	case 'e':
+		/* USE EOT, not EOF */
 		return EOF;
 	case '(':
 		return '{';
@@ -1224,6 +1238,7 @@ LLVMValueRef gen_const(struct node *ast)
 	case '"':
 		return make_str(ast->val);
 	case '0':
+		/* TODO: Support 09 and 08: see section 4.1.4 */
 		return LLVMConstIntOfString(TYPE_INT, ast->val, 8);
 	default:
 		return LLVMConstIntOfString(TYPE_INT, ast->val, 10);
