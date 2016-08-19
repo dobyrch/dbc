@@ -1,9 +1,6 @@
 #include <asm/unistd.h>
 #include "constants.h"
 
-#define WORDSIZE 8
-#define STDOUT 1
-
 static long b_char(long str, long i);
 static long b_putchar(long c);
 
@@ -40,11 +37,12 @@ static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5
 	return rax;
 }
 
+/* TODO: Use modified B implementation */
 static long b_char(long str, long i)
 {
 	const unsigned char *p;
 
-	p = (unsigned char *)str;
+	p = (unsigned char *)(str << WORDPOW);
 
 	return p[i];
 }

@@ -15,9 +15,6 @@
 #include "codegen.h"
 #include "constants.h"
 
-#define WORDPOW 3
-#define WORDSIZE (1 << WORDPOW)
-
 #define MAX_STRSIZE 1024
 #define SYMTAB_SIZE 1024
 #define MAX_LABELS 256
@@ -1225,7 +1222,7 @@ static LLVMValueRef make_str(const char *str)
 	global = LLVMGetNamedGlobal(module, str);
 
 	if (global)
-		return global;
+		return lvalue_to_rvalue(global);
 
 	/* Skip leading " */
 	p = str + 1;
@@ -1243,7 +1240,13 @@ static LLVMValueRef make_str(const char *str)
 	strval = LLVMConstArray(TYPE_ARRAY(size), chars, size);
 	LLVMSetInitializer(global, strval);
 
-	return LLVMBuildPtrToInt(builder, global, TYPE_INT, "");
+	/*
+	 * Ideally, global would be initialized to the shifted address
+	 * of strval; however, there seems to be a bug in LLVM that
+	 * prevents an array element from being initialized with the
+	 * PtrToInt of an array pointer. See llvm_bug.c
+	 */
+	return lvalue_to_rvalue(global);
 }
 
 LLVMValueRef gen_const(struct node *ast)
