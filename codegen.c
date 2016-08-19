@@ -898,7 +898,7 @@ LLVMValueRef gen_le(struct node *ast)
 	LLVMValueRef truth;
 
 	truth = LLVMBuildICmp(builder,
-			LLVMIntSLT,
+			LLVMIntSLE,
 			codegen(ast->one),
 			codegen(ast->two),
 			"");
