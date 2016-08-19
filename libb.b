@@ -1,17 +1,19 @@
-char(s, n) {
-   auto y, sh, cpos;
-   y = s[n/8];
-   cpos = n%8;
-   sh = 8*cpos;
-   y = (y>>sh)&0377;
-   return(y);
-}
+/*
+ * "A Tutorial Introduction to the Language B" section 24
+ * (Kernighan, 1973)
+ *
+ * Modified to run on x86_64.
+ */
+char(s,n) return((s[n/8]>>(8*(n%8)))&0377);
 
-/* The following function will print a non-negative number, n, to
-   the base b, where 2<=b<=10.  This routine uses the fact that
-   in the ANSCII character set, the digits O to 9 have sequential
-   code values.  */
 
+
+/*
+ * "Users' Reference to B" section 9.1
+ * (Thompson, 1972)
+ *
+ * Copied verbatim
+ */
 printn(n,b) {
    extrn putchar;
    auto a;
@@ -22,22 +24,12 @@ printn(n,b) {
 }
 
 
-/* The following function is a general formatting, printing, and
-   conversion subroutine.  The first argument is a format string.
-   Character sequences of the form '%x' are interpreted and cause
-   conversion of type 'x' of the next argument, other character
-   sequences are printed verbatim.  Thus
-
-      printf("delta is %d*n", delta);
-
-   will convert the variable delta to decimal (%d) and print the
-   string with the converted form of delta in place of %d.  The
-   conversions %d-decimal, %o-octal, %s-string and %c-character
-   are allowed.
-
-   This program calls upon the function 'printn'. (see section
-   9.1) */
-
+/*
+ * "Users' Reference to B" section 9.3
+ * (Thompson, 1972)
+ *
+ * Copied verbatim
+ */
 printf(fmt, x1,x2,x3,x4,x5,x6,x7,x8,x9) {
    extrn printn, char, putchar;
    auto adx, x, c, i, j;
