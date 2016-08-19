@@ -10,5 +10,8 @@ test: dbc libb.c
 	mv dbc.bc sample.bc
 	./dbc < ./libb.b
 	mv dbc.bc libb.bc
-	clang -nostdlib -Wno-main sample.bc libb.bc libb.c
+	clang -c libb.bc -o blibb.o -nostdlib
+	clang -c libb.c -o clibb.o -nostdlib -Wno-main
+	ar rcs libb.a blibb.o clibb.o
+	clang sample.bc libb.a -nostdlib
 	./a.out
