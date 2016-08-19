@@ -15,7 +15,6 @@
 #include "codegen.h"
 #include "constants.h"
 
-#define MAX_STRSIZE 1024
 #define SYMTAB_SIZE 1024
 #define MAX_LABELS 256
 #define MAX_CASES 256
@@ -115,20 +114,20 @@ static void check_store(LLVMValueRef rvalue, LLVMValueRef lvalue)
 
 static LLVMValueRef rvalue_to_lvalue(LLVMValueRef rvalue)
 {
-      rvalue = LLVMBuildShl(builder, rvalue, CONST(WORDPOW), "");
+	rvalue = LLVMBuildShl(builder, rvalue, CONST(WORDPOW), "");
 
-      return LLVMBuildIntToPtr(builder, rvalue, TYPE_PTR, "");
+	return LLVMBuildIntToPtr(builder, rvalue, TYPE_PTR, "");
 }
 
 static LLVMValueRef lvalue_to_rvalue(LLVMValueRef lvalue)
 {
-      /*
-       * TODO: Make sure all addresses are word-aligned
-       *       (autos, vectors, strings, etc.)
-       */
-      lvalue =  LLVMBuildPtrToInt(builder, lvalue, TYPE_INT, "");
+	/*
+	* TODO: Make sure all addresses are word-aligned
+	*       (autos, vectors, strings, etc.)
+	*/
+	lvalue =  LLVMBuildPtrToInt(builder, lvalue, TYPE_INT, "");
 
-      return LLVMBuildLShr(builder, lvalue, CONST(WORDPOW), "");
+	return LLVMBuildLShr(builder, lvalue, CONST(WORDPOW), "");
 }
 
 void compile(struct node *ast)
@@ -1215,7 +1214,7 @@ static LLVMValueRef make_char(const char *str)
 
 static LLVMValueRef make_str(const char *str)
 {
-	LLVMValueRef global, strval, chars[MAX_STRSIZE + 1];
+	LLVMValueRef global, strval, chars[MAX_STRSIZE];
 	const char *p;
 	int size = 0;
 
@@ -1226,7 +1225,7 @@ static LLVMValueRef make_str(const char *str)
 
 	/* Skip leading " */
 	p = str + 1;
-	while (p && size < MAX_STRSIZE)
+	while (p && size < MAX_STRSIZE - 1)
 		chars[size++] = CONST(pack_char(&p));
 
 	if (p)

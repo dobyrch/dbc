@@ -123,8 +123,9 @@ long *argv;
 
 void _start()
 {
+	char cmdline[MAX_STRSIZE];
 	long argc, status;
-	char *p;
+	char *bstr, *cstr;
 	int i;
 
 	asm volatile (
@@ -134,10 +135,34 @@ void _start()
 		"=r" (argv)
 	);
 
-	argv[0] = argc - 1;
+	/*
+	 * In B, strings (and all pointers, for that matter) must be
+	 * word-aligned.  Let's copy the command line args off of the
+	 * stack into a new buffer, fix the alignment, and modify the
+	 * terminating char while we're at it (B uses EOT, not NUL).
+	 */
+	bstr = cmdline;
 
-	for (i = 1; i <= argv[0]; i++)
-		argv[i] = bstringify(argv[i]);
+	for (i = 1; i < argc && i < MAX_ARGS; i++) {
+		cstr = (char *)argv[i];
+
+		while ((long)bstr % WORDSIZE)
+			bstr++;
+
+		argv[i] = (long)bstr >> WORDPOW;
+
+		while (*cstr != '\0') {
+			if (bstr - cmdline >= MAX_STRSIZE)
+				goto endfor;
+
+			*bstr++ = *cstr++;
+		}
+
+		*bstr++ = EOT;
+	}
+endfor:
+
+	argv[0] = i - 1;
 
 	status = main();
 	syscall_x86_64(__NR_exit, status, 0, 0, 0, 0, 0);
