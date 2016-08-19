@@ -1,7 +1,6 @@
 #include <asm/unistd.h>
 #include "constants.h"
 
-static long b_char(long str, long i);
 static long b_putchar(long c);
 
 /*
@@ -10,7 +9,6 @@ static long b_putchar(long c);
  * In order for the linker to find externally defined functions,
  * their addresses must be stored in an object type.
  */
-long (*char_)() = &b_char;
 long (*putchar)() = &b_putchar;
 
 static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5, long a6)
@@ -35,16 +33,6 @@ static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5
 	);
 
 	return rax;
-}
-
-/* TODO: Use modified B implementation */
-static long b_char(long str, long i)
-{
-	const unsigned char *p;
-
-	p = (unsigned char *)(str << WORDPOW);
-
-	return p[i];
 }
 
 static long b_putchar(long c)

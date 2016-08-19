@@ -1,3 +1,12 @@
+char(s, n) {
+   auto y, sh, cpos;
+   y = s[n/8];
+   cpos = n%8;
+   sh = 8*cpos;
+   y = (y>>sh)&0377;
+   return(y);
+}
+
 /* The following function will print a non-negative number, n, to
    the base b, where 2<=b<=10.  This routine uses the fact that
    in the ANSCII character set, the digits O to 9 have sequential
