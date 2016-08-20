@@ -11,7 +11,8 @@ test: dbc libb.c
 	./dbc < ./libb.b
 	mv dbc.bc libb.bc
 	clang -c libb.bc -o blibb.o -nostdlib
-	clang -c libb.c -o clibb.o -nostdlib -Wno-main
+	clang -c libb.c -o clibb.o -nostdlib
+	objcopy --redefine-syms=clashes clibb.o
 	ar rcs libb.a blibb.o clibb.o
 	clang sample.bc libb.a -nostdlib
 	./a.out

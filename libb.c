@@ -54,9 +54,10 @@ static long bstringify(long cstr)
 	return cstr >> WORDPOW;
 }
 
+__attribute__((aligned(WORDSIZE)))
 static long b_chdir(long path)
 {
-	int r;
+	long r;
 
 	r = syscall_x86_64(__NR_chdir, cstringify(path), 0, 0, 0, 0, 0);
 	bstringify(path);
@@ -64,9 +65,10 @@ static long b_chdir(long path)
 	return r;
 }
 
+__attribute__((aligned(WORDSIZE)))
 static long b_chmod(long path, long mode)
 {
-	int r;
+	long r;
 
 	r = syscall_x86_64(__NR_chmod, cstringify(path), mode, 0, 0, 0, 0);
 	bstringify(path);
@@ -74,9 +76,10 @@ static long b_chmod(long path, long mode)
 	return r;
 }
 
+__attribute__((aligned(WORDSIZE)))
 static long b_chown(long path, long owner)
 {
-	int r;
+	long r;
 
 	r = syscall_x86_64(__NR_chown, cstringify(path), owner, -1, 0, 0, 0);
 	bstringify(path);
@@ -84,6 +87,30 @@ static long b_chown(long path, long owner)
 	return r;
 }
 
+__attribute__((aligned(WORDSIZE)))
+static long b_close(long fd)
+{
+	return syscall_x86_64(__NR_close, fd, 0, 0, 0, 0, 0);
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_creat(long path, long mode)
+{
+	long r;
+
+	r = syscall_x86_64(__NR_creat, cstringify(path), mode, 0, 0, 0, 0);
+	bstringify(path);
+
+	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_exit(long status)
+{
+	return syscall_x86_64(__NR_exit, status, 0, 0, 0, 0, 0);
+}
+
+__attribute__((aligned(WORDSIZE)))
 static long b_putchar(long c)
 {
 	char buf[WORDSIZE];
@@ -116,15 +143,18 @@ static long b_putchar(long c)
 long (*chdir)() = &b_chdir;
 long (*chmod)() = &b_chmod;
 long (*chown)() = &b_chown;
-long (*putchar)() = &b_putchar;
+long (*close)() = &b_close;
+long (*creat)() = &b_creat;
+long (*exit_)() = &b_exit;
+long (*putchar_)() = &b_putchar;
 
-extern long (*main)();
+extern long (*main_)();
 long *argv;
 
 void _start()
 {
 	char cmdline[MAX_STRSIZE];
-	long argc, status;
+	long argc;
 	char *bstr, *cstr;
 	int i;
 
@@ -164,6 +194,5 @@ endfor:
 
 	argv[0] = i - 1;
 
-	status = main();
-	syscall_x86_64(__NR_exit, status, 0, 0, 0, 0, 0);
+	exit_(main_());
 }
