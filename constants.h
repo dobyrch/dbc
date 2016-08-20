@@ -5,4 +5,3 @@
 #define MAX_ARGS 256
 
 #define EOT 4
-#define STDOUT 1

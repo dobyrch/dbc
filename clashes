@@ -1,6 +1,8 @@
-# Compilers like to complain about redefinitions of
-# certain built-in functions, so those symbols are
-# suffixed with "_" and renamed after compilation.
+chdir_ chdir
+chmod_ chmod
+chown_ chown
+close_ close
+creat_ creat
 exit_ exit
 main_ main
 putchar_ putchar

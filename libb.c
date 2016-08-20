@@ -1,4 +1,8 @@
 #include <asm/unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "constants.h"
 
 static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5, long a6)
@@ -111,6 +115,42 @@ static long b_exit(long status)
 }
 
 __attribute__((aligned(WORDSIZE)))
+static long b_fork()
+{
+	return syscall_x86_64(__NR_fork, 0, 0, 0, 0, 0, 0);
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_fstat(long fd, long status)
+{
+	struct stat buf;
+	long *s;
+	long r;
+
+	r = syscall_x86_64(__NR_fstat, (long)&buf, 0, 0, 0, 0, 0);
+
+	s = (long *)status;
+	s[0]  = buf.st_dev;
+	s[1]  = buf.st_ino;
+	s[2]  = buf.st_mode;
+	s[3]  = buf.st_nlink;
+	s[4]  = buf.st_uid;
+	s[5]  = buf.st_gid;
+	s[6]  = buf.st_rdev;
+	s[7]  = buf.st_size;
+	s[8]  = buf.st_blksize;
+	s[9]  = buf.st_blocks;
+	s[10] = buf.st_atim.tv_sec;
+	s[11] = buf.st_atim.tv_nsec;
+	s[12] = buf.st_mtim.tv_sec;
+	s[13] = buf.st_mtim.tv_nsec;
+	s[14] = buf.st_ctim.tv_sec;
+	s[15] = buf.st_ctim.tv_nsec;
+
+	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
 static long b_putchar(long c)
 {
 	char buf[WORDSIZE];
@@ -128,7 +168,7 @@ static long b_putchar(long c)
 		p++;
 	}
 
-	if (syscall_x86_64(__NR_write, STDOUT, (long)buf, n, 0, 0, 0) != n)
+	if (syscall_x86_64(__NR_write, STDOUT_FILENO, (long)buf, n, 0, 0, 0) != n)
 		return -1;
 
 	return c;
@@ -139,12 +179,15 @@ static long b_putchar(long c)
  * compile time; the compiler assumes every variable is an integer.
  * In order for the linker to find externally defined functions,
  * their addresses must be stored in an object type.
+ *
+ * All symbols are suffixed with "_" to avoid clashes with C stdlib
+ * functions. They are renamed after compilation with objcopy.
  */
-long (*chdir)() = &b_chdir;
-long (*chmod)() = &b_chmod;
-long (*chown)() = &b_chown;
-long (*close)() = &b_close;
-long (*creat)() = &b_creat;
+long (*chdir_)() = &b_chdir;
+long (*chmod_)() = &b_chmod;
+long (*chown_)() = &b_chown;
+long (*close_)() = &b_close;
+long (*creat_)() = &b_creat;
 long (*exit_)() = &b_exit;
 long (*putchar_)() = &b_putchar;
 
