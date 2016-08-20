@@ -156,6 +156,38 @@ static long b_fstat(long fd, long status)
 }
 
 __attribute__((aligned(WORDSIZE)))
+static long b_getuid()
+{
+	return syscall_x86_64(__NR_getuid, 0, 0, 0, 0, 0, 0);
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_link(long oldpath, long newpath)
+{
+	long r;
+
+	oldpath = cstringify(oldpath);
+	newpath = cstringify(newpath);
+	r = syscall_x86_64(__NR_link, oldpath, newpath, 0, 0, 0, 0);
+	bstringify(oldpath);
+	bstringify(newpath);
+
+	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_mkdir(long path, long mode)
+{
+	long r;
+
+	path = cstringify(path);
+	return syscall_x86_64(__NR_mkdir, mode, 0, 0, 0, 0, 0);
+	bstringify(path);
+
+	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
 static long b_open(long path, long mode)
 {
 	long r;
@@ -194,6 +226,23 @@ static long b_putchar(long c)
 	return c;
 }
 
+__attribute__((aligned(WORDSIZE)))
+static long b_read(long fd, long buf, long count)
+{
+	long r;
+
+	buf <<= WORDPOW;
+	r = syscall_x86_64(__NR_read, fd, buf, count, 0, 0, 0);
+
+	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_seek(long fd, long offset, long whence)
+{
+	return syscall_x86_64(__NR_lseek, fd, offset, whence, 0, 0, 0);
+}
+
 /*
  * In B, the type of a variable declared as `extrn` is not known at
  * compile time; the compiler assumes every variable is an integer.
@@ -210,8 +259,13 @@ long (*close_)() = &b_close;
 long (*creat_)() = &b_creat;
 long (*exit_)() = &b_exit;
 long (*fstat_)() = &b_fstat;
+long (*getuid_)() = &b_getuid;
+long (*link_)() = &b_link;
+long (*mkdir_)() = &b_mkdir;
 long (*open_)() = &b_open;
 long (*putchar_)() = &b_putchar;
+long (*read_)() = &b_read;
+long (*seek_)() = &b_seek;
 
 extern long (*main_)();
 long *argv;

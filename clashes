@@ -5,6 +5,11 @@ close_ close
 creat_ creat
 exit_ exit
 fstat_ fstat
+getuid_ getuid
+link_ link
 main_ main
+mkdir_ mkdir
 open_ open
 putchar_ putchar
+read_ read
+seek_ seek
