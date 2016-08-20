@@ -35,7 +35,7 @@
 %define parse.error verbose
 
 %{
-#include <stddef.h>
+#include <stdio.h>
 #include <llvm-c/Core.h>
 #include "astnode.h"
 #include "codegen.h"
