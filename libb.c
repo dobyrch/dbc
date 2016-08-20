@@ -1,6 +1,7 @@
 #include <asm/unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include "constants.h"
@@ -63,7 +64,8 @@ static long b_chdir(long path)
 {
 	long r;
 
-	r = syscall_x86_64(__NR_chdir, cstringify(path), 0, 0, 0, 0, 0);
+	path = cstringify(path);
+	r = syscall_x86_64(__NR_chdir, path, 0, 0, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -74,7 +76,8 @@ static long b_chmod(long path, long mode)
 {
 	long r;
 
-	r = syscall_x86_64(__NR_chmod, cstringify(path), mode, 0, 0, 0, 0);
+	path = cstringify(path);
+	r = syscall_x86_64(__NR_chmod, path, mode, 0, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -85,7 +88,8 @@ static long b_chown(long path, long owner)
 {
 	long r;
 
-	r = syscall_x86_64(__NR_chown, cstringify(path), owner, -1, 0, 0, 0);
+	path = cstringify(path);
+	r = syscall_x86_64(__NR_chown, path, owner, -1, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -102,7 +106,8 @@ static long b_creat(long path, long mode)
 {
 	long r;
 
-	r = syscall_x86_64(__NR_creat, cstringify(path), mode, 0, 0, 0, 0);
+	path = cstringify(path);
+	r = syscall_x86_64(__NR_creat, path, mode, 0, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -127,9 +132,9 @@ static long b_fstat(long fd, long status)
 	long *s;
 	long r;
 
-	r = syscall_x86_64(__NR_fstat, (long)&buf, 0, 0, 0, 0, 0);
+	r = syscall_x86_64(__NR_fstat, fd, (long)&buf, 0, 0, 0, 0);
 
-	s = (long *)status;
+	s = (long *)(status << WORDPOW);
 	s[0]  = buf.st_dev;
 	s[1]  = buf.st_ino;
 	s[2]  = buf.st_mode;
@@ -146,6 +151,21 @@ static long b_fstat(long fd, long status)
 	s[13] = buf.st_mtim.tv_nsec;
 	s[14] = buf.st_ctim.tv_sec;
 	s[15] = buf.st_ctim.tv_nsec;
+
+	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_open(long path, long mode)
+{
+	long r;
+
+	if (mode < 0 || mode > 2)
+		mode = O_RDWR;
+
+	path = cstringify(path);
+	r = syscall_x86_64(__NR_open, path, 0, mode, 0, 0, 0);
+	bstringify(path);
 
 	return r;
 }
@@ -189,6 +209,8 @@ long (*chown_)() = &b_chown;
 long (*close_)() = &b_close;
 long (*creat_)() = &b_creat;
 long (*exit_)() = &b_exit;
+long (*fstat_)() = &b_fstat;
+long (*open_)() = &b_open;
 long (*putchar_)() = &b_putchar;
 
 extern long (*main_)();

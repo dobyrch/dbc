@@ -4,5 +4,7 @@ chown_ chown
 close_ close
 creat_ creat
 exit_ exit
+fstat_ fstat
 main_ main
+open_ open
 putchar_ putchar
