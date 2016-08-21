@@ -38,7 +38,12 @@ static long cstringify(long bstr)
 	cstr = (char *)(bstr << WORDPOW);
 	p = cstr;
 
-	while (*p != EOT)
+	/*
+	 * If a call to the stdlib passes the same string twice, it may
+	 * have already had its terminator modified. Stop when either
+	 * EOT or NUL are encountered.
+	 */
+	while (*p != EOT && *p != '\0')
 		p++;
 
 	*p = '\0';
@@ -52,7 +57,7 @@ static long bstringify(long cstr)
 
 	p = (char *)cstr;
 
-	while (*p != '\0')
+	while (*p != EOT && *p != '\0')
 		p++;
 
 	*p = EOT;
@@ -123,6 +128,38 @@ static long b_creat(long path, long mode)
 	bstringify(path);
 
 	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_execv(long path, long args, long count)
+{
+	long av[MAX_ARGS];
+	long envp[1];
+	long *p;
+	int i;
+
+	/* We need space for the executable name and a NULL terminator */
+	if (count > MAX_ARGS - 2)
+		return -1;
+
+	p = (long *)(args << WORDPOW);
+
+	for (i = 1; i <= count; i++)
+		av[i] = cstringify(p[i-1]);
+
+	av[i] = 0;
+	av[0] = cstringify(path);
+	envp[0] = 0;
+
+	syscall_x86_64(__NR_execve, av[0], (long)av, (long)envp, 0, 0, 0);
+
+	/* If we're still here, execve must have failed */
+	bstringify(av[0]);
+
+	for (i = 0; i < count; i++)
+		bstringify(av[i]);
+
+	return -1;
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -313,10 +350,8 @@ static long b_wait()
 {
 	/*
 	 * POSIX mandates that the siginfo_t pointer given to waitid not
-	 * be NULL.  On Linux, waitid succeeds when with a NULL pointer,
-	 * but the man pages pages recommend against relying on this
-	 * "inconsistent, nonstandard, and unnecessary feature."  So let's
-	 * comply to the standards, even though we don't use this siginfo_t.
+	 * be NULL.  Let's comply to the standards, even though we won't
+	 * use this siginfo_t.
 	 */
 	siginfo_t info;
 
@@ -345,6 +380,7 @@ long (*chmod_)() = &b_chmod;
 long (*chown_)() = &b_chown;
 long (*close_)() = &b_close;
 long (*creat_)() = &b_creat;
+long (*execv_)() = &b_execv;
 long (*exit_)() = &b_exit;
 long (*fork_)() = &b_fork;
 long (*fstat_)() = &b_fstat;
