@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
 #include "constants.h"
@@ -131,6 +132,42 @@ static long b_creat(long path, long mode)
 }
 
 __attribute__((aligned(WORDSIZE)))
+static long b_execl(long path, ...)
+{
+	va_list ap;
+	long av[MAX_ARGS];
+	long envp[1];
+	long arg;
+	int count, i;
+
+	va_start(ap, path);
+
+	for (i = 1; arg = va_arg(ap, long); i++) {
+		if (i > MAX_ARGS - 2)
+			return -1;
+
+		av[i] = arg;
+	}
+
+	count = i - 1;
+	av[0] = path;
+
+	for (i = 0; i <= count; i++)
+		av[i] = cstringify(av[i]);
+
+	av[i] = 0;
+	envp[0] = 0;
+
+	syscall_x86_64(__NR_execve, av[0], (long)av, (long)envp, 0, 0, 0);
+
+	/* If we're still here, execve must have failed */
+	for (i = 0; i < count; i++)
+		bstringify(av[i]);
+
+	return -1;
+}
+
+__attribute__((aligned(WORDSIZE)))
 static long b_execv(long path, long args, long count)
 {
 	long av[MAX_ARGS];
@@ -153,10 +190,7 @@ static long b_execv(long path, long args, long count)
 
 	syscall_x86_64(__NR_execve, av[0], (long)av, (long)envp, 0, 0, 0);
 
-	/* If we're still here, execve must have failed */
-	bstringify(av[0]);
-
-	for (i = 0; i < count; i++)
+	for (i = 0; i <= count; i++)
 		bstringify(av[i]);
 
 	return -1;
@@ -380,6 +414,7 @@ long (*chmod_)() = &b_chmod;
 long (*chown_)() = &b_chown;
 long (*close_)() = &b_close;
 long (*creat_)() = &b_creat;
+long (*execl_)() = &b_execl;
 long (*execv_)() = &b_execv;
 long (*exit_)() = &b_exit;
 long (*fork_)() = &b_fork;

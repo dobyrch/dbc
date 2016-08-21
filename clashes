@@ -4,6 +4,7 @@ chmod_ chmod
 chown_ chown
 close_ close
 creat_ creat
+execl_ execl
 execv_ execv
 exit_ exit
 fork_ fork
