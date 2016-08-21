@@ -16,3 +16,8 @@ putchar_ putchar
 read_ read
 seek_ seek
 setuid_ setuid
+stat_ stat
+time_ time
+unlink_ unlink
+wait_ wait
+write_ write

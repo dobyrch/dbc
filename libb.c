@@ -1,6 +1,7 @@
 #include <asm/unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -240,12 +241,8 @@ static long b_putchar(long c)
 __attribute__((aligned(WORDSIZE)))
 static long b_read(long fd, long buf, long count)
 {
-	long r;
-
 	buf <<= WORDPOW;
-	r = syscall_x86_64(__NR_read, fd, buf, count, 0, 0, 0);
-
-	return r;
+	return syscall_x86_64(__NR_read, fd, buf, count, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -258,6 +255,79 @@ __attribute__((aligned(WORDSIZE)))
 static long b_setuid(long id)
 {
 	return syscall_x86_64(__NR_setuid, id, 0, 0, 0, 0, 0);
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_stat(long path, long status)
+{
+	struct stat buf;
+	long *s;
+	long r;
+
+	path = cstringify(path);
+	r = syscall_x86_64(__NR_stat, path, (long)&buf, 0, 0, 0, 0);
+	bstringify(path);
+
+	s = (long *)(status << WORDPOW);
+	s[0]  = buf.st_dev;
+	s[1]  = buf.st_ino;
+	s[2]  = buf.st_mode;
+	s[3]  = buf.st_nlink;
+	s[4]  = buf.st_uid;
+	s[5]  = buf.st_gid;
+	s[6]  = buf.st_rdev;
+	s[7]  = buf.st_size;
+	s[8]  = buf.st_blksize;
+	s[9]  = buf.st_blocks;
+	s[10] = buf.st_atim.tv_sec;
+	s[11] = buf.st_atim.tv_nsec;
+	s[12] = buf.st_mtim.tv_sec;
+	s[13] = buf.st_mtim.tv_nsec;
+	s[14] = buf.st_ctim.tv_sec;
+	s[15] = buf.st_ctim.tv_nsec;
+
+	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_time(long tloc)
+{
+	tloc <<= WORDPOW;
+	return syscall_x86_64(__NR_time, tloc, 0, 0, 0, 0, 0);
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_unlink(long path)
+{
+	long r;
+
+	path = cstringify(path);
+	r = syscall_x86_64(__NR_unlink, path, 0, 0, 0, 0, 0);
+	bstringify(path);
+
+	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_wait()
+{
+	/*
+	 * POSIX mandates that the siginfo_t pointer given to waitid not
+	 * be NULL.  On Linux, waitid succeeds when with a NULL pointer,
+	 * but the man pages pages recommend against relying on this
+	 * "inconsistent, nonstandard, and unnecessary feature."  So let's
+	 * comply to the standards, even though we don't use this siginfo_t.
+	 */
+	siginfo_t info;
+
+	return syscall_x86_64(__NR_waitid, P_ALL, 0, (long)&info, WEXITED, 0, 0);
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_write(long fd, long buf, long count)
+{
+	buf <<= WORDPOW;
+	return syscall_x86_64(__NR_write, fd, buf, count, 0, 0, 0);
 }
 
 /*
@@ -286,6 +356,11 @@ long (*putchar_)() = &b_putchar;
 long (*read_)() = &b_read;
 long (*seek_)() = &b_seek;
 long (*setuid_)() = &b_setuid;
+long (*stat_)() = &b_stat;
+long (*time_)() = &b_time;
+long (*unlink_)() = &b_unlink;
+long (*wait_)() = &b_wait;
+long (*write_)() = &b_write;
 
 extern long (*main_)();
 long *argv;
