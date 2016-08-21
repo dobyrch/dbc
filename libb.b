@@ -1,14 +1,4 @@
 /*
- * "A Tutorial Introduction to the Language B" section 24
- * (Kernighan, 1973)
- *
- * Modified to run on x86_64.
- */
-char(s,n) return((s[n/8]>>(8*(n%8)))&0377);
-
-
-
-/*
  * "Users' Reference to B" section 9.1
  * (Thompson, 1972)
  *

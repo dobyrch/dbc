@@ -60,6 +60,17 @@ static long bstringify(long cstr)
 }
 
 __attribute__((aligned(WORDSIZE)))
+static long b_char(long s, long i)
+{
+	const unsigned char *str;
+
+	/* make unsigned so chars > 127 aren't sign extended */
+	str = (unsigned char *)(s << WORDPOW);
+
+	return str[i];
+}
+
+__attribute__((aligned(WORDSIZE)))
 static long b_chdir(long path)
 {
 	long r;
@@ -243,6 +254,12 @@ static long b_seek(long fd, long offset, long whence)
 	return syscall_x86_64(__NR_lseek, fd, offset, whence, 0, 0, 0);
 }
 
+__attribute__((aligned(WORDSIZE)))
+static long b_setuid(long id)
+{
+	return syscall_x86_64(__NR_setuid, id, 0, 0, 0, 0, 0);
+}
+
 /*
  * In B, the type of a variable declared as `extrn` is not known at
  * compile time; the compiler assumes every variable is an integer.
@@ -252,12 +269,14 @@ static long b_seek(long fd, long offset, long whence)
  * All symbols are suffixed with "_" to avoid clashes with C stdlib
  * functions. They are renamed after compilation with objcopy.
  */
+long (*char_)() = &b_char;
 long (*chdir_)() = &b_chdir;
 long (*chmod_)() = &b_chmod;
 long (*chown_)() = &b_chown;
 long (*close_)() = &b_close;
 long (*creat_)() = &b_creat;
 long (*exit_)() = &b_exit;
+long (*fork_)() = &b_fork;
 long (*fstat_)() = &b_fstat;
 long (*getuid_)() = &b_getuid;
 long (*link_)() = &b_link;
@@ -266,6 +285,7 @@ long (*open_)() = &b_open;
 long (*putchar_)() = &b_putchar;
 long (*read_)() = &b_read;
 long (*seek_)() = &b_seek;
+long (*setuid_)() = &b_setuid;
 
 extern long (*main_)();
 long *argv;
