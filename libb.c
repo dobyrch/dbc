@@ -131,6 +131,72 @@ static long b_creat(long path, long mode)
 	return r;
 }
 
+/*
+ * Achtung!
+ *
+ * This function is guaranteed to yield incorrect results, except (maybe)
+ * at midnight on January 1 2370 in Iceland, Portugal, the British Isles,
+ * and West Africa.
+ */
+__attribute__((aligned(WORDSIZE)))
+static long b_ctime(long tloc, long date)
+{
+	char *dp, *p;
+	long t, month, day, hour, min, sec;
+
+	t = *(long *)(tloc << WORDPOW);
+	t %= SEC_PER_YEAR;
+
+	month = t / SEC_PER_MONTH;
+	t %= SEC_PER_MONTH;
+
+	day = t / SEC_PER_DAY;
+	t %= SEC_PER_DAY;
+
+	hour = t / SEC_PER_HOUR;
+	t %= SEC_PER_HOUR;
+
+	min = t / SEC_PER_MIN;
+	sec = t % SEC_PER_MIN;
+
+	switch (month) {
+	case  0: p = "Jan"; break;
+	case  1: p = "Feb"; break;
+	case  2: p = "Mar"; break;
+	case  3: p = "Apr"; break;
+	case  4: p = "May"; break;
+	case  5: p = "Jun"; break;
+	case  6: p = "Jul"; break;
+	case  7: p = "Aug"; break;
+	case  8: p = "Sep"; break;
+	case  9: p = "Oct"; break;
+	case 10: p = "Nov"; break;
+	case 11: p = "Dec"; break;
+	default: p = "???"; break;
+	}
+
+	dp = (char *)(date << WORDPOW);
+
+	while (*p != '\0')
+		*dp++ = *p++;
+
+	*dp++ = ' ';
+	*dp++ = '0' + day/10;
+	*dp++ = '0' + day%10;
+	*dp++ = ' ';
+	*dp++ = '0' + hour/10;
+	*dp++ = '0' + hour%10;
+	*dp++ = ':';
+	*dp++ = '0' + min/10;
+	*dp++ = '0' + min%10;
+	*dp++ = ':';
+	*dp++ = '0' + sec/10;
+	*dp++ = '0' + sec%10;
+	*dp++ = EOT;
+
+	return 0;
+}
+
 __attribute__((aligned(WORDSIZE)))
 static long b_execl(long path, ...)
 {
@@ -142,7 +208,7 @@ static long b_execl(long path, ...)
 
 	va_start(ap, path);
 
-	for (i = 1; arg = va_arg(ap, long); i++) {
+	for (i = 1; (arg = va_arg(ap, long)); i++) {
 		if (i > MAX_ARGS - 2)
 			return -1;
 
@@ -414,7 +480,8 @@ long (*chmod_)() = &b_chmod;
 long (*chown_)() = &b_chown;
 long (*close_)() = &b_close;
 long (*creat_)() = &b_creat;
-long (*execl_)() = &b_execl;
+long (*ctime_)() = &b_ctime;
+long (*execl_)(long, ...) = &b_execl;
 long (*execv_)() = &b_execv;
 long (*exit_)() = &b_exit;
 long (*fork_)() = &b_fork;

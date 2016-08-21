@@ -4,6 +4,7 @@ chmod_ chmod
 chown_ chown
 close_ close
 creat_ creat
+ctime_ ctime
 execl_ execl
 execv_ execv
 exit_ exit
