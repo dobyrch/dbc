@@ -3,7 +3,7 @@ Doug's B Compiler
 
 **dbc** aims to replicate of Ken Thompson's implementation of [B](https://en.wikipedia.org/wiki/B_(programming_language)) for the PDP-11 (see [here](https://www.bell-labs.com/usr/dmr/www/kbman.pdf)), with a few differences:
 
-- Instead of constructing a "reverse Polish threaded code interpreter" as described in section 12.0 of the manual, `dbc` generates LLVM bitcode. This is for two reasons: First, so I could get my feet wet with LLVM; second, so `dbc` can leverage the existing optimizers for LLVM.
+- Instead of constructing a "reverse Polish threaded code interpreter" as described in section 12.0 of the manual, `dbc` generates [LLVM](https://en.wikipedia.org/wiki/LLVM) bitcode. This is for two reasons: First, so I could get my feet wet with LLVM; second, so `dbc` can leverage the existing optimizers for LLVM.
 
 - `dbc` targets x86-64, so all values are 64 bits wide (unlike the implementation for PDP-11, which was a 16-bit architecture).  Practically speaking, this means that character literals may contain up to 8 characters instead of 2, and integers can be a _lot_ bigger.
 
@@ -48,6 +48,7 @@ Helpful references
 
 - [Users' Reference to B](https://www.bell-labs.com/usr/dmr/www/kbman.html) - An HTML version of the B Manual for PDP-11, transcribed and edited by none other than Dennis Ritchie
 - [The Programming Language B](https://www.bell-labs.com/usr/dmr/www/bintro.html) - Additional B references written by Steve Johnson and Brian Kernighan; they describe a later version of B for the Honeywell 6070 (also noteworthy: Kernighan's tutorial contains what may be the first "hello world")
+- [B man page](http://minnie.tuhs.org/cgi-bin/utree.pl?file=V1/man/man1/b.1) - The `man` page for B from Version 1 Unix
 
 - [LLVM Tutorial](http://llvm.org/docs/tutorial/index.html) - A handy guide for building your own compiler for a simple programming language
 - [LLVM Language Reference](http://llvm.org/docs/LangRef.html)
