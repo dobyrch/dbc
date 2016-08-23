@@ -305,9 +305,31 @@ static long b_fstat(long fd, long status)
 }
 
 __attribute__((aligned(WORDSIZE)))
+static long b_getchar()
+{
+	long c;
+
+	if (syscall_x86_64(__NR_read, STDIN_FILENO, (long)&c, 1, 0, 0, 0) != 1)
+		return -1;
+
+	return c;
+}
+
+__attribute__((aligned(WORDSIZE)))
 static long b_getuid()
 {
 	return syscall_x86_64(__NR_getuid, 0, 0, 0, 0, 0, 0);
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_lchar(long s, long i, long c)
+{
+	char *str;
+
+	str = (char *)(s << WORDPOW);
+	str[i] = c;
+
+	return c;
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -354,6 +376,7 @@ static long b_open(long path, long mode)
 __attribute__((aligned(WORDSIZE)))
 static long b_putchar(long c)
 {
+	/* TODO: buffer until newline */
 	char buf[WORDSIZE];
 	const char *p;
 	int i, n = 0;
@@ -486,7 +509,9 @@ long (*execv_)() = &b_execv;
 long (*exit_)() = &b_exit;
 long (*fork_)() = &b_fork;
 long (*fstat_)() = &b_fstat;
+long (*getchar_)() = &b_getchar;
 long (*getuid_)() = &b_getuid;
+long (*lchar_)() = &b_lchar;
 long (*link_)() = &b_link;
 long (*mkdir_)() = &b_mkdir;
 long (*open_)() = &b_open;

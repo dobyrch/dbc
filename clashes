@@ -10,7 +10,9 @@ execv_ execv
 exit_ exit
 fork_ fork
 fstat_ fstat
+getchar_ getchar
 getuid_ getuid
+lchar_ lchar
 link_ link
 main_ main
 mkdir_ mkdir
