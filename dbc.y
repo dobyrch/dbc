@@ -38,6 +38,7 @@
 
 %{
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <llvm-c/Core.h>
 #include "astnode.h"
@@ -45,13 +46,15 @@
 
 extern int yylex(void);
 static void yyerror(const char *msg);
+
+static int failed = 0;
 %}
 
 %%
 
 program
 	: definition_list
-		{ compile($1); free_tree($1); }
+		{ if (failed) return EXIT_FAILURE; compile($1); free_tree($1); }
 	| %empty
 		{ compile(NULL); }
 	;
@@ -372,6 +375,8 @@ other_statement
 void yyerror(const char *msg)
 {
 	static int last_line = 0;
+
+	failed = 1;
 
 	if (strncmp(msg, "syntax error", 12) == 0) {
 		/* TODO: only look after comma */
