@@ -7,22 +7,22 @@ Doug's B Compiler
 
 - `dbc` targets x86-64, so all values are 64 bits wide (unlike the implementation for PDP-11, which was a 16-bit architecture).  Practically speaking, this means that character literals may contain up to 8 characters instead of 2, and integers can be a _lot_ bigger.
 
-~~- The compiler diagnostics aren't quite as terse as those described in section 14.0, although I would like to implement a "legacy mode" that uses the original error codes.~~ (Implemented original diagnostics)
-
 What works and what doesn't
 ---------------------------
 
 This project is still awfully rough around the edges, but it should be functional enough to play around with the B language.  The example program from section 9.2, which calculates 4000 digits of _e_, compiles and runs flawlessly (well, it does for me). Run `make test` to try it out.
 
-All operators and statements are implemented, although they haven't all been thoroughly tested.  I suspect some edge cases with oddly placed labels may generate invalid LLVM IR.
+- All operators and statements are implemented, although they haven't all been thoroughly tested.  I suspect some edge cases with oddly placed labels may generate invalid LLVM IR.
 
-~~Only one function may be defined currently (and if you expect that function to do anything, you should probably call it `main` so the linker can find it).~~ (Fixed)
+- Every library function has been implemented, except for `gtty()` and `stty()`.
 
-~~String literals were only added recently and suffer from some endianess issues, so don't expect characters to be in the right order when you print them.~~ (Fixed)
+- The error diagnostics still need some work—several different errors may be printed for the same line, and the line number is not always correct.
 
-~~The library functions in section 8.0 have not been implemented, although clang will happily link your LLVM bitcode against libc instead.  Some functions, like `putchar` and `printf`, are still more or less functional if you know what you're doing.~~ (Every library function has been implemented, except for `gtty()` and `stty()`).
+- Indirectly assigning to a global variable will have strange results (e.g. `foo = 40` is fine, but `*&foo = 40` will actually set foo to 5, not 40).  This issue does not affect local variable assignment, nor does it affect assignment to array indices (i.e. if `foo` is a global vector, `foo[3] = 40` works as expected). The problem stems from a kludge which is necessary to achieve correct pointer arithmetic semantics.
 
-The error diagnostics still need some work—several different errors may be printed for the same line, and the line number is not always correct.
+- Global vector initializer lists may not contain strings.  I suspect this may be a bug in LLVM, (see [`llvm_bug.c`](https://github.com/dobyrch/dbc/blob/master/llvm_bug.c), although I haven't looked into it further.
+
+- A simple definition may contain at most one value in its initializer list.  I have yet not found a reasonable way to implement the semantics described in section 7.1 of the manual; use a vector definition instead (e.g. `foo[5] 1, 2, 3, 4, 5;` instead of `foo 1 2 3 4 5;`).  Incidentally, this same restriction seemed to be present in the H6070 implementation of B.
 
 Differences Between B and C
 ---------------------------
