@@ -38,9 +38,6 @@ static LLVMBasicBlockRef case_blocks[MAX_CASES];
 static LLVMBasicBlockRef labels[MAX_LABELS];
 static int label_count, case_count;
 
-/* TODO: Separate functions for internal compiler error, code error, code warning, etc. */
-/* TODO: Colorize output */
-/* TODO: Look at clang/gcc for examples of error messages */
 static void generror(const char *msg, ...)
 {
 	va_list args;
@@ -147,11 +144,12 @@ void compile(struct node *ast)
 	if (ast)
 		codegen(ast);
 
-	printf("\n====================================\n");
-	LLVMDumpModule(module);
-	printf("------------------------------------\n");
-	LLVMVerifyModule(module, LLVMPrintMessageAction, NULL);
-	printf("====================================\n");
+	if (LLVMVerifyModule(module, LLVMPrintMessageAction, NULL) != 0) {
+		fprintf(stderr, "\nCongratulations, you've found a bug!\n"
+			"Please submit your program to "
+			"<https://github.com/dobyrch/dbc/issues>\n");
+		exit(EXIT_FAILURE);
+	}
 
 	pass_manager = LLVMCreatePassManager();
 	LLVMAddBasicAliasAnalysisPass(pass_manager);
@@ -1111,15 +1109,16 @@ LLVMValueRef gen_name(struct node *ast)
 	LLVMValueRef func, ptr, val;
 	LLVMTypeRef type;
 
-	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 	ptr = lvalue(ast);
 	type = LLVMTypeOf(ptr);
 
-	if (LLVMGetTypeKind(type) == LLVMLabelTypeKind)
+	if (LLVMGetTypeKind(type) == LLVMLabelTypeKind) {
+		func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 		return LLVMBuildPtrToInt(builder,
 				LLVMBlockAddress(func, (LLVMBasicBlockRef)ptr),
 				TYPE_INT,
 				"");
+	}
 
 	type = LLVMGetElementType(LLVMTypeOf(ptr));
 
