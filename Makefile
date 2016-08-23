@@ -8,7 +8,7 @@ dbc: parse.o lex.o astnode.o codegen.o
 	$(CPP) -o $@ $^ $(LDFLAGS)
 
 libb.a: dbc libb.b libb.c clashes
-	./dbc < libb.b
+	./dbc libb.b
 	mv dbc.bc libb.bc
 	$(CC) -nostdlib -o blibb.o -c libb.bc
 	$(CC) -nostdlib -o clibb.o -c libb.c
@@ -17,7 +17,7 @@ libb.a: dbc libb.b libb.c clashes
 
 .PHONY: test
 test: dbc libb.a sample.b
-	./dbc < ./sample.b
+	./dbc ./sample.b
 	mv dbc.bc sample.bc
 	$(CC) -nostdlib sample.bc libb.a
 	./a.out

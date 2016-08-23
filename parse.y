@@ -37,6 +37,8 @@
 %right THEN ELSE
 
 %{
+#include <errno.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,8 +47,9 @@
 #include "codegen.h"
 
 extern int yylex(void);
-static void yyerror(const char *msg);
+extern FILE *yyin;
 
+static void yyerror(const char *msg);
 static int failed = 0;
 %}
 
@@ -399,7 +402,21 @@ void yyerror(const char *msg)
 	fprintf(stderr, "%d: %s\n", yylineno, msg);
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+	char *progname;
+
+	progname = basename(argv[0]);
+
+	if (argc != 2) {
+		fprintf(stderr, "Usage: %s source.b\n", progname);
+		exit(EXIT_FAILURE);
+	}
+
+	if (!(yyin = fopen(argv[1], "r"))) {
+		fprintf(stderr, "%s: %s: %s\n", progname, argv[1], strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
 	return yyparse();
 }
