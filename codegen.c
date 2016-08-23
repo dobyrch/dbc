@@ -39,6 +39,7 @@ static LLVMBasicBlockRef labels[MAX_LABELS];
 static int label_count, case_count;
 
 /* TODO: Try to continue if error is not fatal */
+/* TODO: Create separate func without line num */
 static void generror(const char *msg, ...)
 {
 	va_list args;
@@ -129,7 +130,7 @@ static LLVMValueRef lvalue_to_rvalue(LLVMValueRef lvalue)
 	return LLVMBuildLShr(builder, lvalue, CONST(WORDPOW), "");
 }
 
-void compile(struct node *ast)
+void compile(struct node *ast, const char *outfile)
 {
 	LLVMPassManagerRef pass_manager;
 
@@ -160,9 +161,8 @@ void compile(struct node *ast)
 	LLVMAddCFGSimplificationPass(pass_manager);
 	LLVMRunPassManager(pass_manager, module);
 
-	if (LLVMWriteBitcodeToFile(module, "dbc.bc") != 0) {
+	if (LLVMWriteBitcodeToFile(module, outfile) != 0)
 		generror("Failed to write bitcode");
-	}
 }
 
 void free_tree(struct node *ast)

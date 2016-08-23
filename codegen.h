@@ -1,6 +1,6 @@
 extern int yylineno;
 
-void compile(struct node *ast);
+void compile(struct node *ast, const char *outfile);
 void free_tree(struct node *ast);
 
 /*

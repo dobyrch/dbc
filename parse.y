@@ -50,6 +50,7 @@ extern int yylex(void);
 extern FILE *yyin;
 
 static void yyerror(const char *msg);
+static char *outfile;
 static int failed = 0;
 %}
 
@@ -57,9 +58,10 @@ static int failed = 0;
 
 program
 	: definition_list
-		{ if (failed) return EXIT_FAILURE; compile($1); free_tree($1); }
+		{ if (failed) return EXIT_FAILURE;
+		  compile($1, outfile); free_tree($1); }
 	| /* empty */
-		{ compile(NULL); }
+		{ compile(NULL, outfile); }
 	;
 
 definition_list
@@ -408,15 +410,19 @@ int main(int argc, char **argv)
 
 	progname = basename(argv[0]);
 
-	if (argc != 2) {
-		fprintf(stderr, "Usage: %s source.b\n", progname);
+	if (argc != 3) {
+		fprintf(stderr, "Usage: %s infile outfile\n", progname);
 		exit(EXIT_FAILURE);
 	}
 
-	if (!(yyin = fopen(argv[1], "r"))) {
+	yyin = fopen(argv[1], "r");
+
+	if (!yyin) {
 		fprintf(stderr, "%s: %s: %s\n", progname, argv[1], strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+
+	outfile = argv[2];
 
 	return yyparse();
 }
