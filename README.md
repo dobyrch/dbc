@@ -10,7 +10,7 @@ Doug's B Compiler
 What works and what doesn't
 ---------------------------
 
-This project is still awfully rough around the edges, but it should be functional enough to play around with the B language.  The example program from section 9.2, which calculates 4000 digits of _e_, compiles and runs flawlessly (well, it does for me). Run `make test` to try it out.
+This project is still rough around the edges, but it should be functional enough to play around with the B language.  The example program from section 9.2, which calculates 4000 digits of _e_, compiles and runs flawlessly (well, it does for me). Run `make test` to try it out.
 
 - All operators and statements are implemented, although they haven't all been thoroughly tested.  I suspect some edge cases with oddly placed labels may generate invalid LLVM IR.
 
@@ -22,7 +22,9 @@ This project is still awfully rough around the edges, but it should be functiona
 
 - Global vector initializer lists may not contain strings.  I suspect this may be a bug in LLVM, (see [`llvm_bug.c`](https://github.com/dobyrch/dbc/blob/master/llvm_bug.c), although I haven't looked into it further.
 
-- A simple definition may contain at most one value in its initializer list.  I have yet not found a reasonable way to implement the semantics described in section 7.1 of the manual; use a vector definition instead (e.g. `foo[5] 1, 2, 3, 4, 5;` instead of `foo 1 2 3 4 5;`).  Incidentally, this same restriction seemed to be present in the H6070 implementation of B.
+- A simple definition may contain at most one value in its initializer list.  I have not yet found a reasonable way to implement the semantics described in section 7.1 of the manual; use a vector definition instead (e.g. `foo[5] 1, 2, 3, 4, 5;` instead of `foo 1 2 3 4 5;`).  Incidentally, this same restriction seemed to be present in the H6070 implementation of B.
+
+- Initializer lists may not contain names of other globals (this one shouldn't be difficult to implement).
 
 Differences Between B and C
 ---------------------------
