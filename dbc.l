@@ -2,14 +2,12 @@
 #include <string.h>
 #include "dbc.tab.h"
 
-static void comment(void);
-static void count(void);
-
-int lex_line = 0;
-int lex_column = 0;
+static void strip_comment(void);
 %}
 
+%option yylineno
 %option noyywrap
+%option nounput
 
 D			[0-9]
 L			[a-zA-Z_]
@@ -17,108 +15,92 @@ H			[a-fA-F0-9]
 
 %%
 
-"/*"			{ comment(); }
+"/*"			{ strip_comment(); }
 
-"auto"			{ count(); return(AUTO); }
-"case"			{ count(); return(CASE); }
-"else"			{ count(); return(ELSE); }
-"extrn"			{ count(); return(EXTRN); }
-"goto"			{ count(); return(GOTO); }
-"if"			{ count(); return(IF); }
-"return"		{ count(); return(RETURN); }
-"switch"		{ count(); return(SWITCH); }
-"while"			{ count(); return(WHILE); }
+"auto"			{ return(AUTO); }
+"case"			{ return(CASE); }
+"else"			{ return(ELSE); }
+"extrn"			{ return(EXTRN); }
+"goto"			{ return(GOTO); }
+"if"			{ return(IF); }
+"return"		{ return(RETURN); }
+"switch"		{ return(SWITCH); }
+"while"			{ return(WHILE); }
 
-{L}({L}|{D})*		{ count(); yylval.val = strdup(yytext); return(NAME); }
+{L}({L}|{D})*		{ yylval.val = strdup(yytext); return(NAME); }
 
-0{D}+			{ count(); yylval.val = strdup(yytext); return(LITERAL); }
-{D}+			{ count(); yylval.val = strdup(yytext); return(LITERAL); }
-'(\*.|[^\*'])+'		{ count(); yylval.val = strdup(yytext); return(LITERAL); }
+0{D}+			{ yylval.val = strdup(yytext); return(LITERAL); }
+{D}+			{ yylval.val = strdup(yytext); return(LITERAL); }
+'(\*.|[^\*'])+'		{ yylval.val = strdup(yytext); return(LITERAL); }
 
-\"(\*.|[^\*"])*\"	{ count(); yylval.val = strdup(yytext); return(LITERAL); }
+\"(\*.|[^\*"])*\"	{ yylval.val = strdup(yytext); return(LITERAL); }
 
-"=>>"			{ count(); return(RIGHT_ASSIGN); }
-"=<<"			{ count(); return(LEFT_ASSIGN); }
-"=+"			{ count(); return(ADD_ASSIGN); }
-"=-"			{ count(); return(SUB_ASSIGN); }
-"=*"			{ count(); return(MUL_ASSIGN); }
-"=/"			{ count(); return(DIV_ASSIGN); }
-"=%"			{ count(); return(MOD_ASSIGN); }
-"=&"			{ count(); return(AND_ASSIGN); }
-"=|"			{ count(); return(OR_ASSIGN); }
-"==="			{ count(); return(EQ_ASSIGN); }
-"=!="			{ count(); return(NE_ASSIGN); }
-"=<="			{ count(); return(LE_ASSIGN); }
-"=<"			{ count(); return(LT_ASSIGN); }
-"=>="			{ count(); return(GE_ASSIGN); }
-"=>"			{ count(); return(GT_ASSIGN); }
-">>"			{ count(); return(RIGHT_OP); }
-"<<"			{ count(); return(LEFT_OP); }
-"++"			{ count(); return(INC_OP); }
-"--"			{ count(); return(DEC_OP); }
-"<="			{ count(); return(LE_OP); }
-">="			{ count(); return(GE_OP); }
-"=="			{ count(); return(EQ_OP); }
-"!="			{ count(); return(NE_OP); }
-";"			{ count(); return(';'); }
-"{"			{ count(); return('{'); }
-"}"			{ count(); return('}'); }
-","			{ count(); return(','); }
-":"			{ count(); return(':'); }
-"="			{ count(); return('='); }
-"("			{ count(); return('('); }
-")"			{ count(); return(')'); }
-"["			{ count(); return('['); }
-"]"			{ count(); return(']'); }
-"&"			{ count(); return('&'); }
-"!"			{ count(); return('!'); }
-"-"			{ count(); return('-'); }
-"+"			{ count(); return('+'); }
-"*"			{ count(); return('*'); }
-"/"			{ count(); return('/'); }
-"%"			{ count(); return('%'); }
-"<"			{ count(); return('<'); }
-">"			{ count(); return('>'); }
-"|"			{ count(); return('|'); }
-"?"			{ count(); return('?'); }
+"=>>"			{ return(RIGHT_ASSIGN); }
+"=<<"			{ return(LEFT_ASSIGN); }
+"=+"			{ return(ADD_ASSIGN); }
+"=-"			{ return(SUB_ASSIGN); }
+"=*"			{ return(MUL_ASSIGN); }
+"=/"			{ return(DIV_ASSIGN); }
+"=%"			{ return(MOD_ASSIGN); }
+"=&"			{ return(AND_ASSIGN); }
+"=|"			{ return(OR_ASSIGN); }
+"==="			{ return(EQ_ASSIGN); }
+"=!="			{ return(NE_ASSIGN); }
+"=<="			{ return(LE_ASSIGN); }
+"=<"			{ return(LT_ASSIGN); }
+"=>="			{ return(GE_ASSIGN); }
+"=>"			{ return(GT_ASSIGN); }
+">>"			{ return(RIGHT_OP); }
+"<<"			{ return(LEFT_OP); }
+"++"			{ return(INC_OP); }
+"--"			{ return(DEC_OP); }
+"<="			{ return(LE_OP); }
+">="			{ return(GE_OP); }
+"=="			{ return(EQ_OP); }
+"!="			{ return(NE_OP); }
+"("			{ return('('); }
+")"			{ return(')'); }
+"["			{ return('['); }
+"]"			{ return(']'); }
+"{"			{ return('{'); }
+"}"			{ return('}'); }
+","			{ return(','); }
+";"			{ return(';'); }
+":"			{ return(':'); }
+"!"			{ return('!'); }
+"*"			{ return('*'); }
+"/"			{ return('/'); }
+"%"			{ return('%'); }
+"+"			{ return('+'); }
+"-"			{ return('-'); }
+"<"			{ return('<'); }
+">"			{ return('>'); }
+"&"			{ return('&'); }
+"|"			{ return('|'); }
+"?"			{ return('?'); }
+"="			{ return('='); }
 
-[ \t\v\n\f]		{ count(); }
-.			{ /* TODO: Fail on junk */ }
+[ \t\v\n\f]		{ /* Ignore whitespace */ }
+.			{ return(JUNK); }
 
 %%
 
-
-static void comment(void)
+static void strip_comment(void)
 {
-	char c, c1;
+	int line;
+	char c1, c2;
 
-loop:
-	while ((c = input()) != '*' && c != 0)
-		putchar(c);
+	line = yylineno;
+	c1 = input();
 
-	if ((c1 = input()) != '/' && c != 0)
-	{
-		unput(c1);
-		goto loop;
-	}
+	do {
+		while ((c2 = input()) != '/') {
+			if (!c1 && !c2) {
+				printf("%d: */\n", line);
+				exit(EXIT_FAILURE);
+			}
 
-	if (c != 0)
-		putchar(c1);
-}
-
-
-static void count(void)
-{
-	int i;
-
-	for (i = 0; yytext[i] != '\0'; i++)
-		if (yytext[i] == '\n') {
-			lex_line++;
-			lex_column = 0;
-		} else if (yytext[i] == '\t')
-			lex_column += 8 - (lex_column % 8);
-		else
-			lex_column++;
-
-	ECHO;
+			c1 = c2;
+		}
+	} while (c1 != '*');
 }

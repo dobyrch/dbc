@@ -1,10 +1,7 @@
 #include <stdlib.h>
-
 #include <llvm-c/Core.h>
-
 #include "dbc.tab.h"
 #include "astnode.h"
-
 
 LLVMValueRef codegen(struct node *ast)
 {
@@ -25,24 +22,20 @@ struct node *leafnode(codegen_func codegen, char *value)
 	return new_leaf;
 }
 
-
 struct node *node0(codegen_func codegen)
 {
 	return node3(codegen, NULL, NULL, NULL);
 }
-
 
 struct node *node1(codegen_func codegen, struct node *one)
 {
 	return node3(codegen, one, NULL, NULL);
 }
 
-
 struct node *node2(codegen_func codegen, struct node *one, struct node *two)
 {
 	return node3(codegen, one, two, NULL);
 }
-
 
 struct node *node3(codegen_func codegen, struct node *one, struct node *two, struct node *three)
 {

@@ -45,10 +45,11 @@ static void generror(const char *msg, ...)
 {
 	va_list args;
 
-	printf("ERROR: ");
+	/* TODO: Print correct line number */
+	fprintf(stderr, "%d: ", yylineno);
 
 	va_start(args, msg);
-	vprintf(msg, args);
+	vfprintf(stderr, msg, args);
 	va_end(args);
 
 	putchar('\n');
@@ -73,10 +74,10 @@ static void symtab_enter(char *key, void *data)
 	symtab_entry.data = data;
 
 	if (hsearch(symtab_entry, FIND) != NULL)
-		generror("redefinition of '%s'", symtab_entry.key);
+		generror("rd %s", symtab_entry.key);
 
 	if (hsearch(symtab_entry, ENTER) == NULL)
-		generror("Symbol table full");
+		generror(">s");
 }
 
 static void *symtab_find(char *key)
@@ -262,7 +263,7 @@ static void predeclare_labels(struct node *ast)
 		symtab_enter(name, label_block);
 
 		if (label_count >= MAX_LABELS)
-			generror("Label table overflow");
+			generror(">i");
 
 		labels[label_count++] = label_block;
 	}
@@ -276,7 +277,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	int param_count, i;
 
 	if (hcreate(SYMTAB_SIZE) == 0)
-		generror("Failed to allocate space for symbol table");
+		generror(">s");
 
 	param_count = count_chain(ast->two);
 	param_types = calloc(sizeof(LLVMTypeRef), param_count);
@@ -383,7 +384,6 @@ LLVMValueRef gen_auto(struct node *ast)
 
 LLVMValueRef gen_extrn(struct node *ast)
 {
-	/* TODO: Warn when using unitialized var */
 	LLVMValueRef global;
 	struct node *name_list;
 	char *name;
@@ -405,7 +405,6 @@ LLVMValueRef gen_extrn(struct node *ast)
 
 LLVMValueRef gen_label(struct node *ast)
 {
-	/* TODO: Use separate table for labels? */
 	LLVMBasicBlockRef label_block, prev_block;
 
 	prev_block = LLVMGetInsertBlock(builder);
@@ -440,7 +439,7 @@ LLVMValueRef gen_case(struct node *ast)
 	case_count++;
 
 	if (case_count >= MAX_CASES)
-		generror("Case table overflow");
+		generror(">c");
 
 	codegen(ast->two);
 
@@ -620,7 +619,7 @@ static LLVMValueRef lvalue_name(struct node *ast)
 
 	/* TODO: Allow undeclared functions for calls */
 	if (lvalue == NULL)
-		generror("Use of undeclared identifier '%s'", ast->val);
+		generror("un %s", ast->val);
 
 	return lvalue;
 }
@@ -653,7 +652,7 @@ static LLVMValueRef lvalue(struct node *ast)
 	else if (ast->codegen == gen_index)
 		return lvalue_index(ast);
 	else
-		generror("expected lvalue");
+		generror("lv");
 
 	return NULL;
 }
@@ -1134,7 +1133,7 @@ LLVMValueRef gen_name(struct node *ast)
 		return val;
 
 	default:
-		generror("Unexpected type '%s'", LLVMPrintTypeToString(type));
+		generror("unexpected type '%s'", LLVMPrintTypeToString(type));
 		return NULL;
 	}
 }
@@ -1159,7 +1158,6 @@ static char escape(char c)
 	case '"':
 		return c;
 	default:
-		generror("warning: unknown escape sequence '*%c'", c);
 		return c;
 	}
 }
@@ -1206,9 +1204,6 @@ static LLVMValueRef make_char(const char *str)
 	str += 1;
 	charval = CONST(pack_char(&str));
 
-	if (str)
-		generror("warning: character constant too long");
-
 	return charval;
 }
 
@@ -1227,9 +1222,6 @@ static LLVMValueRef make_str(const char *str)
 	p = str + 1;
 	while (p && size < MAX_STRSIZE - 1)
 		chars[size++] = CONST(pack_char(&p));
-
-	if (p)
-		generror("warning: string constant too long");
 
 	chars[size++] = CONST(EOT);
 

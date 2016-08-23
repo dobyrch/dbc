@@ -7,7 +7,7 @@ Doug's B Compiler
 
 - **dbc** targets x86-64, so all values are 64 bits wide (unlike the implementation for PDP-11, which was a 16-bit architecture).  Practically speaking, this means that character literals may contain up to 8 characters instead of 2, and integers can be a _lot_ bigger.
 
-- The compiler diagnostics aren't quite as terse as those described in section 14.0, although I would like to implement a "legacy mode" that uses the original error codes.
+~~- The compiler diagnostics aren't quite as terse as those described in section 14.0, although I would like to implement a "legacy mode" that uses the original error codes.~~ (Implemented original diagnostics)
 
 What works and what doesn't
 ---------------------------

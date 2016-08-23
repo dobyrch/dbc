@@ -15,8 +15,10 @@
 %token EQ_ASSIGN NE_ASSIGN
 %token LT_ASSIGN LE_ASSIGN
 %token GT_ASSIGN GE_ASSIGN
-%token CASE IF ELSE SWITCH WHILE GOTO RETURN
+%token IF ELSE WHILE
+%token SWITCH CASE GOTO RETURN
 %token AUTO EXTRN
+%token JUNK
 
 %type <ast> definition_list definition
 %type <ast> simple_definition vector_definition function_definition
@@ -36,12 +38,13 @@
 
 %{
 #include <stdio.h>
+#include <string.h>
 #include <llvm-c/Core.h>
 #include "astnode.h"
 #include "codegen.h"
 
 extern int yylex(void);
-void yyerror(const char *msg);
+static void yyerror(const char *msg);
 %}
 
 %%
@@ -336,15 +339,60 @@ constant
 		{ $$ = leafnode(gen_const, $1); }
 	;
 
-%%
+/* Error Handling Rules */
 
+definition
+	: error ';'
+		{ yyerror("xx"); }
+	| error '{' statement_list '}'
+		{ yyerror("xx"); }
+	;
+
+other_statement
+	: AUTO error ';' statement
+		{ yyerror("sx auto"); }
+	| EXTRN error ';' statement
+		{ yyerror("sx extrn"); }
+	| CASE error statement
+		{ yyerror("sx case"); }
+	| IF error statement
+		{ yyerror("sx if"); }
+	| IF error statement ELSE statement
+		{ yyerror("sx if"); }
+	| WHILE error statement
+		{ yyerror("sx while"); }
+	| RETURN error ';'
+		{ yyerror("sx return"); }
+	| error ';'
+		{ yyerror("ex"); }
+	;
+
+%%
 
 void yyerror(const char *msg)
 {
-	printf("\n%*s\n%*s\n", lex_column, "^", lex_column, msg);
-	fflush(stdout);
-}
+	static int last_line = 0;
 
+	if (strncmp(msg, "syntax error", 12) == 0) {
+		/* TODO: only look after comma */
+		if (strchr(msg, ')'))
+			fprintf(stderr, "%d: ()\n", yylineno);
+		else if (strchr(msg, ']'))
+			fprintf(stderr, "%d: []\n", yylineno);
+		else if (strchr(msg, '}'))
+			fprintf(stderr, "%d: $)\n", yylineno);
+
+		last_line = yylineno;
+		return;
+	}
+
+	if (last_line) {
+		yylineno = last_line;
+		last_line = 0;
+	}
+
+	fprintf(stderr, "%d: %s\n", yylineno, msg);
+}
 
 int main(void)
 {

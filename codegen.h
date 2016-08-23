@@ -1,5 +1,4 @@
-extern int lex_line;
-extern int lex_column;
+extern int yylineno;
 
 void compile(struct node *ast);
 void free_tree(struct node *ast);
