@@ -1,6 +1,6 @@
 %{
 #include <string.h>
-#include "dbc.tab.h"
+#include "y.tab.h"
 
 static void strip_comment(void);
 %}

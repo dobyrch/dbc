@@ -34,7 +34,7 @@
 %type <ast> unary_expression postfix_expression argument_list
 %type <ast> primary_expression constant
 
-%define parse.error verbose
+%right THEN ELSE
 
 %{
 #include <stdio.h>
@@ -55,7 +55,7 @@ static int failed = 0;
 program
 	: definition_list
 		{ if (failed) return EXIT_FAILURE; compile($1); free_tree($1); }
-	| %empty
+	| /* empty */
 		{ compile(NULL); }
 	;
 
@@ -143,7 +143,7 @@ other_statement
 		{ $$ = node1(gen_compound, $2); }
 
 	/* shift-reduce conflict: ELSE binds to nearest IF by default */
-	| IF '(' expression ')' statement
+	| IF '(' expression ')' statement %prec THEN
 		{ $$ = node2(gen_if, $3, $5); }
 	| IF '(' expression ')' statement ELSE statement
 		{ $$ = node3(gen_if, $3, $5, $7); }
@@ -358,7 +358,7 @@ other_statement
 		{ yyerror("sx extrn"); }
 	| CASE error statement
 		{ yyerror("sx case"); }
-	| IF error statement
+	| IF error statement %prec THEN
 		{ yyerror("sx if"); }
 	| IF error statement ELSE statement
 		{ yyerror("sx if"); }
@@ -379,7 +379,7 @@ void yyerror(const char *msg)
 	failed = 1;
 
 	if (strncmp(msg, "syntax error", 12) == 0) {
-		/* TODO: only look after comma */
+		/* TODO: Figure out how to check expected token */
 		if (strchr(msg, ')'))
 			fprintf(stderr, "%d: ()\n", yylineno);
 		else if (strchr(msg, ']'))

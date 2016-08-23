@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <llvm-c/Core.h>
-#include "dbc.tab.h"
+#include "y.tab.h"
 #include "astnode.h"
 
 LLVMValueRef codegen(struct node *ast)

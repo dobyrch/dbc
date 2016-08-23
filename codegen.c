@@ -10,7 +10,7 @@
 #include <llvm-c/BitWriter.h>
 #include <llvm-c/Transforms/Scalar.h>
 
-#include "dbc.tab.h"
+#include "y.tab.h"
 #include "astnode.h"
 #include "codegen.h"
 #include "constants.h"
