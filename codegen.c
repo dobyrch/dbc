@@ -30,7 +30,7 @@
 static LLVMBuilderRef builder;
 static LLVMModuleRef module;
 
-/* TODO: Store necessary globales in struct called "state" */
+/* TODO: Store necessary globals in struct called "state" */
 static LLVMValueRef retval;
 static LLVMBasicBlockRef ret_block;
 static LLVMValueRef case_vals[MAX_CASES];
@@ -38,6 +38,7 @@ static LLVMBasicBlockRef case_blocks[MAX_CASES];
 static LLVMBasicBlockRef labels[MAX_LABELS];
 static int label_count, case_count;
 
+/* TODO: Try to continue if error is not fatal */
 static void generror(const char *msg, ...)
 {
 	va_list args;
