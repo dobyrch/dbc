@@ -3,9 +3,9 @@ Doug's B Compiler
 
 **dbc** aims to replicate of Ken Thompson's implementation of [B](https://en.wikipedia.org/wiki/B_(programming_language)) for the PDP-11 (see [here](https://www.bell-labs.com/usr/dmr/www/kbman.pdf)), with a few differences:
 
-- Instead of constructing a "reverse Polish threaded code interpreter" as described in section 12.0 of the manual, **dbc** generates LLVM bitcode. This is for two reasons: First, so I could get my feet wet with LLVM; second, so **dbc** can leverage the existing optimizers for LLVM.
+- Instead of constructing a "reverse Polish threaded code interpreter" as described in section 12.0 of the manual, `dbc` generates LLVM bitcode. This is for two reasons: First, so I could get my feet wet with LLVM; second, so `dbc` can leverage the existing optimizers for LLVM.
 
-- **dbc** targets x86-64, so all values are 64 bits wide (unlike the implementation for PDP-11, which was a 16-bit architecture).  Practically speaking, this means that character literals may contain up to 8 characters instead of 2, and integers can be a _lot_ bigger.
+- `dbc` targets x86-64, so all values are 64 bits wide (unlike the implementation for PDP-11, which was a 16-bit architecture).  Practically speaking, this means that character literals may contain up to 8 characters instead of 2, and integers can be a _lot_ bigger.
 
 ~~- The compiler diagnostics aren't quite as terse as those described in section 14.0, although I would like to implement a "legacy mode" that uses the original error codes.~~ (Implemented original diagnostics)
 
@@ -16,11 +16,13 @@ This project is still awfully rough around the edges, but it should be functiona
 
 All operators and statements are implemented, although they haven't all been thoroughly tested.  I suspect some edge cases with oddly placed labels may generate invalid LLVM IR.
 
-~~Only one function may be defined currently (and if you expect that function to do anything, you should probably call it `main` so the linker can find it).~~
+~~Only one function may be defined currently (and if you expect that function to do anything, you should probably call it `main` so the linker can find it).~~ (Fixed)
 
-~~String literals were only added recently and suffer from some endianess issues, so don't expect characters to be in the right order when you print them.~~
+~~String literals were only added recently and suffer from some endianess issues, so don't expect characters to be in the right order when you print them.~~ (Fixed)
 
-The library functions in section 8.0 have not been implemented, although clang will happily link your LLVM bitcode against libc instead.  Some functions, like `putchar` and `printf`, are still more or less functional if you know what you're doing.
+~~The library functions in section 8.0 have not been implemented, although clang will happily link your LLVM bitcode against libc instead.  Some functions, like `putchar` and `printf`, are still more or less functional if you know what you're doing.~~ (Every library function has been implemented, except for `gtty()` and `stty()`).
+
+The error diagnostics still need some work—several different errors may be printed for the same line, and the line number is not always correct.
 
 Differences Between B and C
 ---------------------------
@@ -34,11 +36,11 @@ Differences Between B and C
 - No floating point numbers
 - No structs or unions
 - The PDP-11 implementation of B lacks the keywords `for`, `do`, `break`, `continue`, and `default`, as well as the `~` and `^` operators, although they do make an appearance in the Honeywell 6070 version
+- No `&&` and `||` operators, only bitwise `&` and `|`; the H6070 documentation mentions that `&` and `|` were overloaded to perform logical operations when used inside of `if`, `while`, or a conditional expression, but the PDP-11 manual does not assign any additional behavior to the bitwise operators
 - Function definitions don't require braces for a single statement: `main() return(0);` is a valid B program
 - A `return` statement requires parentheses: `return(x)`
 - ...but `switch` does not: `switch x { /* do stuff */ }`
 - `argv` is a global variable, not an argument to `main()`; `argv[0]` contains the number of command line arguments, not the program name
-
 
 
 Helpful references
