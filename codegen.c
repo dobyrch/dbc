@@ -291,6 +291,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	/* TODO: give more descriptive name, like ".gfunc_NAME */
 	func = LLVMAddFunction(module, ".gfunc", func_type);
 	LLVMSetLinkage(func, LLVMPrivateLinkage);
+	LLVMAddFunctionAttr(func, LLVMStackAlignment);
 
 	global = find_or_add_global(ast->one->val);
 	LLVMSetInitializer(global, LLVMBuildPtrToInt(builder, func, TYPE_INT, ""));
