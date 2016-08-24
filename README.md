@@ -33,7 +33,7 @@ You'll need a few things to get started:
 
 - A computer running Linux (x86_64 only...for now)
 - LLVM libraries and header files
-- Your favorite C compiler (tested with clang and gcc)
+- Your favorite C compiler (tested with clang 3.8 and gcc 6.1)
 - A C++ compiler of your choice (for linking with LLVM; clang++ and g++ should both work)
 - yacc (tested with bison and byacc)
 - lex (tested with flex)
