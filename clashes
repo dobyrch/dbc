@@ -18,6 +18,8 @@ link_ link
 main_ main
 mkdir_ mkdir
 open_ open
+printf_ printf
+printn_ printn
 putchar_ putchar
 read_ read
 seek_ seek

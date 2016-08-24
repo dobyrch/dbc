@@ -7,14 +7,13 @@ LDFLAGS = $$(llvm-config --ldflags --libs --system-libs)
 dbc: parse.o lex.o astnode.o codegen.o
 	$(CPP) -o $@ $^ $(LDFLAGS)
 
+libb.a: libb.c clashes
+	$(CC) -nostdlib -c libb.c
+	objcopy --redefine-syms=clashes libb.o
+	ar rcs $@ libb.o
+
 %.bc: %.b dbc
 	./dbc $< $@
-
-libb.a: libb.bc libb.c clashes
-	$(CC) -nostdlib -o blibb.o -c libb.bc
-	$(CC) -nostdlib -o clibb.o -c libb.c
-	objcopy --redefine-syms=clashes clibb.o
-	ar rcs $@ blibb.o clibb.o
 
 .PHONY: test
 test: sample.bc libb.a

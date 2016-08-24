@@ -418,6 +418,66 @@ static long b_putchar(long c)
 }
 
 __attribute__((aligned(WORDSIZE)))
+static long b_printn(long n, long b)
+{
+	long a;
+
+	if ((a = n/b))
+		b_printn(a, b);
+
+	return b_putchar(n%b + '0');
+}
+
+__attribute__((aligned(WORDSIZE)))
+static long b_printf(long fmt, ...)
+{
+	va_list ap;
+	long x, c, i, j;
+
+	i = 0;
+	va_start(ap, fmt);
+loop:
+	while ((c = b_char(fmt, i++)) != '%') {
+		if (c == EOT) {
+			va_end(ap);
+			return 0;
+		}
+
+		b_putchar(c);
+	}
+
+
+	switch ((c = b_char(fmt, i++))) {
+	case 'd':
+	case 'o':
+		x = va_arg(ap, long);
+		if (x < 0) {
+			x = -x;
+			b_putchar('-');
+		}
+
+		b_printn(x, c == 'o' ? 8 : 10);
+		goto loop;
+
+	case 'c':
+		x = va_arg(ap, long);
+		b_putchar(x);
+		goto loop;
+
+	case 's':
+		x = va_arg(ap, long);
+		j = 0;
+		while ((c = b_char(x, j++)) != EOT)
+			b_putchar(c);
+		goto loop;
+	}
+
+	b_putchar('%');
+	i--;
+	goto loop;
+}
+
+__attribute__((aligned(WORDSIZE)))
 static long b_read(long fd, long buf, long count)
 {
 	buf <<= WORDPOW;
@@ -550,6 +610,8 @@ long (*lchar_)() = &b_lchar;
 long (*link_)() = &b_link;
 long (*mkdir_)() = &b_mkdir;
 long (*open_)() = &b_open;
+long (*printf_)(long, ...) = &b_printf;
+long (*printn_)() = &b_printn;
 long (*putchar_)() = &b_putchar;
 long (*read_)() = &b_read;
 long (*seek_)() = &b_seek;
