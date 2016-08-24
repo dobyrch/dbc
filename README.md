@@ -26,7 +26,36 @@ This project is still rough around the edges, but it should be functional enough
 
 - Initializer lists may not contain names of other globals (this one shouldn't be difficult to implement).
 
-Differences Between B and C
+How to run
+----------
+
+You'll need a few things to get started:
+
+- A computer running Linux (x86_64 only...for now)
+- LLVM libraries and header files
+- Your favorite C compiler (tested with clang and gcc)
+- A C++ compiler of your choice (for linking with LLVM; clang++ and g++ should both work)
+- yacc (tested with bison and byacc)
+- lex (tested with flex)
+- GNU binutils (ld, ar, as, and objcopy)
+- GNU make
+- This source code
+
+Check your distribution's repositories for any missing components.
+
+Once you have everything installed, `cd` to the directory containing the source code for `dbc` and run `make`. If all goes well, you should now be the proud owner of a binary named `dbc`. While you're at it, also run `make libb.a` to generate the B standard library.
+
+Now that you've compiled the compiler, you're just a few steps away from compiling your first B program.  The observant reader will notice that these steps closely resemble the procedure from section 10.0 of the B manual:
+
+1. `./dbc sample.b sample.bc` - Compile your B source code into an intermediate language (LLVM bitcode)
+2. `llc sample.bc` - Convert the bitcode into assembly language
+3. `as sample.s -o sample.o` - Compile the assembly source into an object file
+4. `ld sample.o libb.a` - Link your object file against the B library
+5. `./a.out` - Run your first B program!
+
+To make the process less tedious, the `dbrc` script may be used to execute the same sequence of commands: `./dbrc sample.b` (Don't expect anything fancy—it runs that exact sequence of commands, nothing more, nothing less).
+
+Differences between B and C
 ---------------------------
 
 - Reversed assignment operators: B uses `x =+ 2`, not `x += 2` (although the former style _was_ legal in older C programs, according to K&R)
@@ -43,7 +72,6 @@ Differences Between B and C
 - A `return` statement requires parentheses: `return(x)`
 - ...but `switch` does not: `switch x { /* do stuff */ }`
 - `argv` is a global variable, not an argument to `main()`; `argv[0]` contains the number of command line arguments, not the program name
-
 
 Helpful references
 ------------------
