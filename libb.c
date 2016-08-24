@@ -1,3 +1,4 @@
+#include <asm/termios.h>
 #include <asm/unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -322,6 +323,24 @@ static long b_getuid()
 }
 
 __attribute__((aligned(WORDSIZE)))
+static long b_gtty(long fd, long ttystat)
+{
+	struct termios buf;
+	long *t;
+	long r;
+
+	r = syscall_x86_64(__NR_ioctl, fd, TCGETS, (long)&buf, 0, 0, 0);
+
+	t = (long *)(ttystat << WORDPOW);
+	t[0] = buf.c_iflag;
+	t[1] = buf.c_oflag;
+	t[2] = buf.c_cflag;
+	t[3] = buf.c_lflag;
+
+	return r;
+}
+
+__attribute__((aligned(WORDSIZE)))
 static long b_lchar(long s, long i, long c)
 {
 	char *str;
@@ -450,6 +469,21 @@ static long b_stat(long path, long status)
 }
 
 __attribute__((aligned(WORDSIZE)))
+static long b_stty(long fd, long ttystat)
+{
+	struct termios buf;
+	long *t;
+
+	t = (long *)(ttystat << WORDPOW);
+	buf.c_iflag = t[0];
+	buf.c_oflag = t[1];
+	buf.c_cflag = t[2];
+	buf.c_lflag = t[3];
+
+	return syscall_x86_64(__NR_ioctl, fd, TCSETS, (long)&buf, 0, 0, 0);
+}
+
+__attribute__((aligned(WORDSIZE)))
 static long b_time(long tloc)
 {
 	tloc <<= WORDPOW;
@@ -511,6 +545,7 @@ long (*fork_)() = &b_fork;
 long (*fstat_)() = &b_fstat;
 long (*getchar_)() = &b_getchar;
 long (*getuid_)() = &b_getuid;
+long (*gtty_)() = &b_gtty;
 long (*lchar_)() = &b_lchar;
 long (*link_)() = &b_link;
 long (*mkdir_)() = &b_mkdir;
@@ -520,6 +555,7 @@ long (*read_)() = &b_read;
 long (*seek_)() = &b_seek;
 long (*setuid_)() = &b_setuid;
 long (*stat_)() = &b_stat;
+long (*stty_)() = &b_stty;
 long (*time_)() = &b_time;
 long (*unlink_)() = &b_unlink;
 long (*wait_)() = &b_wait;

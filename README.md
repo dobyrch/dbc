@@ -14,7 +14,7 @@ This project is still rough around the edges, but it should be functional enough
 
 - All operators and statements are implemented, although they haven't all been thoroughly tested.  I suspect some edge cases with oddly placed labels may generate invalid LLVM IR.
 
-- Every library function has been implemented, except for `gtty()` and `stty()`.
+- Every library function has been implemented, although `gtty()` and `stty()` differ slightly from their descriptions in the manual: they both require a *4*-word vector as a second argument.  They are equivalent to `tcgetattr` and `tcsetattr`, respectively, but use a vector instead of `struct termios` to hold the four flag fields.
 
 - The error diagnostics still need some work—several different errors may be printed for the same line, and the line number is not always correct.
 

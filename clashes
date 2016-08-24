@@ -12,6 +12,7 @@ fork_ fork
 fstat_ fstat
 getchar_ getchar
 getuid_ getuid
+gtty_ gtty
 lchar_ lchar
 link_ link
 main_ main
@@ -22,6 +23,7 @@ read_ read
 seek_ seek
 setuid_ setuid
 stat_ stat
+stty_ stty
 time_ time
 unlink_ unlink
 wait_ wait
