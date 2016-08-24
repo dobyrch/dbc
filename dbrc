@@ -1,0 +1,10 @@
+#/usr/bin/env sh
+set -e
+
+input=${1:?Usage: dbrc source.b}
+base=$(basename "${input}" '.b')
+
+./dbc "${input}" "${base}.bc"
+llc "${base}.bc"
+as "${base}.s" -o "${base}.o"
+ld "${base}.o" libb.a
