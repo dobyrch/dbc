@@ -1214,11 +1214,6 @@ static LLVMValueRef make_str(const char *str)
 	const char *p;
 	int size = 0;
 
-	global = LLVMGetNamedGlobal(module, str);
-
-	if (global)
-		return lvalue_to_rvalue(global);
-
 	/* Skip leading " */
 	p = str + 1;
 	while (p && size < MAX_STRSIZE - 1)
@@ -1226,7 +1221,7 @@ static LLVMValueRef make_str(const char *str)
 
 	chars[size++] = CONST(EOT);
 
-	global = LLVMAddGlobal(module, TYPE_ARRAY(size), str);
+	global = LLVMAddGlobal(module, TYPE_ARRAY(size), ".gstr");
 	LLVMSetLinkage(global, LLVMPrivateLinkage);
 
 	strval = LLVMConstArray(TYPE_ARRAY(size), chars, size);
