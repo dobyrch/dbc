@@ -7,30 +7,28 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
+
+#include "arch.h"
 #include "constants.h"
 
-static long syscall_x86_64(long sc , long a1, long a2, long a3, long a4, long a5, long a6)
+static long asm_syscall(long sc , long a1, long a2, long a3, long a4)
 {
-	register long rax asm("rax") = sc;
-	register long rdi asm("rdi") = a1;
-	register long rsi asm("rsi") = a2;
-	register long rdx asm("rdx") = a3;
-	register long r10 asm("r10") = a4;
-	register long r8  asm("r8")  = a5;
-	register long r9  asm("r9")  = a6;
+	register long rsc asm(SC) = sc;
+	register long ra1 asm(A1) = a1;
+	register long ra2 asm(A2) = a2;
+	register long ra3 asm(A3) = a3;
+	register long ra4 asm(A4) = a4;
 
 	asm volatile (
-		"syscall" :
-		"+r" (rax) :
-		"r" (rdi),
-		"r" (rsi),
-		"r" (rdx),
-		"r" (r10),
-		"r" (r8),
-		"r" (r9)
+		SYSCALL :
+		"+r" (rsc) :
+		"r" (ra1),
+		"r" (ra2),
+		"r" (ra3),
+		"r" (ra4)
 	);
 
-	return rax;
+	return rsc;
 }
 
 static long cstringify(long bstr)
@@ -84,7 +82,7 @@ static long b_chdir(long path)
 	long r;
 
 	path = cstringify(path);
-	r = syscall_x86_64(__NR_chdir, path, 0, 0, 0, 0, 0);
+	r = asm_syscall(__NR_chdir, path, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -96,7 +94,7 @@ static long b_chmod(long path, long mode)
 	long r;
 
 	path = cstringify(path);
-	r = syscall_x86_64(__NR_chmod, path, mode, 0, 0, 0, 0);
+	r = asm_syscall(__NR_chmod, path, mode, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -108,7 +106,7 @@ static long b_chown(long path, long owner)
 	long r;
 
 	path = cstringify(path);
-	r = syscall_x86_64(__NR_chown, path, owner, -1, 0, 0, 0);
+	r = asm_syscall(__NR_chown, path, owner, -1, 0);
 	bstringify(path);
 
 	return r;
@@ -117,7 +115,7 @@ static long b_chown(long path, long owner)
 __attribute__((aligned(WORDSIZE)))
 static long b_close(long fd)
 {
-	return syscall_x86_64(__NR_close, fd, 0, 0, 0, 0, 0);
+	return asm_syscall(__NR_close, fd, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -126,7 +124,7 @@ static long b_creat(long path, long mode)
 	long r;
 
 	path = cstringify(path);
-	r = syscall_x86_64(__NR_creat, path, mode, 0, 0, 0, 0);
+	r = asm_syscall(__NR_creat, path, mode, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -225,7 +223,7 @@ static long b_execl(long path, ...)
 	av[i] = 0;
 	envp[0] = 0;
 
-	syscall_x86_64(__NR_execve, av[0], (long)av, (long)envp, 0, 0, 0);
+	asm_syscall(__NR_execve, av[0], (long)av, (long)envp, 0);
 
 	/* If we're still here, execve must have failed */
 	for (i = 0; i < count; i++)
@@ -255,7 +253,7 @@ static long b_execv(long path, long args, long count)
 	av[0] = cstringify(path);
 	envp[0] = 0;
 
-	syscall_x86_64(__NR_execve, av[0], (long)av, (long)envp, 0, 0, 0);
+	asm_syscall(__NR_execve, av[0], (long)av, (long)envp, 0);
 
 	for (i = 0; i <= count; i++)
 		bstringify(av[i]);
@@ -266,13 +264,13 @@ static long b_execv(long path, long args, long count)
 __attribute__((aligned(WORDSIZE)))
 static long b_exit(long status)
 {
-	return syscall_x86_64(__NR_exit, status, 0, 0, 0, 0, 0);
+	return asm_syscall(__NR_exit, status, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_fork()
 {
-	return syscall_x86_64(__NR_fork, 0, 0, 0, 0, 0, 0);
+	return asm_syscall(__NR_fork, 0, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -282,7 +280,7 @@ static long b_fstat(long fd, long status)
 	long *s;
 	long r;
 
-	r = syscall_x86_64(__NR_fstat, fd, (long)&buf, 0, 0, 0, 0);
+	r = asm_syscall(__NR_fstat, fd, (long)&buf, 0, 0);
 
 	s = (long *)(status << WORDPOW);
 	s[0]  = buf.st_dev;
@@ -310,7 +308,7 @@ static long b_getchar()
 {
 	long c;
 
-	if (syscall_x86_64(__NR_read, STDIN_FILENO, (long)&c, 1, 0, 0, 0) != 1)
+	if (asm_syscall(__NR_read, STDIN_FILENO, (long)&c, 1, 0) != 1)
 		return -1;
 
 	return c;
@@ -319,7 +317,7 @@ static long b_getchar()
 __attribute__((aligned(WORDSIZE)))
 static long b_getuid()
 {
-	return syscall_x86_64(__NR_getuid, 0, 0, 0, 0, 0, 0);
+	return asm_syscall(__NR_getuid, 0, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -329,7 +327,7 @@ static long b_gtty(long fd, long ttystat)
 	long *t;
 	long r;
 
-	r = syscall_x86_64(__NR_ioctl, fd, TCGETS, (long)&buf, 0, 0, 0);
+	r = asm_syscall(__NR_ioctl, fd, TCGETS, (long)&buf, 0);
 
 	t = (long *)(ttystat << WORDPOW);
 	t[0] = buf.c_iflag;
@@ -358,7 +356,7 @@ static long b_link(long oldpath, long newpath)
 
 	oldpath = cstringify(oldpath);
 	newpath = cstringify(newpath);
-	r = syscall_x86_64(__NR_link, oldpath, newpath, 0, 0, 0, 0);
+	r = asm_syscall(__NR_link, oldpath, newpath, 0, 0);
 	bstringify(oldpath);
 	bstringify(newpath);
 
@@ -371,7 +369,7 @@ static long b_mkdir(long path, long mode)
 	long r;
 
 	path = cstringify(path);
-	return syscall_x86_64(__NR_mkdir, mode, 0, 0, 0, 0, 0);
+	return asm_syscall(__NR_mkdir, mode, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -386,7 +384,7 @@ static long b_open(long path, long mode)
 		mode = O_RDWR;
 
 	path = cstringify(path);
-	r = syscall_x86_64(__NR_open, path, 0, mode, 0, 0, 0);
+	r = asm_syscall(__NR_open, path, 0, mode, 0);
 	bstringify(path);
 
 	return r;
@@ -411,7 +409,7 @@ static long b_putchar(long c)
 		p++;
 	}
 
-	if (syscall_x86_64(__NR_write, STDOUT_FILENO, (long)buf, n, 0, 0, 0) != n)
+	if (asm_syscall(__NR_write, STDOUT_FILENO, (long)buf, n, 0) != n)
 		return -1;
 
 	return c;
@@ -481,19 +479,19 @@ __attribute__((aligned(WORDSIZE)))
 static long b_read(long fd, long buf, long count)
 {
 	buf <<= WORDPOW;
-	return syscall_x86_64(__NR_read, fd, buf, count, 0, 0, 0);
+	return asm_syscall(__NR_read, fd, buf, count, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_seek(long fd, long offset, long whence)
 {
-	return syscall_x86_64(__NR_lseek, fd, offset, whence, 0, 0, 0);
+	return asm_syscall(__NR_lseek, fd, offset, whence, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_setuid(long id)
 {
-	return syscall_x86_64(__NR_setuid, id, 0, 0, 0, 0, 0);
+	return asm_syscall(__NR_setuid, id, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -504,7 +502,7 @@ static long b_stat(long path, long status)
 	long r;
 
 	path = cstringify(path);
-	r = syscall_x86_64(__NR_stat, path, (long)&buf, 0, 0, 0, 0);
+	r = asm_syscall(__NR_stat, path, (long)&buf, 0, 0);
 	bstringify(path);
 
 	s = (long *)(status << WORDPOW);
@@ -540,14 +538,14 @@ static long b_stty(long fd, long ttystat)
 	buf.c_cflag = t[2];
 	buf.c_lflag = t[3];
 
-	return syscall_x86_64(__NR_ioctl, fd, TCSETS, (long)&buf, 0, 0, 0);
+	return asm_syscall(__NR_ioctl, fd, TCSETS, (long)&buf, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_time(long tloc)
 {
 	tloc <<= WORDPOW;
-	return syscall_x86_64(__NR_time, tloc, 0, 0, 0, 0, 0);
+	return asm_syscall(__NR_time, tloc, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -556,7 +554,7 @@ static long b_unlink(long path)
 	long r;
 
 	path = cstringify(path);
-	r = syscall_x86_64(__NR_unlink, path, 0, 0, 0, 0, 0);
+	r = asm_syscall(__NR_unlink, path, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -572,14 +570,14 @@ static long b_wait()
 	 */
 	siginfo_t info;
 
-	return syscall_x86_64(__NR_waitid, P_ALL, 0, (long)&info, WEXITED, 0, 0);
+	return asm_syscall(__NR_waitid, P_ALL, 0, (long)&info, WEXITED);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_write(long fd, long buf, long count)
 {
 	buf <<= WORDPOW;
-	return syscall_x86_64(__NR_write, fd, buf, count, 0, 0, 0);
+	return asm_syscall(__NR_write, fd, buf, count, 0);
 }
 
 /*
@@ -634,8 +632,8 @@ void _start()
 	int i;
 
 	asm volatile (
-		"mov  8(%%rbp), %0\n\t"
-		"lea 16(%%rbp), %1\n\t" :
+		"mov  8(%%" BP "), %0\n\t"
+		"lea 16(%%" BP "), %1\n\t" :
 		"=r" (argc),
 		"=r" (argv)
 	);

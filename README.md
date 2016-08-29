@@ -5,7 +5,7 @@ Doug's B Compiler
 
 - Instead of constructing a "reverse Polish threaded code interpreter" as described in section 12.0 of the manual, `dbc` generates [LLVM](https://en.wikipedia.org/wiki/LLVM) bitcode. This is for two reasons: First, so I could get my feet wet with LLVM; second, so `dbc` can leverage the existing optimizers for LLVM.
 
-- `dbc` targets x86-64, so all values are 64 bits wide (unlike the implementation for PDP-11, which was a 16-bit architecture).  Practically speaking, this means that character literals may contain up to 8 characters instead of 2, and integers can be a _lot_ bigger.
+- `dbc` targets x86 and x86-64, so values may be larger than on the 16-bit PDP-11.  This also means character literals may contain as many as 8 characters instead of 2.
 
 What works and what doesn't
 ---------------------------
@@ -31,7 +31,7 @@ How to run
 
 You'll need a few things to get started:
 
-- A computer running Linux (x86_64 only...for now)
+- A computer running Linux (x86 or x86-64)
 - LLVM libraries and header files
 - Your favorite C compiler (tested with clang 3.8 and gcc 6.1)
 - A C++ compiler of your choice (for linking with LLVM; clang++ and g++ should both work)

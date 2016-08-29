@@ -1,4 +1,3 @@
-#define WORDPOW 3
 #define WORDSIZE (1 << WORDPOW)
 
 #define MAX_STRSIZE 4096

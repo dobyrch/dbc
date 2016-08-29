@@ -12,6 +12,7 @@
 
 #include "y.tab.h"
 #include "astnode.h"
+#include "arch.h"
 #include "codegen.h"
 #include "constants.h"
 
@@ -19,7 +20,6 @@
 #define MAX_LABELS 256
 #define MAX_CASES 256
 
-#define TYPE_INT LLVMInt64Type()
 #define TYPE_PTR LLVMPointerType(TYPE_INT, 0)
 #define TYPE_FUNC LLVMFunctionType(TYPE_INT, NULL, 0, 1)
 #define TYPE_LABEL LLVMPointerType(LLVMInt8Type(), 0)
@@ -140,8 +140,6 @@ void compile(struct node *ast, const char *outfile)
 
 	if ((builder = LLVMCreateBuilder()) == NULL)
 		generror("Failed to create LLVM instruction builder");
-
-	LLVMSetTarget(module, "x86_64-unknown-linux-gnu");
 
 	if (ast)
 		codegen(ast);
