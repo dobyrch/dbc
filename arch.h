@@ -2,7 +2,7 @@
 	#define TYPE_INT LLVMInt64Type()
 	#define WORDPOW 3
 	#define SYSCALL "syscall"
-	#define BP "rbp"
+	#define SP "rsp"
 	#define SC "rax"
 	#define A1 "rdi"
 	#define A2 "rsi"
@@ -12,7 +12,7 @@
 	#define TYPE_INT LLVMInt32Type()
 	#define WORDPOW 2
 	#define SYSCALL "int $0x80"
-	#define BP "ebp"
+	#define SP "esp"
 	#define SC "eax"
 	#define A1 "ebx"
 	#define A2 "ecx"

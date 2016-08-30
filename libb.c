@@ -632,8 +632,8 @@ void _start()
 	int i;
 
 	asm volatile (
-		"mov  8(%%" BP "), %0\n\t"
-		"lea 16(%%" BP "), %1\n\t" :
+		"mov  8(%%" SP "), %0\n\t"
+		"lea 16(%%" SP "), %1\n\t" :
 		"=r" (argc),
 		"=r" (argv)
 	);

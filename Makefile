@@ -6,7 +6,7 @@ dbc: arch.o parse.o lex.o astnode.o codegen.o
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 libb.a: libb.c clashes
-	$(CC) -nostdlib -c libb.c
+	$(CC) -c libb.c -nostdlib -fomit-frame-pointer
 	objcopy --redefine-syms=clashes libb.o
 	ar rcs $@ libb.o
 
