@@ -624,19 +624,13 @@ long (*write_)() = &b_write;
 extern long (*main_)();
 long *argv;
 
-void _start()
+void real_start(long argc, long argvp)
 {
 	char cmdline[MAX_STRSIZE];
-	long argc;
 	char *bstr, *cstr;
 	int i;
 
-	asm volatile (
-		"mov  8(%%" SP "), %0\n\t"
-		"lea 16(%%" SP "), %1\n\t" :
-		"=r" (argc),
-		"=r" (argv)
-	);
+	argv = (long *)argvp;
 
 	/*
 	 * In B, strings (and all pointers, for that matter) must be
