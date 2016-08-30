@@ -1,11 +1,9 @@
-CC = clang
-CPP = clang++
 YFLAGS = -d
 CFLAGS = $$(llvm-config --cflags)
 LDFLAGS = $$(llvm-config --ldflags --libs --system-libs)
 
 dbc: arch.o parse.o lex.o astnode.o codegen.o
-	$(CPP) -o $@ $^ $(LDFLAGS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 libb.a: libb.c clashes
 	$(CC) -nostdlib -c libb.c
