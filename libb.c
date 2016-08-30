@@ -13,6 +13,7 @@
 
 static long asm_syscall(long sc , long a1, long a2, long a3, long a4)
 {
+	register long ret asm(RT);
 	register long rsc asm(SC) = sc;
 	register long ra1 asm(A1) = a1;
 	register long ra2 asm(A2) = a2;
@@ -21,14 +22,15 @@ static long asm_syscall(long sc , long a1, long a2, long a3, long a4)
 
 	asm volatile (
 		SYSCALL :
-		"+r" (rsc) :
-		"r" (ra1),
-		"r" (ra2),
-		"r" (ra3),
-		"r" (ra4)
+		"=r" (ret) :
+		"r"  (rsc),
+		"r"  (ra1),
+		"r"  (ra2),
+		"r"  (ra3),
+		"r"  (ra4)
 	);
 
-	return rsc;
+	return ret;
 }
 
 static long cstringify(long bstr)
