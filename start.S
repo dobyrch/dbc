@@ -6,7 +6,9 @@ _start:
 	mov  (%rsp), %rdi
 	lea 8(%rsp), %rsi
 #elif __i386__
-	; args are already on the stack,
-	; right where they need to be
+	mov  (%esp), %eax
+	lea 4(%esp), %ebx
+	push %ebx
+	push %eax
 #endif
-	jmp real_start
+	call real_start
