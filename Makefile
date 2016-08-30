@@ -1,3 +1,5 @@
+CC = cc
+CXX = c++
 YFLAGS = -d
 CFLAGS = $$(llvm-config --cflags)
 LDFLAGS = $$(llvm-config --ldflags --libs --system-libs)
@@ -6,7 +8,7 @@ dbc: arch.o parse.o lex.o astnode.o codegen.o
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 libb.a: libb.c start.S clashes
-	$(CC) -c libb.c start.S
+	$(CC) -c libb.c start.S -nostdlib
 	objcopy libb.o --redefine-syms=clashes
 	ar rcs $@ libb.o start.o
 
