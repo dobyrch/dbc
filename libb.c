@@ -140,7 +140,8 @@ static long b_creat(long path, long mode)
 __attribute__((aligned(WORDSIZE)))
 static long b_ctime(long tloc, long date)
 {
-	char *dp, *p;
+	char *dp;
+	const char *p;
 	long t, month, day, hour, min, sec;
 
 	t = *(long *)(tloc << WORDPOW);
