@@ -1,3 +1,18 @@
+/*
+ * All architectures require the following definitions:
+ *
+ *     TYPE_INT:  LLVMInt[NN]Type(), where NN is the word size in bits
+ *     WORDPOW:   log2(NN / 8)
+ *     SYSCALL:   The assembly instruction used to invoke a system call
+ *     RT:        The register that holds the return value of a syscall
+ *     SC:        The register that holds the system call number
+ *     A1 - A4:   The registers that hold arguments 1 - 4 of a syscall
+ *
+ * See `man syscall` for calling conventions on other architectures.
+ * New additions also require an entry in start.S to set up command-
+ * line arguments.
+ */
+
 #ifdef __amd64__
 	#define TYPE_INT LLVMInt64Type()
 	#define WORDPOW 3
