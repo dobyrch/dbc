@@ -627,16 +627,11 @@ static LLVMValueRef lvalue_indir(struct node *ast)
 
 static LLVMValueRef lvalue_index(struct node *ast)
 {
-	LLVMValueRef ptr, index, gep;
+	LLVMValueRef ptr;
 
-	/*
-	 * TODO: ensure x[y] == y[x] holds
-	 */
-	ptr = rvalue_to_lvalue(codegen(ast->one));
-	index = codegen(ast->two);
-	gep = LLVMBuildGEP(builder, ptr, &index, 1, "");
+	ptr = LLVMBuildAdd(builder, codegen(ast->one), codegen(ast->two), "");
 
-	return gep;
+	return rvalue_to_lvalue(ptr);
 }
 
 static LLVMValueRef lvalue(struct node *ast)
