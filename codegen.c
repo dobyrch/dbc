@@ -183,12 +183,12 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	struct node *n;
 	int size, initsize, i;
 
-	/*
-	 * TODO: Use convenience function for handling
-	 * chars and octal constants
-	 */
 	initsize = count_chain(ast->three);
-	size = ast->two ? atol(ast->two->val) : 0;
+
+	if (ast->two)
+		size = LLVMConstIntGetZExtValue(codegen(ast->two));
+	else
+		size = 0;
 
 	if (initsize > size)
 		size = initsize;
@@ -584,13 +584,10 @@ LLVMValueRef gen_init(struct node *ast)
 	int size;
 
 	name = ast->one->val;
-	/* TODO: Warn when using unitialized var */
-	/* TODO: replaces calls to atol with function that gets
-	 * value of any constant literal */
 	var = LLVMBuildAlloca(builder, TYPE_INT, name);
 
 	if (ast->two) {
-		size = atol(ast->two->val);
+		size = LLVMConstIntGetZExtValue(codegen(ast->two));
 		array = LLVMBuildAlloca(builder, TYPE_ARRAY(size), "");
 		LLVMBuildStore(builder, lvalue_to_rvalue(array), var);
 	}
