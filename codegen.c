@@ -287,6 +287,7 @@ LLVMValueRef gen_funcdef(struct node *ast)
 	/* TODO: give more descriptive name, like ".gfunc_NAME */
 	func = LLVMAddFunction(module, ".gfunc", func_type);
 	LLVMSetLinkage(func, LLVMPrivateLinkage);
+	/* TODO: How to specify stack alignment? Should be 16 bytes */
 	LLVMAddFunctionAttr(func, LLVMStackAlignment);
 
 	global = find_or_add_global(ast->one->val);
@@ -613,7 +614,6 @@ static LLVMValueRef lvalue_name(struct node *ast)
 
 	lvalue = symtab_find(ast->val);
 
-	/* TODO: Allow undeclared functions for calls */
 	if (lvalue == NULL)
 		generror("un %s", ast->val);
 
