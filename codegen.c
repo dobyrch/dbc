@@ -1072,7 +1072,6 @@ LLVMValueRef gen_index(struct node *ast)
 
 LLVMValueRef gen_call(struct node *ast)
 {
-	/* TODO: Standardize variable naming between gen_call and gen_*def */
 	LLVMValueRef func, *arg_list = NULL;
 	struct node *n;
 	int arg_count, i;
@@ -1215,12 +1214,6 @@ static LLVMValueRef make_str(const char *str)
 	strval = LLVMConstArray(TYPE_ARRAY(size), chars, size);
 	LLVMSetInitializer(global, strval);
 
-	/*
-	 * Ideally, global would be initialized to the shifted address
-	 * of strval; however, there seems to be a bug in LLVM that
-	 * prevents an array element from being initialized with the
-	 * PtrToInt of an array pointer. See llvm_bug.c
-	 */
 	return lvalue_to_rvalue(global);
 }
 
