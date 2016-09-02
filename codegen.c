@@ -30,13 +30,10 @@
 static LLVMBuilderRef builder;
 static LLVMModuleRef module;
 
-/* TODO: Store necessary globals in struct called "state" */
-static LLVMValueRef retval;
-static LLVMBasicBlockRef ret_block;
 static LLVMValueRef case_vals[MAX_CASES];
 static LLVMBasicBlockRef case_blocks[MAX_CASES];
-static LLVMBasicBlockRef labels[MAX_LABELS];
-static int label_count, case_count;
+static LLVMBasicBlockRef label_blocks[MAX_LABELS];
+static int case_count, label_count;
 
 /* TODO: Try to continue if error is not fatal */
 /* TODO: Create separate func without line num */
@@ -64,12 +61,12 @@ static int count_chain(struct node *ast)
 	return 1 + count_chain(ast->two);
 }
 
-static void symtab_enter(char *key, void *data)
+static void symtab_enter(const char *key, void *data)
 {
 
 	ENTRY symtab_entry;
 
-	symtab_entry.key = key;
+	symtab_entry.key = (char *)key;
 	symtab_entry.data = data;
 
 	if (hsearch(symtab_entry, FIND) != NULL)
@@ -79,12 +76,12 @@ static void symtab_enter(char *key, void *data)
 		generror(">s");
 }
 
-static void *symtab_find(char *key)
+static void *symtab_find(const char *key)
 {
 
 	ENTRY symtab_lookup, *symtab_entry;
 
-	symtab_lookup.key = key;
+	symtab_lookup.key = (char *)key;
 	symtab_lookup.data = NULL;
 
 	symtab_entry = hsearch(symtab_lookup, FIND);
@@ -258,15 +255,15 @@ static void predeclare_labels(struct node *ast)
 		if (label_count >= MAX_LABELS)
 			generror(">i");
 
-		labels[label_count++] = label_block;
+		label_blocks[label_count++] = label_block;
 	}
 }
 
 LLVMValueRef gen_funcdef(struct node *ast)
 {
-	LLVMValueRef global, func;
+	LLVMValueRef global, func, retval;
 	LLVMTypeRef func_type, *param_types;
-	LLVMBasicBlockRef body_block;
+	LLVMBasicBlockRef body_block, ret_block;
 	int param_count, i;
 
 	if (hcreate(SYMTAB_SIZE) == 0)
@@ -282,7 +279,6 @@ LLVMValueRef gen_funcdef(struct node *ast)
 		param_types[i] = TYPE_INT;
 
 	func_type = LLVMFunctionType(TYPE_INT, param_types, param_count, 0);
-	/* TODO: give more descriptive name, like ".gfunc_NAME */
 	func = LLVMAddFunction(module, ".gfunc", func_type);
 	LLVMSetLinkage(func, LLVMPrivateLinkage);
 	/* TODO: How to specify stack alignment? Should be 16 bytes */
@@ -290,7 +286,6 @@ LLVMValueRef gen_funcdef(struct node *ast)
 
 	global = find_or_add_global(ast->one->val);
 	LLVMSetInitializer(global, LLVMBuildPtrToInt(builder, func, TYPE_INT, ""));
-	symtab_enter(ast->one->val, global);
 
 	body_block = LLVMAppendBasicBlock(func, "");
 	ret_block = LLVMAppendBasicBlock(func, "");
@@ -298,6 +293,10 @@ LLVMValueRef gen_funcdef(struct node *ast)
 
 	retval = LLVMBuildAlloca(builder, TYPE_INT, "");
 	LLVMBuildStore(builder, CONST(0), retval);
+
+	symtab_enter(ast->one->val, global);
+	symtab_enter(".return", ret_block);
+	symtab_enter(".retval", retval);
 
 	label_count = 0;
 	predeclare_labels(ast->three);
@@ -544,7 +543,7 @@ LLVMValueRef gen_goto(struct node *ast)
 			label_count);
 
 	for (i = 0; i < label_count; i++)
-		LLVMAddDestination(branch, labels[i]);
+		LLVMAddDestination(branch, label_blocks[i]);
 
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 	next_block = LLVMAppendBasicBlock(func, "");
@@ -555,14 +554,19 @@ LLVMValueRef gen_goto(struct node *ast)
 
 LLVMValueRef gen_return(struct node *ast)
 {
-	LLVMBasicBlockRef next_block;
+	LLVMValueRef func, retval;
+	LLVMBasicBlockRef next_block, ret_block;
+
+	ret_block = symtab_find(".return");
+	retval = symtab_find(".retval");
 
 	if (ast->one)
 		LLVMBuildStore(builder, codegen(ast->one), retval);
 
 	LLVMBuildBr(builder, ret_block);
 
-	next_block = LLVMInsertBasicBlock(ret_block, "");
+	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
+	next_block = LLVMAppendBasicBlock(func, "");
 	LLVMPositionBuilderAtEnd(builder, next_block);;
 
 	return NULL;
