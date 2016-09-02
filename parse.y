@@ -104,9 +104,8 @@ function_definition
 	;
 
 ival_list
-	/* TODO: Make everything left recursive, use helper functions */
-	: ival ',' ival_list
-		{ $$ = node2(gen_ivals, $1, $3); }
+	: ival_list ',' ival
+		{ $$ = node2(gen_ivals, $3, $1); }
 	| ival
 		{ $$ = node1(gen_ivals, $1); }
 	;
@@ -147,7 +146,6 @@ other_statement
 	| '{' statement_list '}'
 		{ $$ = node1(gen_compound, $2); }
 
-	/* shift-reduce conflict: ELSE binds to nearest IF by default */
 	| IF '(' expression ')' statement %prec THEN
 		{ $$ = node2(gen_if, $3, $5); }
 	| IF '(' expression ')' statement ELSE statement
@@ -172,8 +170,8 @@ other_statement
 /* TODO: rename to something like "name_const_list" to avoid confusion with ival_list */
 /* TODO: and remember to change the name in codegen too! */
 init_list
-	: init ',' init_list
-		{ $$ = node2(gen_inits, $1, $3); }
+	: init_list ',' init
+		{ $$ = node2(gen_inits, $3, $1); }
 	| init
 		{ $$ = node1(gen_inits, $1); }
 	;
@@ -191,8 +189,8 @@ init
 	;
 
 name_list
-	: NAME ',' name_list
-		{ $$ = node2(gen_names, leafnode(gen_name, $1), $3); }
+	: name_list ',' NAME
+		{ $$ = node2(gen_names, leafnode(gen_name, $3), $1); }
 	| NAME
 		{ $$ = node1(gen_names, leafnode(gen_name, $1)); }
 	;

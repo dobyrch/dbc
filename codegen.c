@@ -213,7 +213,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 
 	for (i = 0, n = ast->three; i < initsize; i++, n = n->two)
 		/* TODO: handle NAMES (convert global pointer to int) */
-		ival_list[i] = codegen(n->one);
+		ival_list[initsize - i - 1] = codegen(n->one);
 
 	for (i = initsize; i < size; i++)
 		ival_list[i] = CONST(0);
@@ -349,7 +349,7 @@ LLVMValueRef gen_names(struct node *ast)
 	func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 
 	/* Pam param, pam pam param... */
-	for (pam = LLVMGetFirstParam(func); pam; pam = LLVMGetNextParam(pam))
+	for (pam = LLVMGetLastParam(func); pam; pam = LLVMGetPreviousParam(pam))
 	{
 		name = ast->one->val;
 		var = LLVMBuildAlloca(builder, TYPE_INT, name);
@@ -1088,8 +1088,8 @@ LLVMValueRef gen_call(struct node *ast)
 	if (arg_count > 0 && arg_list == NULL)
 		generror("out of memory");
 
-	for (i = arg_count - 1, n = ast->two; i >= 0; i--, n = n->two)
-		arg_list[i] = codegen(n->one);
+	for (i = 0, n = ast->two; i < arg_count; i++, n = n->two)
+		arg_list[arg_count - i - 1] = codegen(n->one);
 
 	return LLVMBuildCall(builder, func, arg_list, arg_count, "");
 }
