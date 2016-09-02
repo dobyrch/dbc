@@ -199,7 +199,6 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	/*
 	 * TODO: Use convenience function for handling
 	 * chars and octal constants
-	 * TODO: Check for invalid (negative) array size
 	 */
 	initsize = count_chain(ast->three);
 	size = ast->two ? atol(ast->two->val) : 0;
@@ -253,7 +252,6 @@ static void predeclare_labels(struct node *ast)
 	if (ast->codegen == gen_label) {
 		name = ast->one->val;
 
-		/* TODO: Prefix label names to avoid clashes with do/then? */
 		func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 		label_block = LLVMAppendBasicBlock(func, name);
 		//symtab_enter(name, LLVMBlockAddress(func, label_block));
@@ -1081,7 +1079,6 @@ LLVMValueRef gen_index(struct node *ast)
 
 LLVMValueRef gen_call(struct node *ast)
 {
-	/* TODO: Check that existing global is a function with same # of args */
 	/* TODO: Standardize variable naming between gen_call and gen_*def */
 	LLVMValueRef func, *arg_list = NULL;
 	struct node *n;
