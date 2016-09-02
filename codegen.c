@@ -129,8 +129,6 @@ static LLVMValueRef lvalue_to_rvalue(LLVMValueRef lvalue)
 
 void compile(struct node *ast, const char *outfile)
 {
-	LLVMPassManagerRef pass_manager;
-
 	/* TODO: Free module, define "dbc" as constant */
 	if ((module = LLVMModuleCreateWithName("dbc")) == NULL)
 		generror("Failed to create LLVM module");
@@ -147,14 +145,6 @@ void compile(struct node *ast, const char *outfile)
 			"<https://github.com/dobyrch/dbc/issues>\n");
 		exit(EXIT_FAILURE);
 	}
-
-	pass_manager = LLVMCreatePassManager();
-	LLVMAddBasicAliasAnalysisPass(pass_manager);
-	LLVMAddInstructionCombiningPass(pass_manager);
-	LLVMAddReassociatePass(pass_manager);
-	LLVMAddGVNPass(pass_manager);
-	LLVMAddCFGSimplificationPass(pass_manager);
-	LLVMRunPassManager(pass_manager, module);
 
 	if (LLVMWriteBitcodeToFile(module, outfile) != 0)
 		generror("Failed to write bitcode");
