@@ -220,7 +220,6 @@ LLVMValueRef gen_vecdef(struct node *ast)
 
 	global = find_or_add_global(ast->one->val);
 	array = LLVMAddGlobal(module, TYPE_ARRAY(size), ".gvec");
-	/* Can external code update the backing array if it's private? */
 	LLVMSetLinkage(array, LLVMPrivateLinkage);
 
 	if (initsize)
@@ -254,7 +253,6 @@ static void predeclare_labels(struct node *ast)
 
 		func = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 		label_block = LLVMAppendBasicBlock(func, name);
-		//symtab_enter(name, LLVMBlockAddress(func, label_block));
 		symtab_enter(name, label_block);
 
 		if (label_count >= MAX_LABELS)
