@@ -26,6 +26,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "arch.h"
@@ -575,8 +576,16 @@ static long b_stty(long fd, long ttystat)
 __attribute__((aligned(WORDSIZE)))
 static long b_time(long tloc)
 {
-	tloc <<= WORDPOW;
-	return asm_syscall(SYS_time, tloc, 0, 0, 0);
+	struct timespec tspec;
+	long *t;
+	long r;
+
+	r = asm_syscall(SYS_clock_gettime, CLOCK_REALTIME, (long)&tspec, 0, 0);
+
+	t = (long *)(tloc << WORDPOW);
+	t[0] = tspec.tv_sec;
+
+	return r;
 }
 
 __attribute__((aligned(WORDSIZE)))
