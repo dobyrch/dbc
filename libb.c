@@ -18,9 +18,9 @@
  */
 
 #include <sys/ioctl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -603,14 +603,7 @@ static long b_unlink(long path)
 __attribute__((aligned(WORDSIZE)))
 static long b_wait()
 {
-	/*
-	 * POSIX mandates that the siginfo_t pointer given to waitid not
-	 * be NULL.  Let's comply to the standards, even though we won't
-	 * use this siginfo_t.
-	 */
-	siginfo_t info;
-
-	return asm_syscall(SYS_waitid, P_ALL, 0, (long)&info, WEXITED);
+	return asm_syscall(SYS_wait4, -1, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
