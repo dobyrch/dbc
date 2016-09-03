@@ -272,6 +272,7 @@ static long b_execv(long path, long args, long count)
 __attribute__((aligned(WORDSIZE)))
 static long b_exit(long status)
 {
+	asm_syscall(__NR_write, STDOUT_FILENO, (long)stdbuf.data, stdbuf.n, 0);
 	return asm_syscall(__NR_exit, status, 0, 0, 0);
 }
 
