@@ -11,6 +11,11 @@
 #include "arch.h"
 #include "constants.h"
 
+static struct {
+	char data[STDOUT_BUFSIZE];
+	int n;
+} stdbuf;
+
 static long asm_syscall(long sc , long a1, long a2, long a3, long a4)
 {
 	register long ret asm(RT);
@@ -396,10 +401,8 @@ static long b_open(long path, long mode)
 __attribute__((aligned(WORDSIZE)))
 static long b_putchar(long c)
 {
-	/* TODO: buffer until newline */
-	char buf[WORDSIZE];
 	const char *p;
-	int i, n = 0;
+	int i;
 
 	p = (char *)&c;
 
@@ -407,15 +410,19 @@ static long b_putchar(long c)
 		if (*p == '\0')
 			continue;
 
-		buf[n] = *p;
-		n++;
+		stdbuf.data[stdbuf.n] = *p;
+		stdbuf.n++;
+
+		if (*p == '\n' || stdbuf.n >= STDOUT_BUFSIZE) {
+			asm_syscall(__NR_write, STDOUT_FILENO,
+				(long)stdbuf.data, stdbuf.n, 0);
+			stdbuf.n = 0;
+		}
+
 		p++;
 	}
 
-	if (asm_syscall(__NR_write, STDOUT_FILENO, (long)buf, n, 0) != n)
-		return -1;
-
-	return c;
+	return 0;
 }
 
 __attribute__((aligned(WORDSIZE)))

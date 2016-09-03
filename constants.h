@@ -1,5 +1,6 @@
 #define WORDSIZE (1 << WORDPOW)
 
+#define STDOUT_BUFSIZE 1024
 #define MAX_STRSIZE 4096
 #define MAX_ARGS 256
 
