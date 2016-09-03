@@ -357,7 +357,7 @@ static long b_gtty(long fd, long ttystat)
 	long *t;
 	long r;
 
-	r = asm_syscall(SYS_ioctl, fd, TCGETS, (long)&buf, 0);
+	r = asm_syscall(SYS_ioctl, fd, TGET, (long)&buf, 0);
 
 	t = (long *)(ttystat << WORDPOW);
 	t[0] = buf.c_iflag;
@@ -570,7 +570,7 @@ static long b_stty(long fd, long ttystat)
 	buf.c_cflag = t[2];
 	buf.c_lflag = t[3];
 
-	return asm_syscall(SYS_ioctl, fd, TCSETS, (long)&buf, 0);
+	return asm_syscall(SYS_ioctl, fd, TSET, (long)&buf, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))

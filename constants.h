@@ -31,3 +31,14 @@
 /* Average, counting leap years */
 #define SEC_PER_MONTH 2629746
 #define SEC_PER_YEAR (12 * SEC_PER_MONTH)
+
+/* Linux and the BSDs use different names for tty ioctls */
+#ifdef TCGETS
+	#define TGET TCGETS
+	#define TSET TCSETS
+#elif TIOCGETA
+	#define TGET TIOCGETA
+	#define TSET TIOCSETA
+#else
+	#error Unknown platform
+#endif
