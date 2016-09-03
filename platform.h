@@ -33,7 +33,7 @@
  * New additions also require an entry in start.S to set up command-
  * line arguments.
  */
-#if __amd64__
+#if defined(__amd64__)
 	#define TYPE_INT LLVMInt64Type()
 	#define WORDPOW 3
 	#define SYSCALL "syscall"
@@ -43,7 +43,7 @@
 	#define A2 "rsi"
 	#define A3 "rdx"
 	#define A4 "r10"
-#elif __i386__
+#elif defined(__i386__)
 	#define TYPE_INT LLVMInt32Type()
 	#define WORDPOW 2
 	#define SYSCALL "int $0x80"
@@ -53,7 +53,7 @@
 	#define A2 "ecx"
 	#define A3 "edx"
 	#define A4 "esi"
-#elif __arm__
+#elif defined(__arm__)
 	#define TYPE_INT LLVMInt32Type()
 	#define WORDPOW 2
 	#define SYSCALL "swi 0x0"
