@@ -109,7 +109,7 @@ static long b_chdir(long path)
 	long r;
 
 	path = cstringify(path);
-	r = asm_syscall(__NR_chdir, path, 0, 0, 0);
+	r = asm_syscall(SYS_chdir, path, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -121,7 +121,7 @@ static long b_chmod(long path, long mode)
 	long r;
 
 	path = cstringify(path);
-	r = asm_syscall(__NR_chmod, path, mode, 0, 0);
+	r = asm_syscall(SYS_chmod, path, mode, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -133,7 +133,7 @@ static long b_chown(long path, long owner)
 	long r;
 
 	path = cstringify(path);
-	r = asm_syscall(__NR_chown, path, owner, -1, 0);
+	r = asm_syscall(SYS_chown, path, owner, -1, 0);
 	bstringify(path);
 
 	return r;
@@ -142,7 +142,7 @@ static long b_chown(long path, long owner)
 __attribute__((aligned(WORDSIZE)))
 static long b_close(long fd)
 {
-	return asm_syscall(__NR_close, fd, 0, 0, 0);
+	return asm_syscall(SYS_close, fd, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -151,7 +151,7 @@ static long b_creat(long path, long mode)
 	long r;
 
 	path = cstringify(path);
-	r = asm_syscall(__NR_creat, path, mode, 0, 0);
+	r = asm_syscall(SYS_creat, path, mode, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -251,7 +251,7 @@ static long b_execl(long path, ...)
 	av[i] = 0;
 	envp[0] = 0;
 
-	asm_syscall(__NR_execve, av[0], (long)av, (long)envp, 0);
+	asm_syscall(SYS_execve, av[0], (long)av, (long)envp, 0);
 
 	/* If we're still here, execve must have failed */
 	for (i = 0; i < count; i++)
@@ -281,7 +281,7 @@ static long b_execv(long path, long args, long count)
 	av[0] = cstringify(path);
 	envp[0] = 0;
 
-	asm_syscall(__NR_execve, av[0], (long)av, (long)envp, 0);
+	asm_syscall(SYS_execve, av[0], (long)av, (long)envp, 0);
 
 	for (i = 0; i <= count; i++)
 		bstringify(av[i]);
@@ -292,14 +292,14 @@ static long b_execv(long path, long args, long count)
 __attribute__((aligned(WORDSIZE)))
 static long b_exit(long status)
 {
-	asm_syscall(__NR_write, STDOUT_FILENO, (long)stdbuf.data, stdbuf.n, 0);
-	return asm_syscall(__NR_exit, status, 0, 0, 0);
+	asm_syscall(SYS_write, STDOUT_FILENO, (long)stdbuf.data, stdbuf.n, 0);
+	return asm_syscall(SYS_exit, status, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_fork()
 {
-	return asm_syscall(__NR_fork, 0, 0, 0, 0);
+	return asm_syscall(SYS_fork, 0, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -309,7 +309,7 @@ static long b_fstat(long fd, long status)
 	long *s;
 	long r;
 
-	r = asm_syscall(__NR_fstat, fd, (long)&buf, 0, 0);
+	r = asm_syscall(SYS_fstat, fd, (long)&buf, 0, 0);
 
 	s = (long *)(status << WORDPOW);
 	s[0]  = buf.st_dev;
@@ -337,7 +337,7 @@ static long b_getchar()
 {
 	long c;
 
-	if (asm_syscall(__NR_read, STDIN_FILENO, (long)&c, 1, 0) != 1)
+	if (asm_syscall(SYS_read, STDIN_FILENO, (long)&c, 1, 0) != 1)
 		return -1;
 
 	return c;
@@ -346,7 +346,7 @@ static long b_getchar()
 __attribute__((aligned(WORDSIZE)))
 static long b_getuid()
 {
-	return asm_syscall(__NR_getuid, 0, 0, 0, 0);
+	return asm_syscall(SYS_getuid, 0, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -356,7 +356,7 @@ static long b_gtty(long fd, long ttystat)
 	long *t;
 	long r;
 
-	r = asm_syscall(__NR_ioctl, fd, TCGETS, (long)&buf, 0);
+	r = asm_syscall(SYS_ioctl, fd, TCGETS, (long)&buf, 0);
 
 	t = (long *)(ttystat << WORDPOW);
 	t[0] = buf.c_iflag;
@@ -385,7 +385,7 @@ static long b_link(long oldpath, long newpath)
 
 	oldpath = cstringify(oldpath);
 	newpath = cstringify(newpath);
-	r = asm_syscall(__NR_link, oldpath, newpath, 0, 0);
+	r = asm_syscall(SYS_link, oldpath, newpath, 0, 0);
 	bstringify(oldpath);
 	bstringify(newpath);
 
@@ -398,7 +398,7 @@ static long b_mkdir(long path, long mode)
 	long r;
 
 	path = cstringify(path);
-	return asm_syscall(__NR_mkdir, mode, 0, 0, 0);
+	return asm_syscall(SYS_mkdir, mode, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -413,7 +413,7 @@ static long b_open(long path, long mode)
 		mode = O_RDWR;
 
 	path = cstringify(path);
-	r = asm_syscall(__NR_open, path, 0, mode, 0);
+	r = asm_syscall(SYS_open, path, 0, mode, 0);
 	bstringify(path);
 
 	return r;
@@ -435,7 +435,7 @@ static long b_putchar(long c)
 		stdbuf.n++;
 
 		if (*p == '\n' || stdbuf.n >= STDOUT_BUFSIZE) {
-			asm_syscall(__NR_write, STDOUT_FILENO,
+			asm_syscall(SYS_write, STDOUT_FILENO,
 				(long)stdbuf.data, stdbuf.n, 0);
 			stdbuf.n = 0;
 		}
@@ -510,19 +510,19 @@ __attribute__((aligned(WORDSIZE)))
 static long b_read(long fd, long buf, long count)
 {
 	buf <<= WORDPOW;
-	return asm_syscall(__NR_read, fd, buf, count, 0);
+	return asm_syscall(SYS_read, fd, buf, count, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_seek(long fd, long offset, long whence)
 {
-	return asm_syscall(__NR_lseek, fd, offset, whence, 0);
+	return asm_syscall(SYS_lseek, fd, offset, whence, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_setuid(long id)
 {
-	return asm_syscall(__NR_setuid, id, 0, 0, 0);
+	return asm_syscall(SYS_setuid, id, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -533,7 +533,7 @@ static long b_stat(long path, long status)
 	long r;
 
 	path = cstringify(path);
-	r = asm_syscall(__NR_stat, path, (long)&buf, 0, 0);
+	r = asm_syscall(SYS_stat, path, (long)&buf, 0, 0);
 	bstringify(path);
 
 	s = (long *)(status << WORDPOW);
@@ -569,14 +569,14 @@ static long b_stty(long fd, long ttystat)
 	buf.c_cflag = t[2];
 	buf.c_lflag = t[3];
 
-	return asm_syscall(__NR_ioctl, fd, TCSETS, (long)&buf, 0);
+	return asm_syscall(SYS_ioctl, fd, TCSETS, (long)&buf, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_time(long tloc)
 {
 	tloc <<= WORDPOW;
-	return asm_syscall(__NR_time, tloc, 0, 0, 0);
+	return asm_syscall(SYS_time, tloc, 0, 0, 0);
 }
 
 __attribute__((aligned(WORDSIZE)))
@@ -585,7 +585,7 @@ static long b_unlink(long path)
 	long r;
 
 	path = cstringify(path);
-	r = asm_syscall(__NR_unlink, path, 0, 0, 0);
+	r = asm_syscall(SYS_unlink, path, 0, 0, 0);
 	bstringify(path);
 
 	return r;
@@ -601,14 +601,14 @@ static long b_wait()
 	 */
 	siginfo_t info;
 
-	return asm_syscall(__NR_waitid, P_ALL, 0, (long)&info, WEXITED);
+	return asm_syscall(SYS_waitid, P_ALL, 0, (long)&info, WEXITED);
 }
 
 __attribute__((aligned(WORDSIZE)))
 static long b_write(long fd, long buf, long count)
 {
 	buf <<= WORDPOW;
-	return asm_syscall(__NR_write, fd, buf, count, 0);
+	return asm_syscall(SYS_write, fd, buf, count, 0);
 }
 
 /*
