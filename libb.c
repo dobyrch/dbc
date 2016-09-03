@@ -17,14 +17,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <asm/termios.h>
-#include <asm/unistd.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include "arch.h"
