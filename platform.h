@@ -17,6 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <sys/ioctl.h>
+
 /*
  * All architectures require the following definitions:
  *
@@ -31,8 +33,7 @@
  * New additions also require an entry in start.S to set up command-
  * line arguments.
  */
-
-#ifdef __amd64__
+#if __amd64__
 	#define TYPE_INT LLVMInt64Type()
 	#define WORDPOW 3
 	#define SYSCALL "syscall"
@@ -64,4 +65,15 @@
 	#define A4 "r3"
 #else
 	#error unknown architecture
+#endif
+
+/* Linux and the BSDs use different names for tty ioctls */
+#if defined(TCGETS)
+	#define TGET TCGETS
+	#define TSET TCSETS
+#elif defined(TIOCGETA)
+	#define TGET TIOCGETA
+	#define TSET TIOCSETA
+#else
+	#error Unknown platform
 #endif

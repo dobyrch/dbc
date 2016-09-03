@@ -17,7 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <sys/ioctl.h>
 #include <limits.h>
 #include <search.h>
 #include <stdarg.h>
@@ -28,13 +27,12 @@
 #include <llvm-c/Core.h>
 #include <llvm-c/Analysis.h>
 #include <llvm-c/BitWriter.h>
-#include <llvm-c/Transforms/Scalar.h>
 
 #include "y.tab.h"
 #include "astnode.h"
-#include "arch.h"
 #include "codegen.h"
 #include "constants.h"
+#include "platform.h"
 
 #define SYMTAB_SIZE 1024
 #define MAX_LABELS 256
