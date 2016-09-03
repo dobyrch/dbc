@@ -152,7 +152,7 @@ static long b_creat(long path, long mode)
 	long r;
 
 	path = cstringify(path);
-	r = asm_syscall(SYS_creat, path, mode, 0, 0);
+	r = asm_syscall(SYS_open, path, O_CREAT|O_WRONLY|O_TRUNC, mode, 0);
 	bstringify(path);
 
 	return r;
@@ -406,15 +406,15 @@ static long b_mkdir(long path, long mode)
 }
 
 __attribute__((aligned(WORDSIZE)))
-static long b_open(long path, long mode)
+static long b_open(long path, long flag)
 {
 	long r;
 
-	if (mode < 0 || mode > 2)
-		mode = O_RDWR;
+	if (flag < 0 || flag > 2)
+		flag = O_RDWR;
 
 	path = cstringify(path);
-	r = asm_syscall(SYS_open, path, 0, mode, 0);
+	r = asm_syscall(SYS_open, path, flag, 0, 0);
 	bstringify(path);
 
 	return r;
