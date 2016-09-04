@@ -20,7 +20,7 @@ This project is still rough around the edges, but it should be functional enough
 
 - Indirectly assigning to a global variable will have strange results (e.g. `foo = 40` is fine, but `*&foo = 40` will actually set foo to 5, not 40).  This issue does not affect local variable assignment, nor does it affect assignment to array indices (i.e. if `foo` is a global vector, `foo[3] = 40` works as expected). The problem stems from a kludge which is necessary to achieve correct pointer arithmetic semantics.
 
-- Global vector initializer lists may not contain strings.  I suspect this may be a bug in LLVM (see [`llvm_bug.c`](https://github.com/dobyrch/dbc/blob/master/llvm_bug.c)), although I haven't looked into it further.
+- Global vector initializer lists may not contain strings.  I suspect this may be a bug in LLVM (see [`llvm_bug.c`](llvm_bug.c)), although I haven't looked into it further.
 
 - A simple definition may contain at most one value in its initializer list.  I have not yet found a reasonable way to implement the semantics described in section 7.1 of the manual; use a vector definition instead (e.g. `foo[5] 1, 2, 3, 4, 5;` instead of `foo 1 2 3 4 5;`).  Incidentally, this same restriction seemed to be present in the H6070 implementation of B.
 
@@ -31,7 +31,7 @@ How to run
 
 You'll need a few things to get started:
 
-- A computer running Linux (x86 or x86-64)
+- A computer running Linux or FreeBSD¹ (x86 or x86-64)²
 - LLVM libraries and header files
 - Your favorite C compiler (tested with clang 3.8 and gcc 6.1)
 - A C++ compiler of your choice (for linking with LLVM; clang++ and g++ should both work)
@@ -41,7 +41,7 @@ You'll need a few things to get started:
 - GNU make
 - This source code
 
-Check your distribution's repositories for any missing components.
+Check your distribution's repositories for any missing components (Ubuntu, for example, also requires the `zlib1g-dev` package)
 
 Once you have everything installed, `cd` to the directory containing the source code for `dbc` and run `make`. If all goes well, you should now be the proud owner of a binary named `dbc`. While you're at it, also run `make libb.a` to generate the B standard library.
 
@@ -54,6 +54,10 @@ Now that you've compiled the compiler, you're just a few steps away from compili
 5. `./a.out` - Run your first B program!
 
 To make the process less tedious, the `dbrc` script may be used to execute the same sequence of commands: `./dbrc sample.b` (Don't expect anything fancy—it runs that exact sequence of commands, nothing more, nothing less).
+
+¹FreeBSD and Linux use [different conventions](https://www.freebsd.org/doc/en/books/developers-handbook/x86-system-calls.html) for making syscalls on x86; run `brandelf -t Linux a.out` before executing a binary compiled by `dbrc` on FreeBSD (note that this is only necessary for x86, not x86_64)
+
+²ARM is also supported, but compiled programs must be linked against libc due to the lack of an integer division instruction on ARM
 
 Differences between B and C
 ---------------------------
