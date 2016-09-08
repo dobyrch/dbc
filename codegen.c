@@ -140,7 +140,7 @@ static LLVMValueRef lvalue_to_rvalue(LLVMValueRef lvalue)
 	* TODO: Make sure all addresses are word-aligned
 	*       (autos, vectors, strings, etc.)
 	*/
-	lvalue =  LLVMBuildPtrToInt(builder, lvalue, TYPE_INT, "");
+	lvalue = LLVMBuildPtrToInt(builder, lvalue, TYPE_INT, "");
 
 	return LLVMBuildLShr(builder, lvalue, CONST(WORDPOW), "");
 }
