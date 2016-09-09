@@ -20,11 +20,9 @@ This project is still rough around the edges, but it should be functional enough
 
 - Indirectly assigning to a global variable will have strange results (e.g. `foo = 40` is fine, but `*&foo = 40` will actually set foo to 5, not 40).  This issue does not affect local variable assignment, nor does it affect assignment to array indices (i.e. if `foo` is a global vector, `foo[3] = 40` works as expected). The problem stems from a kludge which is necessary to achieve correct pointer arithmetic semantics.
 
-- Global vector initializer lists may not contain strings.  I suspect this may be a bug in LLVM (see [`llvm_bug.c`](llvm_bug.c)), although I haven't looked into it further.
-
 - A simple definition may contain at most one value in its initializer list.  I have not yet found a reasonable way to implement the semantics described in section 7.1 of the manual; use a vector definition instead (e.g. `foo[5] 1, 2, 3, 4, 5;` instead of `foo 1 2 3 4 5;`).  Incidentally, this same restriction seemed to be present in the H6070 implementation of B.
 
-- Initializer lists may not contain names of other globals (this one shouldn't be difficult to implement).
+- Global initializer lists may not contain strings or names of other globals (yet).
 
 How to run
 ----------

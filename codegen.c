@@ -228,7 +228,7 @@ LLVMValueRef gen_vecdef(struct node *ast)
 	LLVMSetLinkage(array, LLVMPrivateLinkage);
 
 	if (initsize)
-		init = LLVMConstArray(TYPE_ARRAY(size), ival_list, size);
+		init = LLVMConstArray(TYPE_INT, ival_list, size);
 	else
 		init = LLVMConstNull(TYPE_ARRAY(size));
 
@@ -344,7 +344,7 @@ LLVMValueRef gen_ivals(struct node *ast)
 		ival_list[i] = codegen(ast->one);
 
 	/* TODO: Figure out how to initialize int with vector without error */
-	/*return LLVMConstArray(TYPE_ARRAY(size), ival_list, size);*/
+	/*return LLVMConstArray(TYPE_INT, ival_list, size);*/
 	return size ? ival_list[0] : CONST(0);
 }
 
@@ -1220,7 +1220,7 @@ static LLVMValueRef make_str(const char *str)
 	global = LLVMAddGlobal(module, TYPE_ARRAY(size), ".gstr");
 	LLVMSetLinkage(global, LLVMPrivateLinkage);
 
-	strval = LLVMConstArray(TYPE_ARRAY(size), chars, size);
+	strval = LLVMConstArray(TYPE_INT, chars, size);
 	LLVMSetInitializer(global, strval);
 
 	return lvalue_to_rvalue(global);
